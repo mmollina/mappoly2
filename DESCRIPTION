@@ -1,0 +1,68 @@
+Package: mappoly2
+Title: Genetic Linkage Maps in Autopolyploids
+Version: 2.0.0
+Authors@R: c(person(given = "Marcelo",
+                    family = "Mollinari",
+                    role = c("aut", "cre"),
+                    email = "mmollin@ncsu.edu",
+                    comment = c(ORCID="0000-0002-7001-8498")),
+            person(given = "Gabriel",
+                    family = "Gesteira",
+                    role = "aut",
+                    email = "gdesiqu@ncsu.edu",
+                    comment = c(ORCID="0000-0002-4106-7346")),
+            person(given = "Cristiane",
+                    family = "Taniguti",
+                    role = "aut",
+                    email = "chtaniguti@tamu.edu",
+                    comment = c(ORCID="0000-0002-2021-6883")),
+            person(given = "Guilhereme",
+                    family = "Pereira",
+                    role = "ctb",
+                    comment = c(ORCID="0000-0002-7106-8630")),
+            person(given = "Augusto",
+                    family = "Garcia",
+                    role = "ctb",
+                    comment = c(ORCID="0000-0003-0634-3277")),
+            person(given = "Zhao-Bang",
+                    family = "Zeng",
+                    role = "ctb",
+                    comment = c(ORCID="0000-0002-3115-1149")),
+            person(given = "Katharine",
+                    family = "Preedy",
+                    role = c("ctb", "cph"),
+                    comment = "MDS ordering algorithm"),
+            person(given = "Robert",
+                   family = "Gentleman",
+                    role = "cph",
+                    comment = "C code for MLE optimization in src/pairwise_estimation.cpp"),
+            person(given = "Ross",
+                    family = "Ihaka",
+                     role = "cph",
+                    comment = "C code for MLE optimization in src/pairwise_estimation.cpp"),
+            person(given = "R Foundation",
+                    role = "cph",
+                    comment = "C code for MLE optimization in src/pairwise_estimation.cpp"),
+            person(given = "R-core",
+                    role = "cph",
+                    comment = "C code for MLE optimization in src/pairwise_estimation.cpp"))
+Maintainer: Marcelo Mollinari <mmollin@ncsu.edu>
+Description: What the package does (one paragraph).
+License: MIT + file LICENSE
+LazyData: TRUE
+LazyDataCompression: xz
+Depends:
+    R (>= 4.2.0)
+Imports:
+    Rcpp (>= 1.0.0),
+    RcppParallel (>= 5.1.0)
+LinkingTo: Rcpp, RcppParallel
+Encoding: UTF-8
+Roxygen: list(markdown = TRUE)
+RoxygenNote: 7.2.3
+SystemRequirements: C++11, GNU make
+Suggests:
+    testthat
+URL: https://github.com/mmollina/MAPpoly
+BugReports: https://github.com/mmollina/MAPpoly/issues
+VignetteBuilder: knitr
