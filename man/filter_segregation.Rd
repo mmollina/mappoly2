@@ -27,13 +27,6 @@ This function filters markers based on the p-values obtained from a chi-square t
 The chi-square test assumes that the markers follow the expected segregation patterns under
 Mendelian inheritance, random chromosome bivalent pairing, and no double reduction.
 }
-\examples{
-mrks.chi.filt <- filter_segregation(input.obj = tetra.solcap,
-                                    chisq.pval.thres = 0.05/tetra.solcap$n.mrk,
-                                    inter = TRUE)
-seq.init <- make_seq_mappoly(mrks.chi.filt)
-
-}
 \author{
 Marcelo Mollinari
 \email{mmollin@ncsu.edu}

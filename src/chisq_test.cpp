@@ -1,11 +1,3 @@
-//' Chi-square test
- //'
- //' @name mappoly_chisq_test
- //' @param void internal function
- //' @export mappoly_chisq_test
-
- //@keywords internal
-
 #include <Rcpp.h>
 #include  "segreg_poly.h"
  using namespace Rcpp;
@@ -50,12 +42,6 @@
    input_data["chisq.pval"] = chisq_p_out;
    return input_data;
  }
-
- //' Filter non-conforming classes in F1, non double reduced population
- //'
- //' @name filter_non_conforming_classes
- //' @param void internal function
- //' @export filter_non_conforming_classes
 
  // [[Rcpp::export]]
  List filter_non_conforming_classes(List input_data) {

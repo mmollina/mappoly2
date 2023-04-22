@@ -69,13 +69,18 @@
 #' \donttest{
 #' tempfl <- list.files(system.file('extdata', package = 'mappoly2'),
 #'                      full.names = TRUE)
-#' SolCAP.dose <- read_geno_csv(file.in  = tempfl,  ploidy.p1 = 4, name.p1 = "Atlantic", name.p2 = "B1829-5")
+#' SolCAP.dose <- read_geno_csv(file.in  = tempfl,
+#'                                         ploidy.p1 = 4,
+#'                                         name.p1 = "Atlantic",
+#'                                         name.p2 = "B1829-5")
 #' print(SolCAP.dose, detailed = TRUE)
 #' plot(SolCAP.dose)
 #'}
 #' @author Marcelo Mollinari, \email{mmollin@ncsu.edu} and
 #' Gabriel Gesteira, \email{gdesiqu@ncsu.edu}
-#'
+#' @importFrom grDevices rgb
+#' @importFrom stats na.omit
+#' @importFrom utils read.csv
 #' @export read_geno_csv
 read_geno_csv <- function(file.in,
                           ploidy.p1,

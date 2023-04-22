@@ -8,8 +8,8 @@
 This list is of class \code{mappoly2.data} and contains the following components:
 
 \describe{
-\item{ploidy.p1}{The ploidy level of parent P1 is 4.}
-\item{ploidy.p2}{The ploidy level of parent P2 is 4.}
+\item{ploidy.p1}{The ploidy level of parent P1 (Atlantic) is 4.}
+\item{ploidy.p2}{The ploidy level of parent P2 (B1829-5) is 4.}
 \item{n.ind}{The total number of individuals is 156.}
 \item{n.mrk}{The total number of markers is 6511, filtered for redundancy.}
 \item{ind.names}{A character vector of the names of the individuals.}

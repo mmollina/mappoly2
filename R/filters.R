@@ -6,6 +6,7 @@
 #' @return An object of class \code{mappoly2.seq}
 #'
 #' @export filter_redundant
+#' @import graphics
 filter_redundant <- function(input.seq)
 {
   x<-input.seq$data$geno.dose[input.seq$mrk.names, ]
@@ -198,12 +199,6 @@ filter_missing_ind <- function(input.data, filter.thres = 0.2, inter = TRUE) {
 #' \item{exclude}{markers with distorted segregation}
 #' \item{chisq.pval.thres}{threshold p-value used for chi-square tests}
 #' \item{data.name}{name of the input dataset used to perform the chi-square tests}
-#'
-#'@examples
-#' mrks.chi.filt <- filter_segregation(input.obj = tetra.solcap,
-#'                                     chisq.pval.thres = 0.05/tetra.solcap$n.mrk,
-#'                                     inter = TRUE)
-#' seq.init <- make_seq_mappoly(mrks.chi.filt)
 #'
 #' @author Marcelo Mollinari
 #' \email{mmollin@ncsu.edu}

@@ -69,14 +69,6 @@
 #'         with the 2-point analyses. \code{-1} means that the twopt
 #'         estimates were not computed}
 #'
-#' @examples
-#'     all.mrk <- make_seq(hexafake, 'all')
-#'     seq1.mrk <- make_seq(hexafake, 'chr1')
-#'     plot(seq1.mrk)
-#'     some.mrk.pos <- c(1,4,28,32,45)
-#'     (some.mrk.1 <- make_seq(hexafake, some.mrk.pos))
-#'     plot(some.mrk.1)
-#'
 #' @author Marcelo Mollinari (\email{mmollin@ncsu.edu}) and
 #'         Gabriel Gesteira, (\email{gdesiqu@ncsu.edu})
 #' @export

@@ -14,38 +14,29 @@ est_pairwise_rf(
 )
 }
 \arguments{
-\item{input.seq}{An object of class \code{mappoly.sequence}}
+\item{input.seq}{An object of class \code{mappoly2.sequence}}
 
-\item{ncpus}{Number of parallel processes (cores) to spawn (default = 1)}
+\item{ncpus}{Number of parallel processes (cores) to use (default = 1)}
 
-\item{mrk.pairs}{A matrix of dimensions 2*N, containing N
-pairs of markers to be analyzed. If \code{NULL} (default), all pairs are
-considered}
+\item{mrk.pairs}{A 2xN matrix containing N pairs of markers to analyze. If \code{NULL} (default), all pairs are considered}
 
-\item{verbose}{If \code{TRUE} (default), current progress is shown; if
-\code{FALSE}, no output is produced}
+\item{verbose}{If \code{TRUE} (default), displays information about the analysis}
 
-\item{tol}{The desired accuracy. See \code{optimize()} for details}
+\item{tol}{Desired accuracy. See \code{optimize()} for details}
 
-\item{ll}{If \code{TRUE}, will return log-likelihood instead of LOD scores
-(for internal use)}
+\item{ll}{If \code{TRUE}, returns log-likelihood instead of LOD scores (for internal use)}
 }
 \value{
-An object of class \code{mappoly2.twopt} which
-is a list containing the following components:
-\item{input.seq}{The input sequence; an object of class
-\code{mappoly2.sequence} with the raw data}
-\item{pairwise}{A list where each element is a data frame. The row names have the form x-y, where x and y indicate
-how many homologues share the same allelic variant in parents P and Q,
-respectively (see Mollinari and Garcia, 2019 for notation). The first
-column indicates the LOD Score in relation to the most likely linkage
-phase configuration. The second column shows the estimated recombination
-fraction for each configuration, and the third indicates the LOD Score
-comparing the likelihood under no linkage (r = 0.5) with the estimated
-recombination fraction (evidence of linkage).}
+An object of class \code{mappoly2.twopt} which is a list containing the following components:
+\item{input.seq}{The input sequence; an object of class \code{mappoly2.sequence} with the raw data}
+\item{pairwise}{A list where each element is a data frame. Row names have the format x-y, where x and y represent the
+number of homolos sharing the same allelic variant in parents P1 and P2, respectively (see Mollinari and Garcia, 2019 for notation).
+The first column contains the LOD Score in relation to the most likely linkage phase configuration. The second column shows the estimated
+recombination fraction for each configuration, and the third column contains the LOD Score comparing the likelihood under no linkage (r = 0.5)
+with the estimated recombination fraction (evidence of linkage).}
 }
 \description{
-Performs the two-point pairwise analysis between all markers in a sequence.
-For each pair, the function estimates the recombination fraction for all
-possible linkage phase configurations and respective LOD Scores.
+Performs a pairwise two-point analysis for all marker pairs in a given sequence.
+The function estimates the recombination fraction for all possible linkage phase
+configurations and their respective LOD Scores.
 }
