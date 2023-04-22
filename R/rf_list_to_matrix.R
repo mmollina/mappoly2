@@ -49,19 +49,6 @@
 #'     filtered recombination fraction and the second one contains the
 #'     information matrix
 #'
-#' @examples
-#'     all.mrk <- make_seq_mappoly(hexafake, 1:20)
-#'     red.mrk <- elim_redundant(all.mrk)
-#'     unique.mrks <- make_seq_mappoly(red.mrk)
-#'     all.pairs <- est_pairwise_rf(input.seq = unique.mrks,
-#'                                ncpus = 1,
-#'                                verbose = TRUE)
-#'
-#'     ## Full recombination fraction matrix
-#'     mat.full <- rf_list_to_matrix(input.twopt = all.pairs)
-#'     plot(mat.full)
-#'     plot(mat.full, type = "lod")
-#'
 #' @author Marcelo Mollinari, \email{mmollin@ncsu.edu}
 #'
 #' @references
@@ -272,4 +259,22 @@ select_rf <- function(x, thresh.LOD.ph, thresh.LOD.rf, thresh.rf, shared.alleles
       if(shared.alleles){return(c(NA,NA,NA,NA,NA))} else return(c(NA,NA,NA))
     }
   }
+}
+
+
+#' Aggregate matrix cells (lower the resolution by a factor)
+#'
+#' @param void internal function to be documented
+#' @keywords internal
+#' @export
+aggregate_matrix <- function(M, fact){
+  id <- seq(1,ncol(M), by = fact)
+  id <- cbind(id, c(id[-1]-1, ncol(M)))
+  R <- matrix(NA, nrow(id), nrow(id))
+  for(i in 1:(nrow(id)-1)){
+    for(j in (i+1):nrow(id)){
+      R[j,i] <-  R[i,j] <- mean(M[id[i,1]:id[i,2], id[j,1]:id[j,2]], na.rm = TRUE)
+    }
+  }
+  R
 }

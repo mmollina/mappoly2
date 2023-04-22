@@ -94,7 +94,10 @@ For a tetraploid example of such a file, see the \code{Examples} section.
 \donttest{
 tempfl <- list.files(system.file('extdata', package = 'mappoly2'),
                      full.names = TRUE)
-SolCAP.dose <- read_geno_csv(file.in  = tempfl,  ploidy.p1 = 4, name.p1 = "Atlantic", name.p2 = "B1829-5")
+SolCAP.dose <- read_geno_csv(file.in  = tempfl,
+                                        ploidy.p1 = 4,
+                                        name.p1 = "Atlantic",
+                                        name.p2 = "B1829-5")
 print(SolCAP.dose, detailed = TRUE)
 plot(SolCAP.dose)
 }
