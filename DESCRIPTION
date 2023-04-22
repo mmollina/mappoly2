@@ -55,7 +55,9 @@ Depends:
     R (>= 4.2.0)
 Imports:
     Rcpp (>= 1.0.0),
-    RcppParallel (>= 5.1.0)
+    RcppParallel (>= 5.1.0),
+    assertthat,
+    magrittr
 LinkingTo: Rcpp, RcppParallel
 Encoding: UTF-8
 Roxygen: list(markdown = TRUE)
