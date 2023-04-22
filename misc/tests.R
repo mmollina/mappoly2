@@ -1,3 +1,46 @@
+#' This script demonstrates the usage of the mappoly2 R package for working with
+#' genetic mapping data. The main goal is to load, preprocess, and visualize data
+#' and perform different analyses with different levels of ploidy. The script can
+#' be broken down into the following sections:
+#'
+#' 1. Initialization: Clear the workspace and load the mappoly2 package.
+#'
+#' 2. Data Loading: Read the input data file (B2721.csv) and store the result in the
+#' input.data variable. This file contains genotypic information for further analysis.
+#'
+#' 3. Data Visualization: Plot the input data and create sequence objects with different
+#' filters.
+#'
+#' 4. Pairwise Recombination Fraction Estimation: Estimate the pairwise recombination
+#' fractions using est_pairwise_rf() function with different numbers of CPUs.
+#'
+#' 5. Data Filtering: Filter missing data and filter individuals based on missingness
+#' thresholds. Also, filter the markers based on their segregation patterns.
+#' Pairwise Recombination Matrix: Estimate the pairwise recombination fraction for
+#' filtered data and convert the result into a matrix. Plot the matrix with the
+#' marker names in the desired order.
+#'
+#' 6. Simulation: Source the simulation.R script and perform simulations for
+#' different ploidy levels. Read the generated data and perform the same analysis
+#' as before. The process is repeated for different combinations of ploidy levels.
+#'
+#' Here's a brief description of the main functions used in this script:
+#'
+#'     rm(list = ls()): Clears the workspace.
+#'     require(mappoly2): Loads the mappoly2 package.
+#'     read_geno_csv(): Reads genotypic data from a CSV file.
+#'     make_seq(): Creates sequence objects from input data with different filters.
+#'     est_pairwise_rf(): Estimates pairwise recombination fractions.
+#'     filter_missing(): Filters missing data from the input.
+#'     filter_individuals(): Filters individuals based on missingness thresholds.
+#'     filter_segregation(): Filters markers based on their segregation patterns.
+#'     rf_list_to_matrix(): Converts a list of pairwise recombination fractions
+#'                          into a matrix.
+#'     plot(): Plots the input data, filtered data, and recombination matrices.
+#'
+#' The script concludes by iterating through various combinations of ploidy levels, simulating genetic data, and visualizing the results using pairwise recombination matrices.
+
+
 rm(list = ls())
 require(mappoly2)
 file.in <- "~/repos/official_repos/mappoly2/inst/extdata/B2721.csv"
@@ -6,7 +49,7 @@ input.data <- read_geno_csv(file.in  = file.in,
                             ploidy.p2 = 4,
                             name.p1 = "Atlantic",
                             name.p2 = "B1829-5", filter.non.conforming = T, filter.redundant = F)
-#save(B2721, file = "./data/example_data.rda")
+#'save(B2721, file = "./data/example_data.rda")
 input.data
 plot(input.data)
 input.seq <- y1 <- make_seq(input.data, "all")
@@ -34,8 +77,6 @@ mrk.id<-names(sort(y5$data$genome.pos[y5$mrk.names]))
 tpt5 <- est_pairwise_rf(y5, ncpus = 7)
 a<-rf_list_to_matrix(input.twopt = tpt5)
 plot(a, ord = mrk.id)
-
-
 source("~/repos/official_repos/mappoly2/misc/simulation.R")
 for(ploidy.p1 in c(2,4,6)){
   for(ploidy.p2 in c(2,4,6)){
