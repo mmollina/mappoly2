@@ -55,9 +55,14 @@ Depends:
     R (>= 4.2.0)
 Imports:
     Rcpp (>= 1.0.0),
+    RcppParallel,
     assertthat,
-    fields
-LinkingTo: Rcpp
+    fields,
+    ggplot2,
+    dendextend,
+    princurve,
+    smacof
+LinkingTo: Rcpp, RcppParallel
 Encoding: UTF-8
 Roxygen: list(markdown = TRUE)
 RoxygenNote: 7.2.3
@@ -67,6 +72,6 @@ Suggests:
     knitr,
     AGHmatrix,
     gatepoints
-URL: https://github.com/mmollina/MAPpoly
-BugReports: https://github.com/mmollina/MAPpoly/issues
+URL: https://github.com/mmollina/mappoly2
+BugReports: https://github.com/mmollina/mappoly2/issues
 VignetteBuilder: knitr

@@ -61,7 +61,7 @@
 
    for (int i = 0; i < geno_dose.nrow(); ++i) {
      for (int j = 0; j < geno_dose.ncol(); ++j) {
-       if (M(i, geno_dose(i, j)) == 0 | geno_dose(i, j) > ploidy_pr) {
+       if (M(i, geno_dose(i, j)) == 0 || geno_dose(i, j) > ploidy_pr) {
          geno_dose(i, j) = NA_REAL;
        }
      }

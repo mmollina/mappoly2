@@ -53,8 +53,6 @@
 #'
 #' @return An object of class \code{mappoly.sequence}, which is a
 #'     list containing the following components:
-#'     \item{seq.num}{a \code{vector} containing the (ordered) indices
-#'         of markers in the sequence, according to the input file}
 #'     \item{seq.phases}{a \code{list} with the linkage phases between
 #'         markers in the sequence, in corresponding positions. \code{-1}
 #'         means that there are no defined linkage phases}
@@ -73,46 +71,29 @@
 #'         Gabriel Gesteira, (\email{gdesiqu@ncsu.edu})
 #' @export
 #' @importFrom assertthat assert_that
-make_seq <- function(input.obj,
+make_sequence <- function(input.obj,
                      arg = NULL,
-                     info.parent = c('all', 'p1', 'p2'),
-                     genomic.info = NULL) {
-
-  input.classes <- c(is.mappoly2.data(input.obj),
-                     is.mappoly2.map(input.obj),
-                     is.mappoly2.sequence(input.obj),
-                     is.mappoly2.pcmap(input.obj),
-                     is.mappoly2.pcmap3d(input.obj),
-                     is.mappoly2.group(input.obj),
-                     is.mappoly2.chitest.seq(input.obj),
-                     is.mappoly2.geno.ord(input.obj))
-
-  assert_that(any(input.classes),
-              msg = cat("Input object must be of class
-      'mappoly2.data',
-      'mappoly2.map',
-      'mappoly2.sequence',
-      'mappoly2.pcmap',
-      'mappoly2.pcmap3d',
-      'mappoly2.group',
-      'mappoly2.chitest.seq', or
-      'mappoly2.geno.ord'\n"))
+                     info.parent = c("all", "p1", "p2"),
+                     genomic.info = NULL,
+                     phase = NULL) {
   info.parent <- match.arg(info.parent)
   if (is.mappoly2.data(input.obj))
   {
-    orig.data <- input.obj
     pattern <- "(ch|chr|CH|Chr|CHR|chrom|Chrom|Chromsome)"
     ## Sequence with all markers
     if (all(arg  ==  "all"))
     {
       mrk.names <- input.obj$mrk.names
+      out.dat <- input.obj
     } ## If chromosome informed
-    else if (all(is.character(arg)) & sum(grepl(pattern, arg, ignore.case = TRUE))  ==  length(arg))
+    else if (all(is.character(arg)) &
+             sum(grepl(pattern, arg, ignore.case = TRUE))  ==  length(arg) &
+             all(!arg%in%rownames(input.obj$geno.dose)))
     {
       if (all(is.na(input.obj$chrom)))
         stop("There is no chromosome information.")
-      ch.n.arg <- as.integer(gsub("[^0-9]", "", arg))
-      ch.n.dat <- as.integer(gsub("[^0-9]", "", input.obj$chrom))
+      ch.n.arg <- embedded_to_numeric(arg)
+      ch.n.dat <- embedded_to_numeric(input.obj$chrom)
       ch.id <- ch.n.dat%in%ch.n.arg
       mrk.names <- input.obj$mrk.names[ch.id]
       chrom <- input.obj$chrom[mrk.names]
@@ -121,39 +102,68 @@ make_seq <- function(input.obj,
       ch_geno <- data.frame(chrom, genome.pos)
       sorted_ch_geno <- ch_geno[with(ch_geno, order(chrom, genome.pos)),]
       mrk.names <- rownames(sorted_ch_geno)
+      out.dat <- subset_data(input.obj, select.mrk = mrk.names)
     } ## sequence with specific markers
     else if (all(is.character(arg)) & (length(arg)  ==  length(arg %in% input.obj$mrk.names)))
     {
       mrk.names <- intersect(arg, input.obj$mrk.names)
+      out.dat <- subset_data(input.obj, select.mrk = mrk.names)
     }
     else if (is.vector(arg) && all(is.numeric(arg)))
     {
       assert_that(max(arg) <= input.obj$n.mrk)
       mrk.names <- input.obj$mrk.names[arg]
+      out.dat <- subset_data(input.obj, select.mrk = mrk.names)
     }
     else stop("Invalid argument to select markers")
   }
-  if (is.mappoly2.sequence(input.obj))
+  else if (is.mappoly2.sequence(input.obj))
   {
-    dat.temp <- subset_data(input.obj$data, select.mrk = input.obj$mrk.names)
-    seq.temp <- make_seq(dat.temp, arg , info.parent , genomic.info)
-    return(make_seq(input.obj$data, seq.temp$mrk.names , info.parent , genomic.info))
+    return(make_sequence(input.obj$data, arg, info.parent))
+  }
+  else if (is.mappoly2.group(input.obj))
+  {
+    lgs.idx <- names(input.obj$groups.snp[input.obj$groups.snp  %in%  arg])
+    if(is.null(genomic.info)){
+      return(make_sequence(input.obj = input.obj$input.seq,
+                      arg = lgs.idx))
+    } else {
+      assert_that(is.numeric(genomic.info))
+      chrom <- input.obj$input.seq$data$chrom[lgs.idx]
+      chrom.table <- sort(table(chrom, useNA = "always"), decreasing = TRUE)
+      seq.group <- names(chrom)[chrom %in% names(chrom.table[genomic.info])]
+      return(make_sequence(input.obj$input.seq$data, seq.group))
+    }
+  }
+  else if (is.mappoly2.geno.ord(input.obj))
+  {
+    if(!is.null(arg))
+      warning("Ignoring argument 'arg' and using the genome order instead.")
+    return(make_sequence(input.obj$data, rownames(input.obj$ord)))
+  }
+  if (is.mappoly2.pcmap(input.obj) | is.mappoly2.pcmap3d(input.obj))
+  {
+    if(!is.null(arg))
+      warning("Ignoring argument 'arg' and using the MDS order instead.")
+    return(input.obj$mds.seq)
   }
   d.p1 <- input.obj$dosage.p1[mrk.names]
   d.p2 <- input.obj$dosage.p2[mrk.names]
-  if(info.parent == "p1")
+  if(info.parent == "p1"){
     mrk.names <- mrk.names[d.p2 == 0 | d.p2 == input.obj$ploidy.p2]
-  else if(info.parent == "p2")
+    out.dat <- subset_data(input.obj, select.mrk = mrk.names)
+  }
+  else if(info.parent == "p2"){
     mrk.names <- mrk.names[d.p1 == 0 | d.p1 == input.obj$ploidy.p1]
-  seq.num <- match(mrk.names, input.obj$mrk.names)
-  names(seq.num) <- mrk.names
+    out.dat <- subset_data(input.obj, select.mrk = mrk.names)
+  }
   structure(list(mrk.names = mrk.names,
                  redundant = NULL,
-                 data = orig.data),
+                 data = out.dat),
             class = "mappoly2.sequence")
 }
 
-#' @rdname make_seq
+#' @rdname make_sequence
 #' @export
 print.mappoly2.sequence <- function(x, ...) {
   txt <- list(
@@ -173,8 +183,9 @@ print.mappoly2.sequence <- function(x, ...) {
   cat("\n", txt[[3]], x$data$n.ind)
   cat("\n", txt[[4]], length(x$mrk.names))
   cat("\n ", txt[[5]], " (",   round(100*sum(id)/length(id),1), "%)", sep = "")
-  w <- table(x$data$chrom[x$mrk.names])
+  w <- table(x$data$chrom[x$mrk.names], useNA = "always")
   w <- w[order(as.integer(gsub("[^0-9]", "", names(w))))]
+  names(w)[is.na(names(w))] <- "NoCrh"
   if (all(is.null(x$data$chrom[x$mrk.names])) || all(is.na(x$data$chrom[x$mrk.names])))
     cat("\n     No. markers per sequence: not available")
   else {
@@ -192,7 +203,7 @@ print.mappoly2.sequence <- function(x, ...) {
   print(d.temp, row.names = FALSE)
 }
 
-#' @rdname make_seq
+#' @rdname make_sequence
 #' @export
 #' @importFrom graphics barplot layout mtext image legend
 #' @importFrom grDevices colorRampPalette

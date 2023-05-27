@@ -30,7 +30,7 @@ est_pairwise_rf(
 An object of class \code{mappoly2.twopt} which is a list containing the following components:
 \item{input.seq}{The input sequence; an object of class \code{mappoly2.sequence} with the raw data}
 \item{pairwise}{A list where each element is a data frame. Row names have the format x-y, where x and y represent the
-number of homolos sharing the same allelic variant in parents P1 and P2, respectively (see Mollinari and Garcia, 2019 for notation).
+number of homologs sharing the same allelic variant in parents P1 and P2, respectively (see Mollinari and Garcia, 2019 for notation).
 The first column contains the LOD Score in relation to the most likely linkage phase configuration. The second column shows the estimated
 recombination fraction for each configuration, and the third column contains the LOD Score comparing the likelihood under no linkage (r = 0.5)
 with the estimated recombination fraction (evidence of linkage).}
