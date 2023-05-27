@@ -47,24 +47,11 @@
 #include <Rmath.h>
 #include <Rcpp.h>
 #include <R_ext/PrtUtil.h>
+#include "combinatorics.h"
 
 using namespace std;
 using namespace Rcpp;
 
-/*binomial coefficient*/
-int nChoosek(int n, int k)
-{
-  if (k > n) return 0;
-  if (k * 2 > n) k = n-k;
-  if (k == 0) return 1;
-  int result = n;
-  for( int i = 2; i <= k ; ++i )
-  {
-    result *= (n-i+1);
-    result /= i;
-  }
-  return result;
-}
 /* recombination frequency likelihood*/
 double twopt_likelihood(double rf,
                         int ploidy_p1,
@@ -89,10 +76,6 @@ double twopt_likelihood(double rf,
           count_mat(count2, count) *
           (pow((1-rf), (ploidy_p1/2)-l_p1) * pow(rf, l_p1))/(nChoosek(ploidy_p1/2,l_p1)) *
           (pow((1-rf), (ploidy_p2/2)-l_p2) * pow(rf, l_p2))/(nChoosek(ploidy_p2/2,l_p2));
-//          pow(rf,(l_p1+l_p2)) *
-//          pow((1-rf),(((ploidy_p1 + ploidy_p2)/2)-l_p1-l_p2))/
-//            (nChoosek(ploidy_p1/2,l_p1) *
-//              nChoosek(ploidy_p2/2,l_p2));
         count++;
       }
     }
@@ -110,13 +93,15 @@ RcppExport SEXP pairwise_rf_estimation(SEXP ploidy_p1_R,
                                        SEXP d_p1_R,
                                        SEXP d_p2_R,
                                        SEXP count_cache_R,
-                                       SEXP tol_R)
+                                       SEXP tol_R,
+                                       SEXP swap_parents_R)
 {
   Rcpp::NumericMatrix mrk_pairs = Rcpp::as<Rcpp::NumericMatrix>(mrk_pairs_R);
   Rcpp::NumericMatrix geno = Rcpp::as<Rcpp::NumericMatrix>(geno_R);
   Rcpp::NumericVector d_p1 = Rcpp::as<Rcpp::NumericVector>(d_p1_R);
   Rcpp::NumericVector d_p2 = Rcpp::as<Rcpp::NumericVector>(d_p2_R);
   Rcpp::List count_cache = Rcpp::as<Rcpp::List>(count_cache_R);
+  bool swap_parents = Rcpp::as<bool>(swap_parents_R);
   Rcpp::NumericVector d_pair(4);
   Rcpp::List out(mrk_pairs.ncol());
   int ploidy_p1 = Rcpp::as<int>(ploidy_p1_R);
@@ -145,6 +130,15 @@ RcppExport SEXP pairwise_rf_estimation(SEXP ploidy_p1_R,
       NumericVector gen_2 = geno( mrk_pairs(1,k), _);
       Rcpp::NumericMatrix res(3, temp_list.size());
       Rcpp::CharacterVector zn = temp_list.attr( "names" ) ;
+      if(swap_parents) { // if ploidy.p1 > ploidy.p2
+        //Rcpp::Rcout << "before: " << zn << "-->";
+        for(int i=0; i < zn.size(); i++){
+          std::string zn_temp = Rcpp::as<string>(zn(i));
+          reverse(zn_temp.begin(), zn_temp.end());
+          zn(i) = zn_temp;
+        }
+       //Rcpp::Rcout << "after: " << zn << "\n";
+      }
       colnames(res)=zn;
       for(int i=0; i < temp_list.size(); i++)
       {

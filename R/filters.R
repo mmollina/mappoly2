@@ -116,7 +116,7 @@ filter_missing_mrk <- function(input.data, filter.thres = 0.2, inter = TRUE) {
       }
     }
   }
-
+  par(pty="m")
   return(process_filter(filter.thres))
 }
 
@@ -175,7 +175,7 @@ filter_missing_ind <- function(input.data, filter.thres = 0.2, inter = TRUE) {
       }
     }
   }
-
+  par(pty="m")
   return(process_filter(filter.thres))
 }
 
@@ -253,7 +253,8 @@ filter_segregation <- function(input.obj, chisq.pval.thres = NULL, inter = TRUE)
 
   # Identify markers that meet threshold for chi-square p-value and return filtered object
   keep <- names(which(chisq.val >= chisq.pval.thres))
-  return(make_seq(input.obj, keep))
+  par(pty="m")
+  return(make_sequence(input.obj, keep))
 }
 
 
@@ -282,6 +283,8 @@ filter_individuals <- function(input.data,
                                inter = TRUE,
                                verbose = TRUE){
   assert_that(is.mappoly2.data(input.data))
+  if(input.data$ploidy.p1 != input.data$ploidy.p2)
+    stop("'filter_individuals' cannot be executed\n  on progenies with odd ploidy levels.")
   op <- par(pty="s")
   on.exit(par(op))
   D <- t(input.data$geno.dose)
@@ -325,7 +328,100 @@ filter_individuals <- function(input.data,
       return(out.dat)
     } else{
       warning("No individuals removed. Returning original data set.")
+      par(pty="m")
       return(input.data)
     }
   }
+  par(pty="m")
+}
+#'  Remove markers that do not meet a LOD criteria
+#'
+#'  Remove markers that do not meet a LOD and recombination fraction
+#'  criteria for at least a percentage of the pairwise marker
+#'  combinations. It also removes markers with strong evidence of
+#'  linkage across the whole linkage group (false positive).
+#'
+#' \code{thresh.LOD.ph} should be set in order to only select
+#'     recombination fractions that have LOD scores associated to the
+#'     linkage phase configuration higher than \code{thresh_LOD_ph}
+#'     when compared to the second most likely linkage phase configuration.
+#'     That action usually eliminates markers that are unlinked to the
+#'     set of analyzed markers.
+#'
+#' @param input.twopt an object of class \code{mappoly.twopt}
+#'
+#' @param thresh.LOD.ph LOD score threshold for linkage phase configuration
+#' (default = 5)
+#'
+#' @param thresh.LOD.rf LOD score threshold for recombination fraction
+#' (default = 5)
+#'
+#' @param thresh.rf threshold for recombination fractions (default = 0.15)
+#'
+#' @param probs indicates the probability corresponding to the filtering
+#' quantiles. (default = c(0.05, 1))
+#'
+#' @param diag.markers A window where marker pairs should be considered.
+#'    If NULL (default), all markers are considered.
+#'
+#' @param mrk.order marker order. Only has effect if 'diag.markers' is not NULL
+#'
+#' @param ncpus number of parallel processes (i.e. cores) to spawn
+#' (default = 1)
+#'
+#' @param diagnostic.plot if \code{TRUE} produces a diagnostic plot
+#'
+#' @param breaks number of cells for the histogram
+#'
+#' @return A filtered object of class \code{mappoly.sequence}.
+#'
+#'
+#' @author Marcelo Mollinari, \email{mmollin@ncsu.edu} with updates by Gabriel Gesteira, \email{gdesiqu@ncsu.edu}
+#'
+#' @export rf_snp_filter
+#' @importFrom ggplot2 ggplot geom_histogram aes scale_fill_manual xlab ggtitle
+#' @importFrom graphics hist
+rf_snp_filter <- function(input.twopt,
+                          thresh.LOD.ph = 5,
+                          thresh.LOD.rf = 5,
+                          thresh.rf = 0.15,
+                          probs = c(0.05, 1),
+                          diag.markers = NULL,
+                          mrk.order = NULL,
+                          ncpus = 1L,
+                          diagnostic.plot = TRUE,
+                          breaks = 100)
+{
+  assert_that(is.mappoly2.twopt(input.twopt))
+  probs <- range(probs)
+  ## Getting filtered rf matrix
+  rf_mat <-  rf_list_to_matrix(input.twopt = input.twopt, thresh.LOD.ph = thresh.LOD.ph,
+                               thresh.LOD.rf = thresh.LOD.rf, thresh.rf = thresh.rf,
+                               ncpus = ncpus, verbose = FALSE)
+  M <- rf_mat$rec.mat
+  if(!is.null(mrk.order))
+    M <- M[mrk.order, mrk.order]
+  if(!is.null(diag.markers))
+    M[abs(col(M) - row(M)) > diag.markers] <- NA
+  x <- apply(M, 1, function(x) sum(!is.na(x)))
+  w <- hist(x, breaks = breaks, plot = FALSE)
+  th <- quantile(x, probs = probs)
+  rem <- c(which(x < th[1]), which(x > th[2]))
+  ids <- names(which(x >= th[1] & x <= th[2]))
+  value <- type <- NULL
+  if(diagnostic.plot){
+    d <- rbind(data.frame(type = "original", value = x),
+               data.frame(type = "filtered", value = x[ids]))
+    p <- ggplot2::ggplot(d, ggplot2::aes(value)) +
+      ggplot2::geom_histogram(ggplot2::aes(fill = type),
+                              alpha = 0.4, position = "identity", binwidth = diff(w$mids)[1]) +
+      ggplot2::scale_fill_manual(values = c("#00AFBB", "#E7B800")) +
+      ggplot2::ggtitle( paste0("Filtering probs: [", probs[1], " : ", probs[2], "] - Non NA values by row in rf matrix - b width: ", diff(w$mids)[1])) +
+      ggplot2::xlab(paste0("Non 'NA' values at LOD.ph = ", thresh.LOD.ph, ", LOD.rf = ", thresh.LOD.rf, ", and thresh.rf = ", thresh.rf))
+    print(p)
+  }
+  ## Returning sequence object
+  ch_filt <- make_sequence(input.obj = input.twopt$input.seq$data,
+                              arg = ids)
+  return(ch_filt)
 }

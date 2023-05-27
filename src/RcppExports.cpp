@@ -32,6 +32,46 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
+// est_hmm_map_biallelic
+List est_hmm_map_biallelic(List PH, IntegerMatrix G, NumericMatrix pedigree, NumericVector rf, bool verbose, double tol, bool ret_H0);
+RcppExport SEXP _mappoly2_est_hmm_map_biallelic(SEXP PHSEXP, SEXP GSEXP, SEXP pedigreeSEXP, SEXP rfSEXP, SEXP verboseSEXP, SEXP tolSEXP, SEXP ret_H0SEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< List >::type PH(PHSEXP);
+    Rcpp::traits::input_parameter< IntegerMatrix >::type G(GSEXP);
+    Rcpp::traits::input_parameter< NumericMatrix >::type pedigree(pedigreeSEXP);
+    Rcpp::traits::input_parameter< NumericVector >::type rf(rfSEXP);
+    Rcpp::traits::input_parameter< bool >::type verbose(verboseSEXP);
+    Rcpp::traits::input_parameter< double >::type tol(tolSEXP);
+    Rcpp::traits::input_parameter< bool >::type ret_H0(ret_H0SEXP);
+    rcpp_result_gen = Rcpp::wrap(est_hmm_map_biallelic(PH, G, pedigree, rf, verbose, tol, ret_H0));
+    return rcpp_result_gen;
+END_RCPP
+}
+// pairwise_rf_estimation_disc_rcpp
+RcppExport SEXP pairwise_rf_estimation_disc_rcpp(SEXP mrk_pairs_R, SEXP m_R, SEXP geno_R, SEXP d_p1_R, SEXP d_p2_R, SEXP count_vector_R, SEXP count_matrix_phases_R, SEXP count_matrix_rownames_R, SEXP count_matrix_number_R, SEXP count_matrix_pos_R, SEXP count_matrix_length_R, SEXP tol_R, SEXP threads_R);
+RcppExport SEXP _mappoly2_pairwise_rf_estimation_disc_rcpp(SEXP mrk_pairs_RSEXP, SEXP m_RSEXP, SEXP geno_RSEXP, SEXP d_p1_RSEXP, SEXP d_p2_RSEXP, SEXP count_vector_RSEXP, SEXP count_matrix_phases_RSEXP, SEXP count_matrix_rownames_RSEXP, SEXP count_matrix_number_RSEXP, SEXP count_matrix_pos_RSEXP, SEXP count_matrix_length_RSEXP, SEXP tol_RSEXP, SEXP threads_RSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< SEXP >::type mrk_pairs_R(mrk_pairs_RSEXP);
+    Rcpp::traits::input_parameter< SEXP >::type m_R(m_RSEXP);
+    Rcpp::traits::input_parameter< SEXP >::type geno_R(geno_RSEXP);
+    Rcpp::traits::input_parameter< SEXP >::type d_p1_R(d_p1_RSEXP);
+    Rcpp::traits::input_parameter< SEXP >::type d_p2_R(d_p2_RSEXP);
+    Rcpp::traits::input_parameter< SEXP >::type count_vector_R(count_vector_RSEXP);
+    Rcpp::traits::input_parameter< SEXP >::type count_matrix_phases_R(count_matrix_phases_RSEXP);
+    Rcpp::traits::input_parameter< SEXP >::type count_matrix_rownames_R(count_matrix_rownames_RSEXP);
+    Rcpp::traits::input_parameter< SEXP >::type count_matrix_number_R(count_matrix_number_RSEXP);
+    Rcpp::traits::input_parameter< SEXP >::type count_matrix_pos_R(count_matrix_pos_RSEXP);
+    Rcpp::traits::input_parameter< SEXP >::type count_matrix_length_R(count_matrix_length_RSEXP);
+    Rcpp::traits::input_parameter< SEXP >::type tol_R(tol_RSEXP);
+    Rcpp::traits::input_parameter< SEXP >::type threads_R(threads_RSEXP);
+    rcpp_result_gen = Rcpp::wrap(pairwise_rf_estimation_disc_rcpp(mrk_pairs_R, m_R, geno_R, d_p1_R, d_p2_R, count_vector_R, count_matrix_phases_R, count_matrix_rownames_R, count_matrix_number_R, count_matrix_pos_R, count_matrix_length_R, tol_R, threads_R));
+    return rcpp_result_gen;
+END_RCPP
+}
 // segreg_poly
 NumericVector segreg_poly(int ploidy_p1, int ploidy_p2, int d_p1, int d_p2);
 RcppExport SEXP _mappoly2_segreg_poly(SEXP ploidy_p1SEXP, SEXP ploidy_p2SEXP, SEXP d_p1SEXP, SEXP d_p2SEXP) {
@@ -46,14 +86,31 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
+// twopt_phasing_cpp
+List twopt_phasing_cpp(CharacterVector mrk_id, int ploidy, IntegerVector dose_vec, NumericMatrix S);
+RcppExport SEXP _mappoly2_twopt_phasing_cpp(SEXP mrk_idSEXP, SEXP ploidySEXP, SEXP dose_vecSEXP, SEXP SSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< CharacterVector >::type mrk_id(mrk_idSEXP);
+    Rcpp::traits::input_parameter< int >::type ploidy(ploidySEXP);
+    Rcpp::traits::input_parameter< IntegerVector >::type dose_vec(dose_vecSEXP);
+    Rcpp::traits::input_parameter< NumericMatrix >::type S(SSEXP);
+    rcpp_result_gen = Rcpp::wrap(twopt_phasing_cpp(mrk_id, ploidy, dose_vec, S));
+    return rcpp_result_gen;
+END_RCPP
+}
 
-RcppExport SEXP pairwise_rf_estimation(SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP);
+RcppExport SEXP pairwise_rf_estimation(void *, void *, void *, void *, void *, void *, void *, void *, void *);
 
 static const R_CallMethodDef CallEntries[] = {
     {"_mappoly2_mappoly_chisq_test", (DL_FUNC) &_mappoly2_mappoly_chisq_test, 1},
     {"_mappoly2_filter_non_conforming_classes", (DL_FUNC) &_mappoly2_filter_non_conforming_classes, 1},
+    {"_mappoly2_est_hmm_map_biallelic", (DL_FUNC) &_mappoly2_est_hmm_map_biallelic, 7},
+    {"_mappoly2_pairwise_rf_estimation_disc_rcpp", (DL_FUNC) &_mappoly2_pairwise_rf_estimation_disc_rcpp, 13},
     {"_mappoly2_segreg_poly", (DL_FUNC) &_mappoly2_segreg_poly, 4},
-    {"pairwise_rf_estimation", (DL_FUNC) &pairwise_rf_estimation, 8},
+    {"_mappoly2_twopt_phasing_cpp", (DL_FUNC) &_mappoly2_twopt_phasing_cpp, 4},
+    {"pairwise_rf_estimation", (DL_FUNC) &pairwise_rf_estimation, 9},
     {NULL, NULL, 0}
 };
 

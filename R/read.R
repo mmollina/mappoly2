@@ -116,21 +116,21 @@ table_to_mappoly <- function(dat,
                              filter.non.conforming = TRUE,
                              filter.redundant = TRUE,
                              verbose = TRUE) {
-  swap.parents <- FALSE
-  if(ploidy.p1 > ploidy.p2){
-    swap.parents <- TRUE
-    ## swap ploidy levels if p1 > p2
-    temp <- ploidy.p2
-    ploidy.p2 <- ploidy.p1
-    ploidy.p1 <- temp
-    ## swap names if p1 > p2
-    temp <- name.p2
-    name.p2 <- name.p1
-    name.p1 <- temp
-    ## swap dosages
-    dat[,2:3] <- dat[,3:2]
-    names(dat)[2:3] <- names(dat)[3:2]
-  }
+  # swap.parents <- FALSE
+  # if(ploidy.p1 > ploidy.p2){
+  #   swap.parents <- TRUE
+  #   ## swap ploidy levels if p1 > p2
+  #   temp <- ploidy.p2
+  #   ploidy.p2 <- ploidy.p1
+  #   ploidy.p1 <- temp
+  #   ## swap names if p1 > p2
+  #   temp <- name.p2
+  #   name.p2 <- name.p1
+  #   name.p1 <- temp
+  #   ## swap dosages
+  #   dat[,2:3] <- dat[,3:2]
+  #   names(dat)[2:3] <- names(dat)[3:2]
+  # }
 
   # Removing markers with missing data points for parents
   dat <- dat[apply(dat[, 2:3], 1, function(x) !any(is.na(x))), ]
@@ -171,6 +171,7 @@ table_to_mappoly <- function(dat,
 
   # Get chromosome info
   chrom <- as.character(dat[, 4, drop = TRUE])
+  chrom[is.na(chrom)] <- "NoChr"
 
   # Get sequence position info
   genome.pos <- as.numeric(dat[, 5, drop = TRUE])
@@ -178,9 +179,6 @@ table_to_mappoly <- function(dat,
   ref <- as.character(dat[, 6, drop = TRUE])
   alt <- as.character(dat[, 7, drop = TRUE])
   names(ref) <- names(alt) <- names(genome.pos) <- names(chrom) <- names(dosage.p2) <- names(dosage.p1) <- mrk.names
-
-  nphen <- 0
-  phen <- NULL
 
   if (verbose) {
     cat("Reading the following data:")
@@ -242,8 +240,8 @@ table_to_mappoly <- function(dat,
       prob.thres = NULL,
       geno.dose = geno.dose,
       chisq.pval = NULL,
-      redundant = NULL,
-      swap.parents = swap.parents
+      redundant = NULL#,
+      #swap.parents = swap.parents
     ),
     class = "mappoly2.data"
   )
@@ -259,7 +257,7 @@ table_to_mappoly <- function(dat,
   # Screening redundant markers
   if(filter.redundant){
     if (verbose) cat("     Filtering redundant markers.\n     ...")
-    s <- make_seq(res, "all")
+    s <- make_sequence(res, arg = "all")
     sf <- filter_redundant(s)
     res$redundant <- sf$redundant
     res <- subset_data(res, select.mrk = setdiff(res$mrk.names, sf$redundant$removed))
