@@ -99,7 +99,8 @@ NumericMatrix init_phase_mat(int d, int p){
 List twopt_phasing_cpp(CharacterVector mrk_id,
                        int ploidy,
                        IntegerVector dose_vec,
-                       NumericMatrix S){
+                       NumericMatrix S,
+                       int max_conf_number){
 
   IntegerVector idx = 1;
   List H(1);
@@ -126,7 +127,7 @@ List twopt_phasing_cpp(CharacterVector mrk_id,
       }
       List vtemp(H.size());
       List Hres;
-
+      Rcpp::Rcout << "mrk: " << i << " --> Configs: " << H.size() << "\n";
       for(int j = 0; j < H.size(); ++j){
         vtemp[j] = find_valid_permutations(H[j], d, x);
         NumericMatrix z = vtemp[j];
@@ -139,14 +140,15 @@ List twopt_phasing_cpp(CharacterVector mrk_id,
         }
         Hres = cLists(Hres, filter_matrices(Htemp));
       }
-      if(Hres.size() > 1){
-        H = filter_matrices(Hres);
-        idx.push_back(i);
+      if(Hres.size() > 1)
+        Hres = filter_matrices(Hres);
+
+      if(Hres.size() > max_conf_number || Hres.size() == 0){
+        Rcpp::Rcout << "Skiping marker " << i << "\n";
+        continue;
       }
-      else if(Hres.size() == 1) {
-        H = Hres;
-        idx.push_back(i);
-      }
+      H = Hres;
+      idx.push_back(i);
     }
   }
   CharacterVector mrk_names(idx.size());

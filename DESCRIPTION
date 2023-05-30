@@ -56,7 +56,6 @@ Depends:
 Imports:
     Rcpp (>= 1.0.0),
     assertthat,
-    fields,
     ggplot2,
     dendextend,
     princurve,
@@ -70,7 +69,8 @@ Suggests:
     testthat,
     knitr,
     AGHmatrix,
-    gatepoints
+    gatepoints,
+    fields
 URL: https://github.com/mmollina/mappoly2
 BugReports: https://github.com/mmollina/mappoly2/issues
 VignetteBuilder: knitr
