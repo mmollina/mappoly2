@@ -3,9 +3,9 @@ Genetic Linkage Maps in Autopolyploids v 2.0
 
 ## Features to be implemented soon
 
-1. Combining two-point phasing with multilocus likelihood-based aproach: complete case
-2. Two-points in RcppParallel
-3. Fix C++ code to swap-back parents with different ploidy levels
-4. Implement multilocus fro single parents
-5. Implement emission probabilities itnto the multilocus approach
-6. Implement log-hmm based chain
+1. Employing a comprehensive approach that combines two-point phasing with a multilocus likelihood-based method, focusing on complete cases.
+2. Utilizing RcppParallel for the implementation of two-point calculations.
+3. Rectify the C++ code to correctly exchange parents with distinct ploidy levels.
+4. Introduce the functionality to support multilocus analysis for individual parents.
+5. Incorporate emission probabilities into the multilocus approach.
+6. Develop a log-HMM based chain as part of the implementation process.
