@@ -9,6 +9,14 @@ filter_non_conforming_classes <- function(input_data) {
     .Call('_mappoly2_filter_non_conforming_classes', PACKAGE = 'mappoly2', input_data)
 }
 
+find_valid_permutations <- function(H, d, x) {
+    .Call('_mappoly2_find_valid_permutations', PACKAGE = 'mappoly2', H, d, x)
+}
+
+filter_matrices <- function(mat_list) {
+    .Call('_mappoly2_filter_matrices', PACKAGE = 'mappoly2', mat_list)
+}
+
 est_hmm_map_biallelic <- function(PH, G, pedigree, rf, verbose, tol, ret_H0) {
     .Call('_mappoly2_est_hmm_map_biallelic', PACKAGE = 'mappoly2', PH, G, pedigree, rf, verbose, tol, ret_H0)
 }
@@ -48,7 +56,7 @@ segreg_poly <- function(ploidy_p1, ploidy_p2, d_p1, d_p2) {
     .Call('_mappoly2_segreg_poly', PACKAGE = 'mappoly2', ploidy_p1, ploidy_p2, d_p1, d_p2)
 }
 
-twopt_phasing_cpp <- function(mrk_id, ploidy, dose_vec, S) {
-    .Call('_mappoly2_twopt_phasing_cpp', PACKAGE = 'mappoly2', mrk_id, ploidy, dose_vec, S)
+twopt_phasing_cpp <- function(mrk_id, ploidy, dose_vec, S, max_conf_number) {
+    .Call('_mappoly2_twopt_phasing_cpp', PACKAGE = 'mappoly2', mrk_id, ploidy, dose_vec, S, max_conf_number)
 }
 

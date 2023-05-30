@@ -32,6 +32,30 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
+// find_valid_permutations
+NumericMatrix find_valid_permutations(NumericMatrix H, NumericVector d, int x);
+RcppExport SEXP _mappoly2_find_valid_permutations(SEXP HSEXP, SEXP dSEXP, SEXP xSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< NumericMatrix >::type H(HSEXP);
+    Rcpp::traits::input_parameter< NumericVector >::type d(dSEXP);
+    Rcpp::traits::input_parameter< int >::type x(xSEXP);
+    rcpp_result_gen = Rcpp::wrap(find_valid_permutations(H, d, x));
+    return rcpp_result_gen;
+END_RCPP
+}
+// filter_matrices
+List filter_matrices(List mat_list);
+RcppExport SEXP _mappoly2_filter_matrices(SEXP mat_listSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< List >::type mat_list(mat_listSEXP);
+    rcpp_result_gen = Rcpp::wrap(filter_matrices(mat_list));
+    return rcpp_result_gen;
+END_RCPP
+}
 // est_hmm_map_biallelic
 List est_hmm_map_biallelic(List PH, IntegerMatrix G, NumericMatrix pedigree, NumericVector rf, bool verbose, double tol, bool ret_H0);
 RcppExport SEXP _mappoly2_est_hmm_map_biallelic(SEXP PHSEXP, SEXP GSEXP, SEXP pedigreeSEXP, SEXP rfSEXP, SEXP verboseSEXP, SEXP tolSEXP, SEXP ret_H0SEXP) {
@@ -64,8 +88,8 @@ BEGIN_RCPP
 END_RCPP
 }
 // twopt_phasing_cpp
-List twopt_phasing_cpp(CharacterVector mrk_id, int ploidy, IntegerVector dose_vec, NumericMatrix S);
-RcppExport SEXP _mappoly2_twopt_phasing_cpp(SEXP mrk_idSEXP, SEXP ploidySEXP, SEXP dose_vecSEXP, SEXP SSEXP) {
+List twopt_phasing_cpp(CharacterVector mrk_id, int ploidy, IntegerVector dose_vec, NumericMatrix S, int max_conf_number);
+RcppExport SEXP _mappoly2_twopt_phasing_cpp(SEXP mrk_idSEXP, SEXP ploidySEXP, SEXP dose_vecSEXP, SEXP SSEXP, SEXP max_conf_numberSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -73,7 +97,8 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< int >::type ploidy(ploidySEXP);
     Rcpp::traits::input_parameter< IntegerVector >::type dose_vec(dose_vecSEXP);
     Rcpp::traits::input_parameter< NumericMatrix >::type S(SSEXP);
-    rcpp_result_gen = Rcpp::wrap(twopt_phasing_cpp(mrk_id, ploidy, dose_vec, S));
+    Rcpp::traits::input_parameter< int >::type max_conf_number(max_conf_numberSEXP);
+    rcpp_result_gen = Rcpp::wrap(twopt_phasing_cpp(mrk_id, ploidy, dose_vec, S, max_conf_number));
     return rcpp_result_gen;
 END_RCPP
 }
@@ -83,9 +108,11 @@ RcppExport SEXP pairwise_rf_estimation(void *, void *, void *, void *, void *, v
 static const R_CallMethodDef CallEntries[] = {
     {"_mappoly2_mappoly_chisq_test", (DL_FUNC) &_mappoly2_mappoly_chisq_test, 1},
     {"_mappoly2_filter_non_conforming_classes", (DL_FUNC) &_mappoly2_filter_non_conforming_classes, 1},
+    {"_mappoly2_find_valid_permutations", (DL_FUNC) &_mappoly2_find_valid_permutations, 3},
+    {"_mappoly2_filter_matrices", (DL_FUNC) &_mappoly2_filter_matrices, 1},
     {"_mappoly2_est_hmm_map_biallelic", (DL_FUNC) &_mappoly2_est_hmm_map_biallelic, 7},
     {"_mappoly2_segreg_poly", (DL_FUNC) &_mappoly2_segreg_poly, 4},
-    {"_mappoly2_twopt_phasing_cpp", (DL_FUNC) &_mappoly2_twopt_phasing_cpp, 4},
+    {"_mappoly2_twopt_phasing_cpp", (DL_FUNC) &_mappoly2_twopt_phasing_cpp, 5},
     {"pairwise_rf_estimation", (DL_FUNC) &pairwise_rf_estimation, 9},
     {NULL, NULL, 0}
 };

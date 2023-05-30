@@ -169,6 +169,7 @@ void find_permutations(NumericVector v, NumericMatrix H, NumericVector d, int st
 This function uses `find_permutations()` to find all valid permutations, then
 returns them as a `NumericMatrix`.
 */
+// [[Rcpp::export]]
 NumericMatrix find_valid_permutations(NumericMatrix H, NumericVector d, int x) {
   NumericVector v(H.ncol(), 0.0);
   int maxPermutations = nChoosek(H.ncol(), x);
@@ -230,6 +231,7 @@ unordered_set<string> get_all_permutations(IntegerMatrix mat) {
 This function removes any matrices from a list that have the same permutations
 as another matrix in the list.
 */
+// [[Rcpp::export]]
 List filter_matrices(List mat_list) {
   int n = mat_list.size();
   vector<bool> is_unique(n, true);

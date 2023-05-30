@@ -224,7 +224,7 @@ format_rf <- function(res, swap.parents = FALSE) {
 #'     models, _G3: Genes, Genomes, Genetics_.
 #'     \doi{10.1534/g3.119.400378}
 #'
-#' @import fields
+#' @importFrom fields tim.colors image.plot
 #' @export rf_list_to_matrix
 
 rf_list_to_matrix <- function(input.twopt,
