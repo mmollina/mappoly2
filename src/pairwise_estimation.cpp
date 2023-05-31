@@ -109,18 +109,18 @@ RcppExport SEXP pairwise_rf_estimation(SEXP ploidy_p1_R,
   double tol = Rcpp::as<double>(tol_R);
   for(int k=0; k < mrk_pairs.ncol(); k++)
   {
-    //Rcpp::Rcout << mrk_pairs(0,k) << " - " << mrk_pairs(1,k) <<  std::endl;
+    //Rcpp::Rcout << mrk_pairs(0,k)+1 << " - " << mrk_pairs(1,k)+1 <<  std::endl;
     int id = (ploidy_p1+1) *
-      (ploidy_p1+1) *
-      (ploidy_p2+1) *
-      d_p2[mrk_pairs(1,k)] +
-      (ploidy_p1+1) *
-      (ploidy_p1+1) *
-      d_p2[mrk_pairs(0,k)] +
-      (ploidy_p1+1) *
-      d_p1[mrk_pairs(1,k)] +
-      d_p1[mrk_pairs(0,k)] +
-      1;
+        (ploidy_p1+1) *
+        (ploidy_p2+1) *
+        d_p2[mrk_pairs(1,k)] +
+        (ploidy_p1+1) *
+        (ploidy_p1+1) *
+        d_p2[mrk_pairs(0,k)] +
+        (ploidy_p1+1) *
+        d_p1[mrk_pairs(1,k)] +
+        d_p1[mrk_pairs(0,k)] +
+        1;
     //Rcpp::Rcout << "id: " << id <<  std::endl;
     Rcpp::List temp_list = count_cache[(id-1)];
     //Rcpp::List temp_list = count_cache[k];
@@ -131,15 +131,16 @@ RcppExport SEXP pairwise_rf_estimation(SEXP ploidy_p1_R,
       Rcpp::NumericMatrix res(3, temp_list.size());
       Rcpp::CharacterVector zn = temp_list.attr( "names" ) ;
       if(swap_parents) { // if ploidy.p1 > ploidy.p2
+        Rcpp::CharacterVector zn_rev(zn.size());
         //Rcpp::Rcout << "before: " << zn << "-->";
-        for(int i=0; i < zn.size(); i++){
+        for(int i=0; i < zn_rev.size(); i++){
           std::string zn_temp = Rcpp::as<string>(zn(i));
           reverse(zn_temp.begin(), zn_temp.end());
-          zn(i) = zn_temp;
+          zn_rev(i) = zn_temp;
         }
+       colnames(res) = zn_rev;
        //Rcpp::Rcout << "after: " << zn << "\n";
       }
-      colnames(res)=zn;
       for(int i=0; i < temp_list.size(); i++)
       {
         Rcpp::NumericMatrix count_mat = temp_list[i] ;
@@ -293,12 +294,21 @@ RcppExport SEXP pairwise_rf_estimation(SEXP ploidy_p1_R,
     }
     else
     {
-      Rcpp::NumericVector d_out(4);
-      d_out(0)=d_p1[mrk_pairs(0,k)];
-      d_out(1)=d_p1[mrk_pairs(1,k)];
-      d_out(2)=d_p2[mrk_pairs(0,k)];
-      d_out(3)=d_p2[mrk_pairs(1,k)];
-      out(k)=d_out;
+      if(swap_parents) {
+        Rcpp::NumericVector d_out(4);
+        d_out(0)=d_p2[mrk_pairs(0,k)];
+        d_out(1)=d_p2[mrk_pairs(1,k)];
+        d_out(2)=d_p1[mrk_pairs(0,k)];
+        d_out(3)=d_p1[mrk_pairs(1,k)];
+        out(k)=d_out;
+      } else {
+        Rcpp::NumericVector d_out(4);
+        d_out(0)=d_p1[mrk_pairs(0,k)];
+        d_out(1)=d_p1[mrk_pairs(1,k)];
+        d_out(2)=d_p2[mrk_pairs(0,k)];
+        d_out(3)=d_p2[mrk_pairs(1,k)];
+        out(k)=d_out;
+      }
     }
   }
   return(out);

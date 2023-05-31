@@ -111,21 +111,20 @@ paralell_pairwise <- function(mrk.pairs,
                               tol = .Machine$double.eps^0.25,
                               ll  = FALSE)
 {
-  ploidy.p1 <- input.seq$data$ploidy.p1
-  ploidy.p2 <- input.seq$data$ploidy.p2
-  dose.p1 <- input.seq$data$dosage.p1
-  dose.p2 <- input.seq$data$dosage.p2
-  swap.parents <- FALSE
-  if(ploidy.p1 > ploidy.p2){
+
+
+  if(ploidy.p1 <= ploidy.p2){
+    ploidy.p1 <- input.seq$data$ploidy.p1
+    ploidy.p2 <- input.seq$data$ploidy.p2
+    dose.p1 <- input.seq$data$dosage.p1
+    dose.p2 <- input.seq$data$dosage.p2
+    swap.parents <- FALSE
+  } else {
+    ploidy.p1 <- input.seq$data$ploidy.p2
+    ploidy.p2 <- input.seq$data$ploidy.p1
+    dose.p1 <- input.seq$data$dosage.p2
+    dose.p2 <- input.seq$data$dosage.p1
     swap.parents <- TRUE
-    ## swap ploidy levels if p1 > p2
-    temp <- ploidy.p2
-    ploidy.p2 <- ploidy.p1
-    ploidy.p1 <- temp
-    ## swap doses if p1 > p2
-    temp <- dose.p2
-    dose.p2 <- dose.p1
-    dose.p1 <- temp
   }
   res <- .Call("pairwise_rf_estimation",
                ploidy.p1,
@@ -147,7 +146,7 @@ paralell_pairwise <- function(mrk.pairs,
 #'
 #' @param void internal function to be documented
 #' @keywords internal
-format_rf <- function(res, swap.parents = FALSE) {
+format_rf <- function(res) {
   x <- res
   if (length(x) != 4) {
     LOD_ph <- min(x[2, ]) - x[2, ]
