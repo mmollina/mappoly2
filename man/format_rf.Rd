@@ -4,7 +4,7 @@
 \alias{format_rf}
 \title{Format results from pairwise two-point estimation in C++}
 \usage{
-format_rf(res, swap.parents = FALSE)
+format_rf(res)
 }
 \arguments{
 \item{void}{internal function to be documented}
