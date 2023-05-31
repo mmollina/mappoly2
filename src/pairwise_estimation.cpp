@@ -140,6 +140,8 @@ RcppExport SEXP pairwise_rf_estimation(SEXP ploidy_p1_R,
         }
        colnames(res) = zn_rev;
        //Rcpp::Rcout << "after: " << zn << "\n";
+      } else{
+        colnames(res) = zn;
       }
       for(int i=0; i < temp_list.size(); i++)
       {

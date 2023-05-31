@@ -137,12 +137,12 @@ IntegerVector concatenate_vectors(IntegerVector x1, IntegerVector x2) {
 List calculate_L_and_initialize_H(int n_fullsib_pop,
                                   int n_mrk,
                                   int n_ind,
-                                  NumericVector pl1,
-                                  NumericVector pl2) {
+                                  NumericVector ploidy_p1,
+                                  NumericVector ploidy_p2) {
   List L(n_fullsib_pop);
   for (int i = 0; i < n_fullsib_pop; i++) {
-    int ngam1 = R::choose(pl1[i], pl1[i] / 2);
-    int ngam2 = R::choose(pl2[i], pl2[i] / 2);
+    int ngam1 = R::choose(ploidy_p1[i], ploidy_p1[i] / 2);
+    int ngam2 = R::choose(ploidy_p2[i], ploidy_p2[i] / 2);
     IntegerMatrix S = expand_grid(seq_len(ngam2) - 1, seq_len(ngam1) - 1);
     L[i] = S;
   }
@@ -203,11 +203,11 @@ List vs_multiallelic_Rcpp(List PH,
   NumericMatrix unique_pop_mat = retainUniqueAndSortByLastColumn(pedigree);
   int n_fullsib_pop = unique_pop_mat.nrow();
   int n_ind = pedigree.nrow();
-  NumericMatrix temp_mat = PH[0];
-  int n_mrk = temp_mat.nrow();
-  NumericVector pl1 = unique_pop_mat(_,2);
-  NumericVector pl2 = unique_pop_mat(_,3);
-  List result = calculate_L_and_initialize_H(n_fullsib_pop, n_mrk, n_ind, pl1, pl2);
+  NumericMatrix temp_phase_mat = PH[0];
+  int n_mrk = temp_phase_mat.nrow();
+  NumericVector ploidy_p1 = unique_pop_mat(_,2);
+  NumericVector ploidy_p2 = unique_pop_mat(_,3);
+  List result = calculate_L_and_initialize_H(n_fullsib_pop, n_mrk, n_ind, ploidy_p1, ploidy_p2);
   List L = result["L"];
   List H = result["H"];
   List E = result["E"]; // Emission probabilities to be implemented
@@ -290,11 +290,11 @@ List vs_biallelic_Rcpp(List PH,
   //Rcpp::Rcout << unique_pop_mat << "\n";
   int n_fullsib_pop = unique_pop_mat.nrow();
   int n_ind = pedigree.nrow();
-  NumericMatrix temp_mat = PH[0];
-  int n_mrk = temp_mat.nrow();
-  NumericVector pl1 = unique_pop_mat(_,2);
-  NumericVector pl2 = unique_pop_mat(_,3);
-  List result = calculate_L_and_initialize_H(n_fullsib_pop, n_mrk, n_ind, pl1, pl2);
+  NumericMatrix temp_phase_mat = PH[0];
+  int n_mrk = temp_phase_mat.nrow();
+  NumericVector ploidy_p1 = unique_pop_mat(_,2);
+  NumericVector ploidy_p2 = unique_pop_mat(_,3);
+  List result = calculate_L_and_initialize_H(n_fullsib_pop, n_mrk, n_ind, ploidy_p1, ploidy_p2);
   List L = result["L"];
   List H = result["H"];
   List E = result["E"]; // Emission probabilities to be implemented
@@ -366,28 +366,30 @@ List est_hmm_map_biallelic(List PH,
                            bool verbose,
                            double tol,
                            bool ret_H0) {
-  NumericVector p1 = pedigree(_,2)/2 - 1;
-  NumericVector p2 = pedigree(_,3)/2 - 1;
+  NumericVector ploidy_p1 = pedigree(_,2)/2 - 1;
+  NumericVector ploidy_p2 = pedigree(_,3)/2 - 1;
   int n_ind = pedigree.nrow();
-  NumericMatrix temp_mat = PH[0];
-  int n_mrk = temp_mat.nrow();
+  NumericMatrix temp_phase_mat = PH[0];
+  int n_mrk = temp_phase_mat.nrow();
+  // HMM states that should be visited given the phase of
+  // the founders, genotype of the offspring abd pedigree
   List result = vs_biallelic_Rcpp(PH, G, pedigree);
   List haplo = result["states"];
   List emit = result["emit"]; // Emission probabilities to be implemented
   std::vector<int> pl{2,4,6};
-  //Initializing some variables
   int k, k1,  maxit = 1000, flag=0;
   double s, loglike=0.0, nr=0.0, temp=0.0;
-  int mpi1 = max(p1);
-  int mpi2 = max(p2);
+  // Getting the maximum ploidy level among founders
+  int mpi1 = max(ploidy_p1);
+  int mpi2 = max(ploidy_p2);
   int max_ploidy_id;
   if(mpi1 >= mpi2)
     max_ploidy_id = mpi1;
   else
     max_ploidy_id = mpi2;
   std::vector<double> rf_cur(rf.size());
-  std::vector<double> term(n_ind);
-  std::fill(term.begin(), term.end(), 0.0);
+  std::vector<double> termination(n_ind);
+  std::fill(termination.begin(), termination.end(), 0.0);
 
   //Initializing v: states hmm should visit for each marker
   //Initializing e: emission probabilities associated to the states hmm should visit for each marker
@@ -464,8 +466,8 @@ List est_hmm_map_biallelic(List PH,
                              v[k-1][ind],
                                    v[k][ind],
                                        e[k][ind],
-                                           T[p1[ind]][k-1],
-                                                     T[p2[ind]][k-1]);
+                                           T[ploidy_p1[ind]][k-1],
+                                                     T[ploidy_p2[ind]][k-1]);
         for(int j=0; (unsigned)j < temp4.size(); j++)
         {
           alpha[ind][k][j]=temp4[j];
@@ -475,8 +477,8 @@ List est_hmm_map_biallelic(List PH,
                             v[k1][ind],
                                  v[k1+1][ind],
                                         e[k1+1][ind],
-                                               T[p1[ind]][k1],
-                                                         T[p2[ind]][k1]);
+                                               T[ploidy_p1[ind]][k1],
+                                                         T[ploidy_p2[ind]][k1]);
         for(int j=0; (unsigned)j < temp5.size(); j++)
         {
           beta[ind][k1][j]=temp5[j];
@@ -496,8 +498,8 @@ List est_hmm_map_biallelic(List PH,
             for(int j = 0; j < ngenj; j++)
             {
               gamma[i][j] = alpha[ind][k][i] * beta[ind][k+1][j] *
-                T[p1[ind]][k][v[k][ind][i]][v[k+1][ind][j]] *
-                T[p2[ind]][k][v[k][ind][i+ngeni]][v[k+1][ind][j+ngenj]];
+                T[ploidy_p1[ind]][k][v[k][ind][i]][v[k+1][ind][j]] *
+                T[ploidy_p2[ind]][k][v[k][ind][i+ngeni]][v[k+1][ind][j+ngenj]];
               if(i==0 && j==0) s = gamma[i][j];
               else s += gamma[i][j];
             }
@@ -506,8 +508,8 @@ List est_hmm_map_biallelic(List PH,
           {
             for(int j=0; j < ngenj; j++)
             {
-              nr=R[p1[ind]][v[k][ind][i]][v[k+1][ind][j]] +
-                R[p2[ind]][v[k][ind][i+ngeni]][v[k+1][ind][j+ngenj]];
+              nr=R[ploidy_p1[ind]][v[k][ind][i]][v[k+1][ind][j]] +
+                R[ploidy_p2[ind]][v[k][ind][i+ngeni]][v[k+1][ind][j+ngenj]];
               if(s > 0) // Verify theoretical implications of this condition
                 rf[k] +=  nr * gamma[i][j]/s;
             }
@@ -517,7 +519,7 @@ List est_hmm_map_biallelic(List PH,
       //Termination
       for(int j=0; (unsigned)j < alpha[ind][n_mrk-1].size(); j++)
       {
-        term[ind] +=  alpha[ind][n_mrk-1][j];
+        termination[ind] +=  alpha[ind][n_mrk-1][j];
       }
     } // loop over individuals
     //Likelihood using a specific recombination fraction vector
