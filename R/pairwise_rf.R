@@ -111,11 +111,9 @@ paralell_pairwise <- function(mrk.pairs,
                               tol = .Machine$double.eps^0.25,
                               ll  = FALSE)
 {
-
-
+  ploidy.p1 <- input.seq$data$ploidy.p1
+  ploidy.p2 <- input.seq$data$ploidy.p2
   if(ploidy.p1 <= ploidy.p2){
-    ploidy.p1 <- input.seq$data$ploidy.p1
-    ploidy.p2 <- input.seq$data$ploidy.p2
     dose.p1 <- input.seq$data$dosage.p1
     dose.p2 <- input.seq$data$dosage.p2
     swap.parents <- FALSE
