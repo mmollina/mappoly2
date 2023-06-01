@@ -21,6 +21,10 @@ est_hmm_map_biallelic <- function(PH, G, pedigree, rf, verbose, tol, ret_H0) {
     .Call('_mappoly2_est_hmm_map_biallelic', PACKAGE = 'mappoly2', PH, G, pedigree, rf, verbose, tol, ret_H0)
 }
 
+est_hmm_map_biallelic_single <- function(PH, G, rf, verbose, tol, ret_H0) {
+    .Call('_mappoly2_est_hmm_map_biallelic_single', PACKAGE = 'mappoly2', PH, G, rf, verbose, tol, ret_H0)
+}
+
 #' Mendelian segregation
 #'
 #' Computes the Mendelian segregation frequencies given the ploidy level

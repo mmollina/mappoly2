@@ -62,6 +62,13 @@ std::vector<long double> forward_emit_highprec(std::vector<long double>& fk,
                                                std::vector<std::vector<double> >& T1,
                                                std::vector<std::vector<double> >& T2);
 
+std::vector<double> forward_emit_single_parent(int m,
+                                               std::vector<double>& fk,
+                                               std::vector<int>& ik,
+                                               std::vector<int>& ik1,
+                                               std::vector<double>& emit,
+                                               std::vector<std::vector<double> >& T);
+
 std::vector<double> log_forward_emit(std::vector<double>& fk,
                                      std::vector<int>& ik,
                                      std::vector<int>& ik1,
@@ -82,6 +89,13 @@ std::vector<long double> backward_emit_highprec(std::vector<long double>& fk1,
                                                 std::vector<double>& emit,
                                                 std::vector<std::vector<double> >& T1,
                                                 std::vector<std::vector<double> >& T2);
+
+std::vector<double> backward_emit_single_parent(int m,
+                                                std::vector<double>& fk1,
+                                                std::vector<int>& ik,
+                                                std::vector<int>& ik1,
+                                                std::vector<double>& emit,
+                                                std::vector<std::vector<double> >& T);
 
 std::vector<double> log_backward_emit(std::vector<double>& fk1,
                                       std::vector<int>& ik,
