@@ -73,6 +73,22 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
+// est_hmm_map_biallelic_single
+List est_hmm_map_biallelic_single(NumericMatrix PH, IntegerMatrix G, NumericVector rf, bool verbose, double tol, bool ret_H0);
+RcppExport SEXP _mappoly2_est_hmm_map_biallelic_single(SEXP PHSEXP, SEXP GSEXP, SEXP rfSEXP, SEXP verboseSEXP, SEXP tolSEXP, SEXP ret_H0SEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< NumericMatrix >::type PH(PHSEXP);
+    Rcpp::traits::input_parameter< IntegerMatrix >::type G(GSEXP);
+    Rcpp::traits::input_parameter< NumericVector >::type rf(rfSEXP);
+    Rcpp::traits::input_parameter< bool >::type verbose(verboseSEXP);
+    Rcpp::traits::input_parameter< double >::type tol(tolSEXP);
+    Rcpp::traits::input_parameter< bool >::type ret_H0(ret_H0SEXP);
+    rcpp_result_gen = Rcpp::wrap(est_hmm_map_biallelic_single(PH, G, rf, verbose, tol, ret_H0));
+    return rcpp_result_gen;
+END_RCPP
+}
 // segreg_poly
 NumericVector segreg_poly(int ploidy_p1, int ploidy_p2, int d_p1, int d_p2);
 RcppExport SEXP _mappoly2_segreg_poly(SEXP ploidy_p1SEXP, SEXP ploidy_p2SEXP, SEXP d_p1SEXP, SEXP d_p2SEXP) {
@@ -111,6 +127,7 @@ static const R_CallMethodDef CallEntries[] = {
     {"_mappoly2_find_valid_permutations", (DL_FUNC) &_mappoly2_find_valid_permutations, 3},
     {"_mappoly2_filter_matrices", (DL_FUNC) &_mappoly2_filter_matrices, 1},
     {"_mappoly2_est_hmm_map_biallelic", (DL_FUNC) &_mappoly2_est_hmm_map_biallelic, 7},
+    {"_mappoly2_est_hmm_map_biallelic_single", (DL_FUNC) &_mappoly2_est_hmm_map_biallelic_single, 6},
     {"_mappoly2_segreg_poly", (DL_FUNC) &_mappoly2_segreg_poly, 4},
     {"_mappoly2_twopt_phasing_cpp", (DL_FUNC) &_mappoly2_twopt_phasing_cpp, 5},
     {"pairwise_rf_estimation", (DL_FUNC) &pairwise_rf_estimation, 9},

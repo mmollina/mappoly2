@@ -189,6 +189,32 @@ std::vector<long double> forward_emit_highprec(std::vector<long double>& fk,
   return(fk1);
 }
 
+/* FUNCTION: forward (with one informative parent)
+ -----------------------------------------------------
+ Classical forward equation presented in Rabiner 1989.
+ */
+std::vector<double> forward_emit_single_parent(int m,
+                                               std::vector<double>& fk,
+                                               std::vector<int>& ik,
+                                               std::vector<int>& ik1,
+                                               std::vector<double>& emit,
+                                               std::vector<std::vector<double> >& T)
+{
+  int ngenk = ik.size();
+  int ngenk1 = ik1.size();
+  std::vector<double> fk1(ngenk1);
+  std::fill(fk1.begin(), fk1.end(), 0.0);
+  for(int k1 = 0; k1 < ngenk1; k1++ )
+  {
+    for(int k = 0; k < ngenk; k++ )
+    {
+      fk1[k1] = fk1[k1] + fk[k] * T[ik[k]][ik1[k1]];
+    }
+    fk1[k1] = fk1[k1] * emit[k1];
+  }
+  return(fk1);
+}
+
 
 /* FUNCTION: forward_emit (with both informative parents)
  -----------------------------------------------------
@@ -215,6 +241,7 @@ std::vector<double> log_forward_emit(std::vector<double>& fk,
   }
   return(fk1);
 }
+
 
 /* FUNCTION: backward (with both informative parents)
  -----------------------------------------------------
@@ -260,6 +287,31 @@ std::vector<long double> backward_emit_highprec(std::vector<long double>& fk1,
     for(int k1 = 0; k1 < ngenk1; k1++ )
     {
       fk[k] =  fk[k] + fk1[k1] * T1[ik[k]][ik1[k1]] * T2[ik[k+ngenk]][ik1[k1+ngenk1]] * emit[k1];
+    }
+  }
+  return(fk);
+}
+
+/* FUNCTION: backward (with one informative parent)
+ -----------------------------------------------------
+ Classical backward equation presented in Rabiner 1989.
+ */
+std::vector<double> backward_emit_single_parent(int m,
+                                                std::vector<double>& fk1,
+                                                std::vector<int>& ik,
+                                                std::vector<int>& ik1,
+                                                std::vector<double>& emit,
+                                                std::vector<std::vector<double> >& T)
+{
+  int ngenk = ik.size();
+  int ngenk1 = ik1.size();
+  std::vector<double> fk(ngenk);
+  std::fill(fk.begin(), fk.end(), 0.0);
+  for(int k = 0; k < ngenk; k++ )
+  {
+    for(int k1 = 0; k1 < ngenk1; k1++ )
+    {
+      fk[k] =  fk[k] + fk1[k1] * T[ik[k]][ik1[k1]] * emit[k1];
     }
   }
   return(fk);
