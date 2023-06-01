@@ -51,21 +51,12 @@
 #'
 #' @param ... currently ignored
 #'
-#' @return An object of class \code{mappoly.sequence}, which is a
+#' @return An object of class \code{mappoly2.sequence}, which is a
 #'     list containing the following components:
-#'     \item{seq.phases}{a \code{list} with the linkage phases between
-#'         markers in the sequence, in corresponding positions. \code{-1}
-#'         means that there are no defined linkage phases}
-#'     \item{seq.rf}{a \code{vector} with the recombination
-#'         frequencies between markers in the sequence. \code{-1} means
-#'         that there are no estimated recombination frequencies}
-#'     \item{loglike}{log-likelihood of the corresponding linkage
-#'         map}
-#'     \item{data.name}{name of the object of class
-#'         \code{mappoly.data} with the raw data}
-#'     \item{twopt}{name of the object of class \code{mappoly.twopt}
-#'         with the 2-point analyses. \code{-1} means that the twopt
-#'         estimates were not computed}
+#'     \item{mrk.names}{}
+#'     \item{phases}{}
+#'     \item{redundant}{}
+#'     \item{data}{}
 #'
 #' @author Marcelo Mollinari (\email{mmollin@ncsu.edu}) and
 #'         Gabriel Gesteira, (\email{gdesiqu@ncsu.edu})
@@ -158,6 +149,7 @@ make_sequence <- function(input.obj,
     out.dat <- subset_data(input.obj, select.mrk = mrk.names)
   }
   structure(list(mrk.names = mrk.names,
+                 phases = phase,
                  redundant = NULL,
                  data = out.dat),
             class = "mappoly2.sequence")
@@ -165,14 +157,16 @@ make_sequence <- function(input.obj,
 
 #' @rdname make_sequence
 #' @export
-print.mappoly2.sequence <- function(x, ...) {
+print.mappoly2.sequence <- function(x, detailed = FALSE,  ...) {
   txt <- list(
     paste0("    Ploidy level of ", x$data$name.p1, ":"),
     paste0("    Ploidy level of ", x$data$name.p2, ":"),
     paste0("    No. individuals:"),
     paste0("    No. markers:"),
-    paste0("    Percentage of missing:")
-  )
+    paste0("    Percentage of missing:"),
+    paste0("    Phases:"),
+    paste0("      '--> Number of configurations:"),
+    paste0("      '--> Percentage phased:"))
   n <- sapply(txt, nchar)
   for (i in 1:length(txt)) {
     txt[[i]] <- paste(txt[[i]], paste0(rep(" ", max(n) - n[i]), collapse = ""))
@@ -182,7 +176,15 @@ print.mappoly2.sequence <- function(x, ...) {
   cat("\n", txt[[2]], x$data$ploidy.p2)
   cat("\n", txt[[3]], x$data$n.ind)
   cat("\n", txt[[4]], length(x$mrk.names))
-  cat("\n ", txt[[5]], " (",   round(100*sum(id)/length(id),1), "%)", sep = "")
+  cat("\n ", txt[[5]], " ",   round(100*sum(id)/length(id),1), "%", sep = "")
+  cat("\n", txt[[6]])
+  if(is.null(x$phases)){
+    cat("\n ", txt[[7]], " 0", sep = "")
+    cat("\n ", txt[[8]], " 0%", sep = "")
+  } else {
+    cat("\n ", txt[[7]], " ",   length(x$phases), sep = "")
+    cat("\n ", txt[[8]], " ",   round(100*nrow(x$phases[[1]]$p1)/length(x$mrk.names),1), "%", sep = "")
+  }
   w <- table(x$data$chrom[x$mrk.names], useNA = "always")
   w <- w[order(as.integer(gsub("[^0-9]", "", names(w))))]
   names(w)[is.na(names(w))] <- "NoCrh"
@@ -192,15 +194,18 @@ print.mappoly2.sequence <- function(x, ...) {
     cat("\n     ----------\n     No. markers per sequence:\n")
     print(data.frame(chrom = paste0("       ", names(w)), No.mrk = as.numeric(w)), row.names = FALSE)
   }
-  cat("     ----------\n     No. of markers per dosage in both parents:\n")
-  freq <- table(paste(x$data$dosage.p1[x$mrk.names],
-                      x$data$dosage.p2[x$mrk.names], sep = "-"))
-  d.temp <- matrix(unlist(strsplit(names(freq), "-")), ncol = 2, byrow = TRUE)
-  d.temp <- data.frame(paste0("    ", d.temp[, 1]),
-                       d.temp[, 2],
-                       as.numeric(freq))
-  colnames(d.temp) <- c(x$data$name.p1, x$data$name.p2, "freq")
-  print(d.temp, row.names = FALSE)
+
+  if(detailed){
+    cat("     ----------\n     No. of markers per dosage in both parents:\n")
+    freq <- table(paste(x$data$dosage.p1[x$mrk.names],
+                        x$data$dosage.p2[x$mrk.names], sep = "-"))
+    d.temp <- matrix(unlist(strsplit(names(freq), "-")), ncol = 2, byrow = TRUE)
+    d.temp <- data.frame(paste0("    ", d.temp[, 1]),
+                         d.temp[, 2],
+                         as.numeric(freq))
+    colnames(d.temp) <- c(x$data$name.p1, x$data$name.p2, "freq")
+    print(d.temp, row.names = FALSE)
+  }
 }
 
 #' @rdname make_sequence

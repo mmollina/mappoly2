@@ -14,7 +14,7 @@ make_sequence(
   phase = NULL
 )
 
-\method{print}{mappoly2.sequence}(x, ...)
+\method{print}{mappoly2.sequence}(x, detailed = FALSE, ...)
 
 \method{plot}{mappoly2.sequence}(x, thresh.line = NULL, ...)
 }
@@ -69,21 +69,12 @@ and so on.
 \item{thresh.line}{position of a threshold line for p values of the segregation test (default = \code{0.05/n.mrk})}
 }
 \value{
-An object of class \code{mappoly.sequence}, which is a
+An object of class \code{mappoly2.sequence}, which is a
 list containing the following components:
-\item{seq.phases}{a \code{list} with the linkage phases between
-markers in the sequence, in corresponding positions. \code{-1}
-means that there are no defined linkage phases}
-\item{seq.rf}{a \code{vector} with the recombination
-frequencies between markers in the sequence. \code{-1} means
-that there are no estimated recombination frequencies}
-\item{loglike}{log-likelihood of the corresponding linkage
-map}
-\item{data.name}{name of the object of class
-\code{mappoly.data} with the raw data}
-\item{twopt}{name of the object of class \code{mappoly.twopt}
-with the 2-point analyses. \code{-1} means that the twopt
-estimates were not computed}
+\item{mrk.names}{}
+\item{phases}{}
+\item{redundant}{}
+\item{data}{}
 }
 \description{
 Makes a sequence of markers based on an object of another class.

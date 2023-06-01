@@ -4,7 +4,13 @@
 \alias{hmm_map_reconstruction}
 \title{Multipoint analysis using Hidden Markov Models}
 \usage{
-hmm_map_reconstruction(x, p, rf = NULL, verbose = FALSE, tol = 0.001)
+hmm_map_reconstruction(
+  input.seq,
+  phase.conf = "all",
+  rf = NULL,
+  verbose = FALSE,
+  tol = 0.001
+)
 }
 \arguments{
 \item{void}{internal function}
