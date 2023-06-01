@@ -35,4 +35,6 @@ List vs_biallelic_Rcpp(List PH,
 
 List vs_biallelic_single_Rcpp(NumericMatrix PH,
                               IntegerMatrix G);
+
+List hmm_vectors(List input_list);
 #endif /* UTILS_H */

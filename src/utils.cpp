@@ -219,6 +219,7 @@ List vs_multiallelic_Rcpp(List PH,
       NumericMatrix L_mat = as<NumericMatrix>(L[pop_id]);
       NumericMatrix temp_emit(L_mat.nrow(), 1);
       std::fill(temp_emit.begin(), temp_emit.end(), 1);
+      // std::fill(temp_emit.begin(), temp_emit.end(), 1/temp_emit.size());
       // States to visit
       IntegerVector ind_id = which(pedigree(_,4) == pop_id + 1) - 1;
       NumericMatrix matrix_PH1 =  PH[unique_pop_mat(pop_id,0) - 1];
@@ -305,7 +306,8 @@ List vs_biallelic_Rcpp(List PH,
       // Emission function
       NumericMatrix L_mat = as<NumericMatrix>(L[pop_id]);
       NumericMatrix temp_emit(L_mat.nrow(), 1);
-      std::fill(temp_emit.begin(), temp_emit.end(), 1);
+      //std::fill(temp_emit.begin(), temp_emit.end(), 1);
+      std::fill(temp_emit.begin(), temp_emit.end(), 1.0/temp_emit.size());
       // States to visit
       IntegerVector ind_id = which(pedigree(_,4) == pop_id + 1) - 1;
       NumericMatrix matrix_PH1 =  PH[unique_pop_mat(pop_id,0) - 1];
@@ -344,7 +346,8 @@ List vs_biallelic_Rcpp(List PH,
             }
             H_k[ind_id[j]] = subset_L_pop;
             NumericMatrix temp_emit2(y.size(), 1);
-            std::fill(temp_emit2.begin(), temp_emit2.end(), 1);
+            //std::fill(temp_emit2.begin(), temp_emit2.end(), 1);
+            std::fill(temp_emit2.begin(), temp_emit2.end(), 1.0/temp_emit2.size());
             E_k[ind_id[j]] = temp_emit2;
           }
         }
@@ -377,7 +380,8 @@ List vs_biallelic_single_Rcpp(NumericMatrix PH,
     NumericMatrix temp_emit(ngam, 1);
     for (int i = 0; i < ngam; i++) {
       L_mat(i, 0) = i;
-      temp_emit(i,0) = 1;    // Emission [to be implemented]
+      //temp_emit(i,0) = 1;    // Emission [to be implemented]
+      temp_emit(i,0) = 1.0/ngam;
     }
     // States to visit
     // "ind_id" will be 0:n_ind
@@ -410,7 +414,8 @@ List vs_biallelic_single_Rcpp(NumericMatrix PH,
           }
           H_k[j] = subset_L_pop;
           NumericMatrix temp_emit2(y.size(), 1);
-          std::fill(temp_emit2.begin(), temp_emit2.end(), 1);
+          //std::fill(temp_emit2.begin(), temp_emit2.end(), 1);
+          std::fill(temp_emit2.begin(), temp_emit2.end(), 1.0/temp_emit2.size());
           E_k[j] = temp_emit2;
         }
       }
@@ -421,3 +426,37 @@ List vs_biallelic_single_Rcpp(NumericMatrix PH,
   return List::create(Named("states") = H,
                       Named("emit") = E);
 }
+
+List hmm_vectors(List input_list) {
+  // Getting the input lists
+  List haplo = input_list["states"];
+  List emit = input_list["emit"];
+
+  // Initializing v: states hmm should visit for each marker
+  // Initializing e: emission probabilities associated to the states hmm should visit for each marker
+  std::vector<std::vector<std::vector<int> > > v;
+  std::vector<std::vector<std::vector<double> > > e;
+  for(int i=0; i < haplo.size(); i++) // i: number of markers
+  {
+    Rcpp::List haplo_temp(haplo[i]); //states hmm should visit for marker i
+    Rcpp::List emit_temp(emit[i]); //emission probs. for states hmm should visit for marker i
+    std::vector<std::vector<int> > v1;
+    std::vector<std::vector<double> > e1;
+    for(int j=0; j < haplo_temp.size(); j++) //iterate for all j individuals
+    {
+      Rcpp::NumericMatrix M_temp = haplo_temp[j];
+      Rcpp::NumericVector E_temp = emit_temp[j];
+      std::vector<int> v2 = as<std::vector<int> >(M_temp);
+      std::vector<double> e2 = as<std::vector<double> >(E_temp);
+      v1.push_back(v2);
+      e1.push_back(e2);
+    }
+    v.push_back(v1);
+    e.push_back(e1);
+  }
+  return List::create(Named("v") = v, Named("e") = e);
+}
+
+
+
+
