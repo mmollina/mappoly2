@@ -59,6 +59,7 @@ List est_hmm_map_biallelic(List PH,
                            NumericMatrix pedigree,
                            NumericVector rf,
                            bool verbose,
+                           bool detailed_verbose,
                            double tol,
                            bool ret_H0) {
   NumericVector ploidy_p1 = pedigree(_,2)/2 - 1;
@@ -69,6 +70,7 @@ List est_hmm_map_biallelic(List PH,
   std::vector<int> pl{2,4,6};
   int k, k1,  maxit = 1000, flag=0;
   double s, loglike=0.0, nr=0.0, temp=0.0;
+
   // Getting the maximum ploidy level among founders
   int mpi1 = max(ploidy_p1);
   int mpi2 = max(ploidy_p2);
@@ -222,7 +224,7 @@ List est_hmm_map_biallelic(List PH,
           loglike += log10(temp);
       }
       if(verbose)
-        Rcpp::Rcout << "\n";
+        Rcpp::Rcout << "   \n";
       List z = List::create(wrap(loglike), rf_cur);
       return(z);
     }
@@ -243,7 +245,11 @@ List est_hmm_map_biallelic(List PH,
         break;
       }
     }
-    if(verbose)
+    if(verbose){
+      if(it%50 == 0 && it!=0) Rcout << "\n";
+      Rcout << "." ;
+    }
+    if(detailed_verbose)
     {
       Rcpp::Rcout << "\t\n Iter: " << it+1 << "\t";
       for(int j = 0; j < n_mrk-1; j++)
@@ -276,6 +282,7 @@ List est_hmm_map_biallelic_single(NumericMatrix PH,
                                   IntegerMatrix G,
                                   NumericVector rf,
                                   bool verbose,
+                                  bool detailed_verbose,
                                   double tol,
                                   bool ret_H0) {
   int n_mrk = G.nrow();
@@ -410,8 +417,6 @@ List est_hmm_map_biallelic_single(NumericMatrix PH,
         if(temp > 0)
           loglike += log10(temp);
       }
-      if(verbose)
-        Rcpp::Rcout << "\n";
       List z = List::create(wrap(loglike), rf_cur);
       return(z);
     }
@@ -432,13 +437,17 @@ List est_hmm_map_biallelic_single(NumericMatrix PH,
         break;
       }
     }
-    if(verbose)
+    if(verbose & !detailed_verbose){
+      if(it%30 == 0 && it!=0) Rcout << "\n            ";
+      Rcout << "." ;
+    }
+    if(detailed_verbose)
     {
-      Rcpp::Rcout << "\t\n Iter: " << it+1 << "\t";
+      Rcout << "\t\n Iter: " << it+1 << "\t";
       for(int j = 0; j < n_mrk-1; j++)
       {
-        Rcpp::Rcout.precision(3);
-        Rcpp::Rcout << std::fixed << rf[j] << " ";
+        Rcout.precision(3);
+        Rcout << std::fixed << rf[j] << " ";
       }
     }
     if(!flag) break;

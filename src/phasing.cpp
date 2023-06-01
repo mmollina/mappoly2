@@ -49,6 +49,7 @@
 #include <Rmath.h>
 #include <R_ext/PrtUtil.h>
 #include <unordered_set>
+#include <progress.hpp>
 #define THRESH 200.0
 using namespace Rcpp;
 using namespace std;
@@ -94,18 +95,27 @@ NumericMatrix init_phase_mat(int d, int p){
   }
 }
 
-
+// [[Rcpp::depends(RcppProgress)]]
 // [[Rcpp::export]]
 List twopt_phasing_cpp(CharacterVector mrk_id,
                        int ploidy,
                        IntegerVector dose_vec,
                        NumericMatrix S,
-                       int max_conf_number){
+                       int max_conf_number,
+                       bool verbose){
 
   IntegerVector idx = 1;
   List H(1);
   H[0] = init_phase_mat(dose_vec[0],ploidy);
+
+  int n = mrk_id.size();
+  Progress p(n, verbose); //Progress bar
+
   for(int i = 1; i < mrk_id.size(); ++i){
+
+    if (Progress::check_abort())
+      return -1.0;
+
     int x = dose_vec[i];
 
     if(x == ploidy){
@@ -127,7 +137,7 @@ List twopt_phasing_cpp(CharacterVector mrk_id,
       }
       List vtemp(H.size());
       List Hres;
-      Rcpp::Rcout << "mrk: " << i << " --> Configs: " << H.size() << "\n";
+      //Rcpp::Rcout << "mrk: " << i << " --> Configs: " << H.size() << "\n";
       for(int j = 0; j < H.size(); ++j){
         vtemp[j] = find_valid_permutations(H[j], d, x);
         NumericMatrix z = vtemp[j];
@@ -144,12 +154,13 @@ List twopt_phasing_cpp(CharacterVector mrk_id,
         Hres = filter_matrices(Hres);
 
       if(Hres.size() > max_conf_number || Hres.size() == 0){
-        Rcpp::Rcout << "Skiping marker " << i << "\n";
+        //Rcpp::Rcout << "Skiping marker " << i << "\n";
         continue;
       }
       H = Hres;
       idx.push_back(i);
     }
+    p.increment();
   }
   CharacterVector mrk_names(idx.size());
   for(int i  = 0; i < idx.size(); i++)

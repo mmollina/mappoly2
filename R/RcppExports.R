@@ -17,12 +17,16 @@ filter_matrices <- function(mat_list) {
     .Call('_mappoly2_filter_matrices', PACKAGE = 'mappoly2', mat_list)
 }
 
-est_hmm_map_biallelic <- function(PH, G, pedigree, rf, verbose, tol, ret_H0) {
-    .Call('_mappoly2_est_hmm_map_biallelic', PACKAGE = 'mappoly2', PH, G, pedigree, rf, verbose, tol, ret_H0)
+est_hmm_map_biallelic <- function(PH, G, pedigree, rf, verbose, detailed_verbose, tol, ret_H0) {
+    .Call('_mappoly2_est_hmm_map_biallelic', PACKAGE = 'mappoly2', PH, G, pedigree, rf, verbose, detailed_verbose, tol, ret_H0)
 }
 
-est_hmm_map_biallelic_single <- function(PH, G, rf, verbose, tol, ret_H0) {
-    .Call('_mappoly2_est_hmm_map_biallelic_single', PACKAGE = 'mappoly2', PH, G, rf, verbose, tol, ret_H0)
+est_hmm_map_biallelic_single <- function(PH, G, rf, verbose, detailed_verbose, tol, ret_H0) {
+    .Call('_mappoly2_est_hmm_map_biallelic_single', PACKAGE = 'mappoly2', PH, G, rf, verbose, detailed_verbose, tol, ret_H0)
+}
+
+twopt_phasing_cpp <- function(mrk_id, ploidy, dose_vec, S, max_conf_number, verbose) {
+    .Call('_mappoly2_twopt_phasing_cpp', PACKAGE = 'mappoly2', mrk_id, ploidy, dose_vec, S, max_conf_number, verbose)
 }
 
 #' Mendelian segregation
@@ -58,9 +62,5 @@ NULL
 
 segreg_poly <- function(ploidy_p1, ploidy_p2, d_p1, d_p2) {
     .Call('_mappoly2_segreg_poly', PACKAGE = 'mappoly2', ploidy_p1, ploidy_p2, d_p1, d_p2)
-}
-
-twopt_phasing_cpp <- function(mrk_id, ploidy, dose_vec, S, max_conf_number) {
-    .Call('_mappoly2_twopt_phasing_cpp', PACKAGE = 'mappoly2', mrk_id, ploidy, dose_vec, S, max_conf_number)
 }
 
