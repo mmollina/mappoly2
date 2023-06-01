@@ -66,11 +66,6 @@ List est_hmm_map_biallelic(List PH,
   int n_ind = pedigree.nrow();
   NumericMatrix temp_phase_mat = PH[0];
   int n_mrk = temp_phase_mat.nrow();
-  // HMM states that should be visited given the phase of
-  // the founders, genotype of the offspring and pedigree
-  List result = vs_biallelic_Rcpp(PH, G, pedigree);
-  List haplo = result["states"];
-  List emit = result["emit"]; // Emission probabilities to be implemented
   std::vector<int> pl{2,4,6};
   int k, k1,  maxit = 1000, flag=0;
   double s, loglike=0.0, nr=0.0, temp=0.0;
@@ -86,28 +81,13 @@ List est_hmm_map_biallelic(List PH,
   std::vector<double> termination(n_ind);
   std::fill(termination.begin(), termination.end(), 0.0);
 
-  //Initializing v: states hmm should visit for each marker
-  //Initializing e: emission probabilities associated to the states hmm should visit for each marker
-  std::vector<std::vector<std::vector<int> > > v;
-  std::vector<std::vector<std::vector<double> > > e;
-  for(int i=0; i < haplo.size(); i++) // i: number of markers
-  {
-    Rcpp::List haplo_temp(haplo(i)); //states hmm should visit for marker i
-    Rcpp::List emit_temp(emit(i)); //emission probs. for states hmm should visit for marker i
-    std::vector<std::vector<int> > v1;
-    std::vector<std::vector<double> > e1;
-    for(int j=0; j < haplo_temp.size(); j++) //iterate for all j individuals
-    {
-      Rcpp::NumericMatrix M_temp = haplo_temp(j);
-      Rcpp::NumericVector E_temp = emit_temp(j);
-      std::vector<int> v2 = Rcpp::as<std::vector<int> >(M_temp);
-      std::vector<double> e2 = Rcpp::as<std::vector<double> >(E_temp);
-      v1.push_back(v2);
-      e1.push_back(e2);
-    }
-    v.push_back(v1);
-    e.push_back(e1);
-  }
+  // HMM states that should be visited given the phase of
+  // the founders, genotype of the offspring and pedigree
+  List result = vs_biallelic_Rcpp(PH, G, pedigree);
+  List ve = hmm_vectors(result);
+  std::vector<std::vector<std::vector<int> > > v = ve["v"];
+  std::vector<std::vector<std::vector<double> > > e = ve["e"];
+
   //Initializing alpha and beta
   std::vector<std::vector<std::vector<double> > > alpha(n_ind);
   std::vector<std::vector<std::vector<double> > > beta(n_ind);
@@ -149,10 +129,9 @@ List est_hmm_map_biallelic(List PH,
     {
       R_CheckUserInterrupt();
       for(int j=0; (unsigned)j < e[0][ind].size(); j++)
-      {
         alpha[ind][0][j] = e[0][ind][j];
-      }
-      std::fill(beta[ind][n_mrk-1].begin(), beta[ind][n_mrk-1].end(), 1);
+
+      std::fill(beta[ind][n_mrk-1].begin(), beta[ind][n_mrk-1].end(), 1.0);
       //forward-backward
       for(k=1,k1=n_mrk-2; k < n_mrk; k++, k1--)
       {
@@ -163,9 +142,16 @@ List est_hmm_map_biallelic(List PH,
                                        e[k][ind],
                                            T[ploidy_p1[ind]][k-1],
                                                      T[ploidy_p2[ind]][k-1]);
+        // Normalization to avoid underflow
+        // NOTE: The LogSumExp (LSE) method is not used here for efficiency reasons,
+        // as it has been observed that this normalization technique performs adequately.
+        double zeta = 0;
+        for(int j=0; (unsigned)j < temp4.size(); j++)
+          zeta = zeta + temp4[j];
+
         for(int j=0; (unsigned)j < temp4.size(); j++)
         {
-          alpha[ind][k][j]=temp4[j];
+          alpha[ind][k][j]=temp4[j]/zeta;
         }
         std::vector<double> temp5 (v[k1][ind].size()/2);
         temp5=backward_emit(beta[ind][k1+1],
@@ -174,11 +160,16 @@ List est_hmm_map_biallelic(List PH,
                                         e[k1+1][ind],
                                                T[ploidy_p1[ind]][k1],
                                                          T[ploidy_p2[ind]][k1]);
+        // Normalization to avoid underflow
+        zeta = 0;
+        for(int j=0; (unsigned)j < temp5.size(); j++)
+          zeta = zeta + temp5[j];
         for(int j=0; (unsigned)j < temp5.size(); j++)
         {
-          beta[ind][k1][j]=temp5[j];
+          beta[ind][k1][j]=temp5[j]/zeta;
         }
       }
+
       if(ret_H0 == 0)
       {
         //Updating recombination fraction
@@ -235,7 +226,7 @@ List est_hmm_map_biallelic(List PH,
       List z = List::create(wrap(loglike), rf_cur);
       return(z);
     }
-    // rescale
+    // re-scale
     for(int j=0; j<n_mrk-1; j++)
     {
       rf[j] /= (double)n_ind;
@@ -289,11 +280,6 @@ List est_hmm_map_biallelic_single(NumericMatrix PH,
                                   bool ret_H0) {
   int n_mrk = G.nrow();
   int n_ind = G.ncol();
-  // HMM states that should be visited given the phase of
-  // the founders, genotype of the offspring and pedigree
-  List result = vs_biallelic_single_Rcpp(PH, G);
-  List haplo = result["states"];
-  List emit = result["emit"]; // Emission probabilities to be implemented
   std::vector<int> pl{2,4,6};
   int ploidy = PH.ncol();
   int k, k1,  maxit = 1000, flag=0;
@@ -303,28 +289,13 @@ List est_hmm_map_biallelic_single(NumericMatrix PH,
   std::vector<double> termination(n_ind);
   std::fill(termination.begin(), termination.end(), 0.0);
 
-  //Initializing v: states hmm should visit for each marker
-  //Initializing e: emission probabilities associated to the states hmm should visit for each marker
-  std::vector<std::vector<std::vector<int> > > v;
-  std::vector<std::vector<std::vector<double> > > e;
-  for(int i=0; i < haplo.size(); i++) // i: number of markers
-  {
-    Rcpp::List haplo_temp(haplo(i)); //states hmm should visit for marker i
-    Rcpp::List emit_temp(emit(i)); //emission probs. for states hmm should visit for marker i
-    std::vector<std::vector<int> > v1;
-    std::vector<std::vector<double> > e1;
-    for(int j=0; j < haplo_temp.size(); j++) //iterate for all j individuals
-    {
-      Rcpp::NumericMatrix M_temp = haplo_temp(j);
-      Rcpp::NumericVector E_temp = emit_temp(j);
-      std::vector<int> v2 = Rcpp::as<std::vector<int> >(M_temp);
-      std::vector<double> e2 = Rcpp::as<std::vector<double> >(E_temp);
-      v1.push_back(v2);
-      e1.push_back(e2);
-    }
-    v.push_back(v1);
-    e.push_back(e1);
-  }
+  // HMM states that should be visited given the phase of
+  // the founders, genotype of the offspring and pedigree
+  List result = vs_biallelic_single_Rcpp(PH, G);
+  List ve = hmm_vectors(result);
+  std::vector<std::vector<std::vector<int> > > v = ve["v"];
+  std::vector<std::vector<std::vector<double> > > e = ve["e"];
+
   //Initializing alpha and beta
   std::vector<std::vector<std::vector<double> > > alpha(n_ind);
   std::vector<std::vector<std::vector<double> > > beta(n_ind);
@@ -358,25 +329,36 @@ List est_hmm_map_biallelic_single(NumericMatrix PH,
     {
       R_CheckUserInterrupt();
       for(int j=0; (unsigned)j < e[0][ind].size(); j++)
-      {
         alpha[ind][0][j] = e[0][ind][j];
-      }
-      std::fill(beta[ind][n_mrk-1].begin(), beta[ind][n_mrk-1].end(), 1);
+
+      std::fill(beta[ind][n_mrk-1].begin(), beta[ind][n_mrk-1].end(), 1.0);
       //forward-backward
       for(k=1,k1=n_mrk-2; k < n_mrk; k++, k1--)
       {
         std::vector<double> temp4 (v[k][ind].size());
         temp4 = forward_emit_single_parent(ploidy, alpha[ind][k-1], v[k-1][ind], v[k][ind], e[k][ind], T[k-1]);
+
+        // Normalization to avoid underflow
+        // NOTE: The LogSumExp (LSE) method is not used here for efficiency reasons,
+        // as it has been observed that this normalization technique performs adequately.
+        double zeta = 0;
         for(int j=0; (unsigned)j < temp4.size(); j++)
-        {
-          alpha[ind][k][j]=temp4[j];
-        }
+          zeta = zeta + temp4[j];
+
+        for(int j=0; (unsigned)j < temp4.size(); j++)
+          alpha[ind][k][j]=temp4[j]/zeta;
+
         std::vector<double> temp5 (v[k1][ind].size());
         temp5=backward_emit_single_parent(ploidy, beta[ind][k1+1], v[k1][ind], v[k1+1][ind], e[k1+1][ind], T[k1]);
+
+        // Normalization to avoid underflow
+        zeta = 0;
         for(int j=0; (unsigned)j < temp5.size(); j++)
-        {
-          beta[ind][k1][j]=temp5[j];
-        }
+          zeta = zeta + temp5[j];
+
+        for(int j=0; (unsigned)j < temp5.size(); j++)
+          beta[ind][k1][j]=temp5[j]/zeta;
+
       }
       if(ret_H0 == 0)
       {
@@ -402,7 +384,7 @@ List est_hmm_map_biallelic_single(NumericMatrix PH,
             for(int j=0; j < ngenj; j++)
             {
               nr = R[v[k][ind][i]][v[k+1][ind][j]] * 2;
-              if(s > 0) // Verify theoretical implications of this condition
+              if(s > 0)
                 rf[k] +=  nr * gamma[i][j]/s;
             }
           }
