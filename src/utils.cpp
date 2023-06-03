@@ -284,6 +284,7 @@ List vs_multiallelic_Rcpp(List PH,
 }
 
 // Helper function for states to visit - biallelic
+// [[Rcpp::export]]
 List vs_biallelic_Rcpp(List PH,
                        IntegerMatrix G,
                        NumericMatrix pedigree) {
@@ -307,8 +308,8 @@ List vs_biallelic_Rcpp(List PH,
       NumericMatrix L_mat = as<NumericMatrix>(L[pop_id]);
       NumericMatrix temp_emit(L_mat.nrow(), 1);
       //TEST
-      std::fill(temp_emit.begin(), temp_emit.end(), 1.0);
-      //std::fill(temp_emit.begin(), temp_emit.end(), 1.0/temp_emit.size());
+      //std::fill(temp_emit.begin(), temp_emit.end(), 1.0);
+      std::fill(temp_emit.begin(), temp_emit.end(), 1.0/temp_emit.size());
       // States to visit
       IntegerVector ind_id = which(pedigree(_,4) == pop_id + 1) - 1;
       NumericMatrix matrix_PH1 =  PH[unique_pop_mat(pop_id,0) - 1];
@@ -348,8 +349,8 @@ List vs_biallelic_Rcpp(List PH,
             H_k[ind_id[j]] = subset_L_pop;
             NumericMatrix temp_emit2(y.size(), 1);
             //TEST
-            std::fill(temp_emit2.begin(), temp_emit2.end(), 1.0);
-            //std::fill(temp_emit2.begin(), temp_emit2.end(), 1.0/temp_emit2.size());
+            //std::fill(temp_emit2.begin(), temp_emit2.end(), 1.0);
+            std::fill(temp_emit2.begin(), temp_emit2.end(), 1.0/temp_emit2.size());
             E_k[ind_id[j]] = temp_emit2;
           }
         }
@@ -383,8 +384,8 @@ List vs_biallelic_single_Rcpp(NumericMatrix PH,
     for (int i = 0; i < ngam; i++) {
       L_mat(i, 0) = i;
       //TEST
-      temp_emit(i,0) = 1.0;    // Emission [to be implemented]
-      //temp_emit(i,0) = 1.0/ngam;
+      //temp_emit(i,0) = 1.0;    // Emission [to be implemented]
+      temp_emit(i,0) = 1.0/ngam;
     }
     // States to visit
     // "ind_id" will be 0:n_ind
@@ -418,8 +419,8 @@ List vs_biallelic_single_Rcpp(NumericMatrix PH,
           H_k[j] = subset_L_pop;
           NumericMatrix temp_emit2(y.size(), 1);
           //TEST
-          std::fill(temp_emit2.begin(), temp_emit2.end(), 1.0);
-          //std::fill(temp_emit2.begin(), temp_emit2.end(), 1.0/temp_emit2.size());
+          //std::fill(temp_emit2.begin(), temp_emit2.end(), 1.0);
+          std::fill(temp_emit2.begin(), temp_emit2.end(), 1.0/temp_emit2.size());
           E_k[j] = temp_emit2;
         }
       }

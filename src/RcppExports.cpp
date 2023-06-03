@@ -121,17 +121,16 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
-// calc_loglike_hmm_rcpp
-double calc_loglike_hmm_rcpp(List PH, IntegerMatrix G, NumericMatrix pedigree, NumericVector rf_vec);
-RcppExport SEXP _mappoly2_calc_loglike_hmm_rcpp(SEXP PHSEXP, SEXP GSEXP, SEXP pedigreeSEXP, SEXP rf_vecSEXP) {
+// vs_biallelic_Rcpp
+List vs_biallelic_Rcpp(List PH, IntegerMatrix G, NumericMatrix pedigree);
+RcppExport SEXP _mappoly2_vs_biallelic_Rcpp(SEXP PHSEXP, SEXP GSEXP, SEXP pedigreeSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
     Rcpp::traits::input_parameter< List >::type PH(PHSEXP);
     Rcpp::traits::input_parameter< IntegerMatrix >::type G(GSEXP);
     Rcpp::traits::input_parameter< NumericMatrix >::type pedigree(pedigreeSEXP);
-    Rcpp::traits::input_parameter< NumericVector >::type rf_vec(rf_vecSEXP);
-    rcpp_result_gen = Rcpp::wrap(calc_loglike_hmm_rcpp(PH, G, pedigree, rf_vec));
+    rcpp_result_gen = Rcpp::wrap(vs_biallelic_Rcpp(PH, G, pedigree));
     return rcpp_result_gen;
 END_RCPP
 }
@@ -147,7 +146,7 @@ static const R_CallMethodDef CallEntries[] = {
     {"_mappoly2_est_hmm_map_biallelic_single", (DL_FUNC) &_mappoly2_est_hmm_map_biallelic_single, 7},
     {"_mappoly2_twopt_phasing_cpp", (DL_FUNC) &_mappoly2_twopt_phasing_cpp, 6},
     {"_mappoly2_segreg_poly", (DL_FUNC) &_mappoly2_segreg_poly, 4},
-    {"_mappoly2_calc_loglike_hmm_rcpp", (DL_FUNC) &_mappoly2_calc_loglike_hmm_rcpp, 4},
+    {"_mappoly2_vs_biallelic_Rcpp", (DL_FUNC) &_mappoly2_vs_biallelic_Rcpp, 3},
     {"pairwise_rf_estimation", (DL_FUNC) &pairwise_rf_estimation, 9},
     {NULL, NULL, 0}
 };

@@ -35,7 +35,7 @@
  North Carolina State University
  Contact: mmollin@ncsu.edu
  First version:       2022
- Last update: May 24, 2023
+ Last update: Jun 3, 2023
  */
 
 #include <Rcpp.h>
@@ -53,20 +53,15 @@
 using namespace std;
 using namespace Rcpp;
 
+
 double calc_loglike(std::vector<std::vector<std::vector<int> > > v,
-                    std::vector<std::vector<std::vector<double> > >e,
+                    std::vector<std::vector<std::vector<double> > > emit,
                     std::vector<double> rf_vec,
                     NumericVector ploidy_p1,
                     NumericVector ploidy_p2) {
-  int n_mrk = e.size();
-  int n_ind = e[1].size();
-  double loglike = 0.0;
+
   std::vector<int> pl{2,4,6};
-  std::vector<double> cur_rf(rf_vec.size());
-  std::fill(cur_rf.begin(), cur_rf.end(), 0.0);
-  for(int i = 0; i < cur_rf.size(); i++){
-    cur_rf[i] = rf_vec[i];
-  }
+  double loglike = 0.0;
 
   // Getting the maximum ploidy level among founders
   int mpi1 = max(ploidy_p1);
@@ -77,16 +72,20 @@ double calc_loglike(std::vector<std::vector<std::vector<int> > > v,
   else
     max_ploidy_id = mpi2;
 
+  int n_mrk  = v.size();
+  int n_ind  = v[0].size();
+
   //Initializing alpha and beta
   std::vector<std::vector<std::vector<double> > > alpha(n_ind);
   for(int ind=0; ind < n_ind; ind++)
   {
-    for(int i=0; i < n_mrk; i++)
+    for(int k=0; k < n_mrk; k++)
     {
-      std::vector<double> temp3(v[i][ind].size()/2);
-      alpha[ind].push_back(temp3);
+      std::vector<double> temp(emit[k][ind].size());
+      alpha[ind].push_back(temp);
     }
   }
+
   //Initializing transition matrices
   std::vector< std::vector< std::vector< std::vector<double> > > >T;
   for(int j=0; j <= max_ploidy_id; j++)
@@ -94,45 +93,96 @@ double calc_loglike(std::vector<std::vector<std::vector<int> > > v,
     std::vector< std::vector< std::vector<double> > > Ttemp;
     for(int i=0; i < n_mrk-1; i++)
     {
-      Ttemp.push_back(log_transition(pl[j], cur_rf[i]));
+      Ttemp.push_back(log_transition(pl[j], rf_vec[i]));
     }
     T.push_back(Ttemp);
   }
   //Loop over all individuals
-  for(int ind=0; ind < n_ind; ind++)
+  for(int i=0; i < n_ind; i++)
   {
     R_CheckUserInterrupt();
-    for(int j=0; (unsigned)j < e[0][ind].size(); j++)
-      alpha[ind][0][j] = log(e[0][ind][j]);
+    for(int j=0; (unsigned)j < emit[0][i].size(); j++)
+      alpha[i][0][j] = log(emit[0][i][j]);
 
     //forward
     for(int k=1; k < n_mrk; k++)
     {
-      std::vector<double> temp4(v[k][ind].size()/2);
-      temp4 = log_forward_emit(alpha[ind][k-1],
-                               v[k-1][ind],
-                                     v[k][ind],
-                                         e[k][ind],
-                                             T[ploidy_p1[ind]][k-1],
-                                                              T[ploidy_p2[ind]][k-1]);
-
-      for(int j=0; (unsigned)j < temp4.size(); j++)
-        alpha[ind][k][j]=temp4[j];
+      int ngen_k0 = v[k-1][i].size()/2;
+      int ngen_k1 = v[k][i].size()/2;
+      for(int s1 = 0; s1 < ngen_k1; s1++)
+      {
+        alpha[i][k][s1] = alpha[i][k-1][0] +
+          T[ploidy_p1[i]][k-1][0][v[k][i][s1]] +
+          T[ploidy_p2[i]][k-1][0][v[k][i][s1+ngen_k1]];
+        for(int s0 = 0; s0 < ngen_k0; s0++){
+          alpha[i][k][s1] =  addlog(alpha[i][k][s1], alpha[i][k-1][s0] +
+            T[ploidy_p1[i]][k-1][v[k-1][i][s0]][v[k][i][s1]] +
+            T[ploidy_p2[i]][k-1][v[k-1][i][s0+ngen_k0]][v[k][i][s1+ngen_k1]]);
+        }
+        alpha[i][k][s1] += log(emit[k][i][s1]);
+      }
     }
-  }
-  for(int i=0; (unsigned)i < alpha.size(); i++)
-  {
-    double temp = alpha[i][n_mrk-1][0];
-    for(int j=1; (unsigned)j < alpha[i][n_mrk-1].size(); j++)
-      temp = addlog(temp, alpha[i][n_mrk-1][j]);
-    if(temp > 1e-50)
-      loglike += temp;
+    double term = alpha[i][n_mrk-1][0];
+    for(int j=1; j < alpha[i][n_mrk-1].size(); j++)
+      term = addlog(term, alpha[i][n_mrk-1][j]);
+    loglike += term;
   }
   return(loglike);
 }
 
+double calc_loglike_single(std::vector<std::vector<std::vector<int> > > v,
+                           std::vector<std::vector<std::vector<double> > > emit,
+                           std::vector<double> rf_vec,
+                           int ploidy) {
+  double loglike = 0.0;
+  int n_mrk  = v.size();
+  int n_ind  = v[0].size();
 
+  //Initializing alpha and beta
+  std::vector<std::vector<std::vector<double> > > alpha(n_ind);
+  for(int ind=0; ind < n_ind; ind++)
+  {
+    for(int k=0; k < n_mrk; k++)
+    {
+      std::vector<double> temp(emit[k][ind].size());
+      alpha[ind].push_back(temp);
+    }
+  }
 
+  //Initializing transition matrices
+  std::vector< std::vector< std::vector<double> > > T;
+  for(int i=0; i < n_mrk-1; i++)
+    T.push_back(log_transition(ploidy, rf_vec[i]));
+
+  //Loop over all individuals
+  for(int i=0; i < n_ind; i++)
+  {
+    R_CheckUserInterrupt();
+    for(int j=0; (unsigned)j < emit[0][i].size(); j++)
+      alpha[i][0][j] = log(emit[0][i][j]);
+    //forward
+    for(int k=1; k < n_mrk; k++)
+    {
+      int ngen_k0 = v[k-1][i].size();
+      int ngen_k1 = v[k][i].size();
+      for(int s1 = 0; s1 < ngen_k1; s1++)
+      {
+        alpha[i][k][s1] = alpha[i][k-1][0] +
+          T[k-1][0][v[k][i][s1]];
+        for(int s0 = 0; s0 < ngen_k0; s0++){
+          alpha[i][k][s1] =  addlog(alpha[i][k][s1], alpha[i][k-1][s0] +
+            T[k-1][v[k-1][i][s0]][v[k][i][s1]]);
+        }
+        alpha[i][k][s1] += log(emit[k][i][s1]);
+      }
+    }
+    double term = alpha[i][n_mrk-1][0];
+    for(int j=1; j < alpha[i][n_mrk-1].size(); j++)
+      term = addlog(term, alpha[i][n_mrk-1][j]);
+    loglike += term;
+  }
+  return(loglike);
+}
 // [[Rcpp::export]]
 List est_hmm_map_biallelic(List PH,
                            IntegerMatrix G,
@@ -288,6 +338,7 @@ List est_hmm_map_biallelic(List PH,
     if(ret_H0 == 1)
     {
       loglike = calc_loglike(v, e, rf_cur, ploidy_p1, ploidy_p2);
+      //loglike = calc_loglike(PH, G, pedigree, rf_cur);
       if(verbose)
         Rcpp::Rcout << "   \n";
       List z = List::create(wrap(loglike), rf_cur);
@@ -332,14 +383,11 @@ List est_hmm_map_biallelic(List PH,
 
   //Loglike computation
   loglike = calc_loglike(v, e, rf_cur, ploidy_p1, ploidy_p2);
-
   if(verbose)
     Rcpp::Rcout << "\n";
   List z = List::create(wrap(loglike), wrap(rf_cur));
-  //Rcpp::Rcout << rf << "\n";
   return(z);
 }
-
 // [[Rcpp::export]]
 List est_hmm_map_biallelic_single(NumericMatrix PH,
                                   IntegerMatrix G,
@@ -350,10 +398,9 @@ List est_hmm_map_biallelic_single(NumericMatrix PH,
                                   bool ret_H0) {
   int n_mrk = G.nrow();
   int n_ind = G.ncol();
-  std::vector<int> pl{2,4,6};
   int ploidy = PH.ncol();
   int k, k1,  maxit = 1000, flag=0;
-  double s, loglike=0.0, nr=0.0, temp=0.0;
+  double s, loglike=0.0, nr=0.0;
   // Getting the maximum ploidy level among founders
   std::vector<double> rf_cur(rf.size());
 
@@ -465,7 +512,7 @@ List est_hmm_map_biallelic_single(NumericMatrix PH,
     if(ret_H0 == 1)
     {
       //Loglike computation
-      //loglike = calc_loglike_single(v, e, rf_cur, ploidy);
+      loglike = calc_loglike_single(v, e, rf_cur, ploidy);
       List z = List::create(wrap(loglike), rf_cur);
       return(z);
     }
@@ -503,8 +550,18 @@ List est_hmm_map_biallelic_single(NumericMatrix PH,
   }//end of EM algorithm
   if(flag && verbose) Rcpp::Rcout << "Didn't converge!\n";
 
+  for(int j=0; j<n_mrk-1; j++)
+    rf_cur[j] = rf[j];
+
+//  for(int j = 0; j < 10; j++)
+//  {
+//    Rcout.precision(3);
+//    Rcout << std::fixed << rf[j] << " ";
+//  }
+
   //Loglike computation
-  //loglike = calc_loglike_single(v, e, rf_cur, ploidy);
+  loglike = calc_loglike_single(v, e, rf_cur, ploidy);
+  //Rcpp::Rcout << " --> loglike: " << loglike << "\n";
 
   if(verbose)
     Rcpp::Rcout << "\n";
