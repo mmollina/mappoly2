@@ -53,6 +53,86 @@
 using namespace std;
 using namespace Rcpp;
 
+double calc_loglike(std::vector<std::vector<std::vector<int> > > v,
+                    std::vector<std::vector<std::vector<double> > >e,
+                    std::vector<double> rf_vec,
+                    NumericVector ploidy_p1,
+                    NumericVector ploidy_p2) {
+  int n_mrk = e.size();
+  int n_ind = e[1].size();
+  double loglike = 0.0;
+  std::vector<int> pl{2,4,6};
+  std::vector<double> cur_rf(rf_vec.size());
+  std::fill(cur_rf.begin(), cur_rf.end(), 0.0);
+  for(int i = 0; i < cur_rf.size(); i++){
+    cur_rf[i] = rf_vec[i];
+  }
+
+  // Getting the maximum ploidy level among founders
+  int mpi1 = max(ploidy_p1);
+  int mpi2 = max(ploidy_p2);
+  int max_ploidy_id;
+  if(mpi1 >= mpi2)
+    max_ploidy_id = mpi1;
+  else
+    max_ploidy_id = mpi2;
+
+  //Initializing alpha and beta
+  std::vector<std::vector<std::vector<double> > > alpha(n_ind);
+  for(int ind=0; ind < n_ind; ind++)
+  {
+    for(int i=0; i < n_mrk; i++)
+    {
+      std::vector<double> temp3(v[i][ind].size()/2);
+      alpha[ind].push_back(temp3);
+    }
+  }
+  //Initializing transition matrices
+  std::vector< std::vector< std::vector< std::vector<double> > > >T;
+  for(int j=0; j <= max_ploidy_id; j++)
+  {
+    std::vector< std::vector< std::vector<double> > > Ttemp;
+    for(int i=0; i < n_mrk-1; i++)
+    {
+      Ttemp.push_back(log_transition(pl[j], cur_rf[i]));
+    }
+    T.push_back(Ttemp);
+  }
+  //Loop over all individuals
+  for(int ind=0; ind < n_ind; ind++)
+  {
+    R_CheckUserInterrupt();
+    for(int j=0; (unsigned)j < e[0][ind].size(); j++)
+      alpha[ind][0][j] = log(e[0][ind][j]);
+
+    //forward
+    for(int k=1; k < n_mrk; k++)
+    {
+      std::vector<double> temp4(v[k][ind].size()/2);
+      temp4 = log_forward_emit(alpha[ind][k-1],
+                               v[k-1][ind],
+                                     v[k][ind],
+                                         e[k][ind],
+                                             T[ploidy_p1[ind]][k-1],
+                                                              T[ploidy_p2[ind]][k-1]);
+
+      for(int j=0; (unsigned)j < temp4.size(); j++)
+        alpha[ind][k][j]=temp4[j];
+    }
+  }
+  for(int i=0; (unsigned)i < alpha.size(); i++)
+  {
+    double temp = alpha[i][n_mrk-1][0];
+    for(int j=1; (unsigned)j < alpha[i][n_mrk-1].size(); j++)
+      temp = addlog(temp, alpha[i][n_mrk-1][j]);
+    if(temp > 1e-50)
+      loglike += temp;
+  }
+  return(loglike);
+}
+
+
+
 // [[Rcpp::export]]
 List est_hmm_map_biallelic(List PH,
                            IntegerMatrix G,
@@ -69,7 +149,7 @@ List est_hmm_map_biallelic(List PH,
   int n_mrk = temp_phase_mat.nrow();
   std::vector<int> pl{2,4,6};
   int k, k1,  maxit = 1000, flag=0;
-  double s, loglike=0.0, nr=0.0, temp=0.0;
+  double s, loglike = 0.0, nr=0.0;
 
   // Getting the maximum ploidy level among founders
   int mpi1 = max(ploidy_p1);
@@ -80,8 +160,6 @@ List est_hmm_map_biallelic(List PH,
   else
     max_ploidy_id = mpi2;
   std::vector<double> rf_cur(rf.size());
-  std::vector<double> termination(n_ind);
-  std::fill(termination.begin(), termination.end(), 0.0);
 
   // HMM states that should be visited given the phase of
   // the founders, genotype of the offspring and pedigree
@@ -143,7 +221,7 @@ List est_hmm_map_biallelic(List PH,
                                    v[k][ind],
                                        e[k][ind],
                                            T[ploidy_p1[ind]][k-1],
-                                                     T[ploidy_p2[ind]][k-1]);
+                                                            T[ploidy_p2[ind]][k-1]);
         // Normalization to avoid underflow
         // NOTE: The LogSumExp (LSE) method is not used here for efficiency reasons,
         // as it has been observed that this normalization technique performs adequately.
@@ -161,7 +239,7 @@ List est_hmm_map_biallelic(List PH,
                                  v[k1+1][ind],
                                         e[k1+1][ind],
                                                T[ploidy_p1[ind]][k1],
-                                                         T[ploidy_p2[ind]][k1]);
+                                                                T[ploidy_p2[ind]][k1]);
         // Normalization to avoid underflow
         zeta = 0;
         for(int j=0; (unsigned)j < temp5.size(); j++)
@@ -204,25 +282,12 @@ List est_hmm_map_biallelic(List PH,
           }
         }
       }
-      //Termination
-      for(int j=0; (unsigned)j < alpha[ind][n_mrk-1].size(); j++)
-      {
-        termination[ind] +=  alpha[ind][n_mrk-1][j];
-      }
     } // loop over individuals
     //Likelihood using a specific recombination fraction vector
     //Usually, this is used to compute LOD Score under H0: rf=0.5
     if(ret_H0 == 1)
     {
-      //Loglike computation
-      for(int i=0; (unsigned)i < alpha.size(); i++)
-      {
-        temp=0.0;
-        for(int j=0; (unsigned)j < alpha[i][n_mrk-1].size(); j++)
-          temp += alpha[i][n_mrk-1][j];
-        if(temp > 0)
-          loglike += log10(temp);
-      }
+      loglike = calc_loglike(v, e, rf_cur, ploidy_p1, ploidy_p2);
       if(verbose)
         Rcpp::Rcout << "   \n";
       List z = List::create(wrap(loglike), rf_cur);
@@ -245,8 +310,8 @@ List est_hmm_map_biallelic(List PH,
         break;
       }
     }
-    if(verbose){
-      if(it%50 == 0 && it!=0) Rcout << "\n";
+    if(verbose & !detailed_verbose){
+      if(it%30 == 0 && it!=0) Rcout << "\n            ";
       Rcout << "." ;
     }
     if(detailed_verbose)
@@ -262,18 +327,16 @@ List est_hmm_map_biallelic(List PH,
   }//end of EM algorithm
   if(flag && verbose) Rcpp::Rcout << "Didn't converge!\n";
 
+  for(int j=0; j<n_mrk-1; j++)
+    rf_cur[j] = rf[j];
+
   //Loglike computation
-  for(int i=0; (unsigned)i < alpha.size(); i++)
-  {
-    temp=0.0;
-    for(int j=0; (unsigned)j < alpha[i][n_mrk-1].size(); j++)
-      temp += alpha[i][n_mrk-1][j];
-    if(temp > 0)
-      loglike += log10(temp);
-  }
+  loglike = calc_loglike(v, e, rf_cur, ploidy_p1, ploidy_p2);
+
   if(verbose)
     Rcpp::Rcout << "\n";
-  List z = List::create(wrap(loglike), rf);
+  List z = List::create(wrap(loglike), wrap(rf_cur));
+  //Rcpp::Rcout << rf << "\n";
   return(z);
 }
 
@@ -293,8 +356,6 @@ List est_hmm_map_biallelic_single(NumericMatrix PH,
   double s, loglike=0.0, nr=0.0, temp=0.0;
   // Getting the maximum ploidy level among founders
   std::vector<double> rf_cur(rf.size());
-  std::vector<double> termination(n_ind);
-  std::fill(termination.begin(), termination.end(), 0.0);
 
   // HMM states that should be visited given the phase of
   // the founders, genotype of the offspring and pedigree
@@ -397,11 +458,6 @@ List est_hmm_map_biallelic_single(NumericMatrix PH,
           }
         }
       }
-      //Termination
-      for(int j=0; (unsigned)j < alpha[ind][n_mrk-1].size(); j++)
-      {
-        termination[ind] +=  alpha[ind][n_mrk-1][j];
-      }
     } // loop over individuals
 
     //Likelihood using a specific recombination fraction vector
@@ -409,14 +465,7 @@ List est_hmm_map_biallelic_single(NumericMatrix PH,
     if(ret_H0 == 1)
     {
       //Loglike computation
-      for(int i=0; (unsigned)i < alpha.size(); i++)
-      {
-        temp=0.0;
-        for(int j=0; (unsigned)j < alpha[i][n_mrk-1].size(); j++)
-          temp += alpha[i][n_mrk-1][j];
-        if(temp > 0)
-          loglike += log10(temp);
-      }
+      //loglike = calc_loglike_single(v, e, rf_cur, ploidy);
       List z = List::create(wrap(loglike), rf_cur);
       return(z);
     }
@@ -455,18 +504,11 @@ List est_hmm_map_biallelic_single(NumericMatrix PH,
   if(flag && verbose) Rcpp::Rcout << "Didn't converge!\n";
 
   //Loglike computation
-  for(int i=0; (unsigned)i < alpha.size(); i++)
-  {
-    temp=0.0;
-    for(int j=0; (unsigned)j < alpha[i][n_mrk-1].size(); j++)
-      temp += alpha[i][n_mrk-1][j];
-    if(temp > 0)
-      loglike += log10(temp);
-  }
+  //loglike = calc_loglike_single(v, e, rf_cur, ploidy);
 
   if(verbose)
     Rcpp::Rcout << "\n";
-  List z = List::create(wrap(loglike), rf);
+  List z = List::create(wrap(loglike), wrap(rf_cur));
   return(z);
 }
 

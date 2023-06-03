@@ -64,7 +64,7 @@
 #' @importFrom assertthat assert_that
 make_sequence <- function(input.obj,
                      arg = NULL,
-                     info.parent = c("all", "p1", "p2"),
+                     info.parent = c("both", "p1", "p2"),
                      genomic.info = NULL,
                      phase = NULL) {
   info.parent <- match.arg(info.parent)

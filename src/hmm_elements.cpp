@@ -115,7 +115,7 @@ std::vector<std::vector<double> > transition(int ploidy, double rf)
   return(T);
 }
 
-/* FUNCTION: transition
+/* FUNCTION: log transition
  -----------------------------------------------------
  Returns a transition matrix between loci k and k + 1 in
  one parent i.e. Prop(p_{k+1}|p_k), given the ploidy level
@@ -158,10 +158,38 @@ std::vector<double> forward_emit(std::vector<double>& fk,
     {
       fk1[k1] = fk1[k1] + fk[k] * T1[ik[k]][ik1[k1]] * T2[ik[k+ngenk]][ik1[k1+ngenk1]];
     }
-    fk1[k1] = fk1[k1] * emit[k1];
+    fk1[k1] *= emit[k1];
   }
   return(fk1);
 }
+
+/* FUNCTION: forward_emit (with both informative parents)
+ -----------------------------------------------------
+ Classical forward equation presented in Rabiner 1989.
+ */
+std::vector<double> log_forward_emit(std::vector<double>& fu,
+                                     std::vector<int>& iu,
+                                     std::vector<int>& iu1,
+                                     std::vector<double>& emit,
+                                     std::vector<std::vector<double> >& T1,
+                                     std::vector<std::vector<double> >& T2)
+{
+  int ngenu = iu.size()/2;
+  int ngenu1 = iu1.size()/2;
+  std::vector<double> fu1(ngenu1);
+  std::fill(fu1.begin(), fu1.end(), 1.0);
+  for(int u1 = 0; u1 < ngenu1; u1++ )
+  {
+    for(int u = 0; u < ngenu; u++ )
+    {
+      fu1[u1] = addlog(fu1[u1], fu[u] + T1[iu[u]][iu1[u1]] + T2[iu[u+ngenu]][iu1[u1+ngenu1]]);
+    }
+    fu1[u1] += log(emit[u1]);
+  }
+  return(fu1);
+}
+
+
 
 /* FUNCTION: forward_emit (with both informative parents)
  -----------------------------------------------------
@@ -184,7 +212,7 @@ std::vector<long double> forward_emit_highprec(std::vector<long double>& fk,
     {
       fk1[k1] = fk1[k1] + fk[k] * T1[ik[k]][ik1[k1]] * T2[ik[k+ngenk]][ik1[k1+ngenk1]];
     }
-    fk1[k1] = fk1[k1] * emit[k1];
+    fk1[k1] *= emit[k1];
   }
   return(fk1);
 }
@@ -215,32 +243,6 @@ std::vector<double> forward_emit_single_parent(int m,
   return(fk1);
 }
 
-
-/* FUNCTION: forward_emit (with both informative parents)
- -----------------------------------------------------
- Classical forward equation presented in Rabiner 1989.
- */
-std::vector<double> log_forward_emit(std::vector<double>& fk,
-                                     std::vector<int>& ik,
-                                     std::vector<int>& ik1,
-                                     std::vector<double>& emit,
-                                     std::vector<std::vector<double> >& T1,
-                                     std::vector<std::vector<double> >& T2)
-{
-  int ngenk = ik.size()/2;
-  int ngenk1 = ik1.size()/2;
-  std::vector<double> fk1(ngenk1);
-  std::fill(fk1.begin(), fk1.end(), 1.0);
-  for(int k1 = 0; k1 < ngenk1; k1++ )
-  {
-    for(int k = 0; k < ngenk; k++ )
-    {
-      fk1[k1] = addlog(fk1[k1], fk[k] + T1[ik[k]][ik1[k1]] + T2[ik[k+ngenk]][ik1[k1+ngenk1]]);
-    }
-    fk1[k1] = fk1[k1] + emit[k1];
-  }
-  return(fk1);
-}
 
 
 /* FUNCTION: backward (with both informative parents)

@@ -9,7 +9,7 @@
 make_sequence(
   input.obj,
   arg = NULL,
-  info.parent = c("all", "p1", "p2"),
+  info.parent = c("both", "p1", "p2"),
   genomic.info = NULL,
   phase = NULL
 )
