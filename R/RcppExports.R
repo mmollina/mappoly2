@@ -64,3 +64,7 @@ segreg_poly <- function(ploidy_p1, ploidy_p2, d_p1, d_p2) {
     .Call('_mappoly2_segreg_poly', PACKAGE = 'mappoly2', ploidy_p1, ploidy_p2, d_p1, d_p2)
 }
 
+calc_loglike_hmm_rcpp <- function(PH, G, pedigree, rf_vec) {
+    .Call('_mappoly2_calc_loglike_hmm_rcpp', PACKAGE = 'mappoly2', PH, G, pedigree, rf_vec)
+}
+
