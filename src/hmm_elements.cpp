@@ -26,8 +26,6 @@
 /*
  File: hmm_elements.cpp
 
- Description:
-
  Functions Written by Marcelo Mollinari.
 
  Bioinformatics Research Center
@@ -35,7 +33,7 @@
  North Carolina State University
  Contact: mmollin@ncsu.edu
  First version:       2022
- Last update: Oct 06, 2022
+ Last update: Jun 3, 2023
  */
 
 
@@ -139,7 +137,7 @@ std::vector<std::vector<double> > log_transition(int ploidy, double rf)
 
 /* FUNCTION: forward_emit (with both informative parents)
  -----------------------------------------------------
- Classical forward equation presented in Rabiner 1989.
+ Forward equation presented in Rabiner 1989.
  */
 std::vector<double> forward_emit(std::vector<double>& fk,
                                  std::vector<int>& ik,
@@ -163,63 +161,9 @@ std::vector<double> forward_emit(std::vector<double>& fk,
   return(fk1);
 }
 
-/* FUNCTION: forward_emit (with both informative parents)
- -----------------------------------------------------
- Classical forward equation presented in Rabiner 1989.
- */
-std::vector<double> log_forward_emit(std::vector<double>& fu,
-                                     std::vector<int>& iu,
-                                     std::vector<int>& iu1,
-                                     std::vector<double>& emit,
-                                     std::vector<std::vector<double> >& T1,
-                                     std::vector<std::vector<double> >& T2)
-{
-  int ngenu = iu.size()/2;
-  int ngenu1 = iu1.size()/2;
-  std::vector<double> fu1(ngenu1);
-  std::fill(fu1.begin(), fu1.end(), 1.0);
-  for(int u1 = 0; u1 < ngenu1; u1++ )
-  {
-    for(int u = 0; u < ngenu; u++ )
-    {
-      fu1[u1] = addlog(fu1[u1], fu[u] + T1[iu[u]][iu1[u1]] + T2[iu[u+ngenu]][iu1[u1+ngenu1]]);
-    }
-    fu1[u1] += log(emit[u1]);
-  }
-  return(fu1);
-}
-
-
-
-/* FUNCTION: forward_emit (with both informative parents)
- -----------------------------------------------------
- Classical forward equation presented in Rabiner 1989.
- */
-std::vector<long double> forward_emit_highprec(std::vector<long double>& fk,
-                                               std::vector<int>& ik,
-                                               std::vector<int>& ik1,
-                                               std::vector<double>& emit,
-                                               std::vector<std::vector<double> >& T1,
-                                               std::vector<std::vector<double> >& T2)
-{
-  int ngenk = ik.size()/2;
-  int ngenk1 = ik1.size()/2;
-  std::vector<long double> fk1(ngenk1);
-  std::fill(fk1.begin(), fk1.end(), 0.0);
-  for(int k1 = 0; k1 < ngenk1; k1++ )
-  {
-    for(int k = 0; k < ngenk; k++ )
-    {
-      fk1[k1] = fk1[k1] + fk[k] * T1[ik[k]][ik1[k1]] * T2[ik[k+ngenk]][ik1[k1+ngenk1]];
-    }
-    fk1[k1] *= emit[k1];
-  }
-  return(fk1);
-}
-
 /* FUNCTION: forward (with one informative parent)
  -----------------------------------------------------
- Classical forward equation presented in Rabiner 1989.
+ Forward equation presented in Rabiner 1989.
  */
 std::vector<double> forward_emit_single_parent(int m,
                                                std::vector<double>& fk,
@@ -243,8 +187,6 @@ std::vector<double> forward_emit_single_parent(int m,
   return(fk1);
 }
 
-
-
 /* FUNCTION: backward (with both informative parents)
  -----------------------------------------------------
  Classical backward equation presented in Rabiner 1989.
@@ -259,30 +201,6 @@ std::vector<double> backward_emit(std::vector<double>& fk1,
   int ngenk = ik.size()/2;
   int ngenk1 = ik1.size()/2;
   std::vector<double> fk(ngenk);
-  std::fill(fk.begin(), fk.end(), 0.0);
-  for(int k = 0; k < ngenk; k++ )
-  {
-    for(int k1 = 0; k1 < ngenk1; k1++ )
-    {
-      fk[k] =  fk[k] + fk1[k1] * T1[ik[k]][ik1[k1]] * T2[ik[k+ngenk]][ik1[k1+ngenk1]] * emit[k1];
-    }
-  }
-  return(fk);
-}
-/* FUNCTION: backward (with both informative parents)
- -----------------------------------------------------
- Classical backward equation presented in Rabiner 1989.
- */
-std::vector<long double> backward_emit_highprec(std::vector<long double>& fk1,
-                                                std::vector<int>& ik,
-                                                std::vector<int>& ik1,
-                                                std::vector<double>& emit,
-                                                std::vector<std::vector<double> >& T1,
-                                                std::vector<std::vector<double> >& T2)
-{
-  int ngenk = ik.size()/2;
-  int ngenk1 = ik1.size()/2;
-  std::vector<long double> fk(ngenk);
   std::fill(fk.begin(), fk.end(), 0.0);
   for(int k = 0; k < ngenk; k++ )
   {
@@ -314,34 +232,6 @@ std::vector<double> backward_emit_single_parent(int m,
     for(int k1 = 0; k1 < ngenk1; k1++ )
     {
       fk[k] =  fk[k] + fk1[k1] * T[ik[k]][ik1[k1]] * emit[k1];
-    }
-  }
-  return(fk);
-}
-
-/* FUNCTION: backward (with both informative parents)
- -----------------------------------------------------
- Classical backward equation presented in Rabiner 1989.
- */
-std::vector<double> log_backward_emit(std::vector<double>& fk1,
-                                      std::vector<int>& ik,
-                                      std::vector<int>& ik1,
-                                      std::vector<double>& emit,
-                                      std::vector<std::vector<double> >& T1,
-                                      std::vector<std::vector<double> >& T2)
-{
-  int ngenk = ik.size()/2;
-  int ngenk1 = ik1.size()/2;
-  std::vector<double> fk(ngenk);
-  std::fill(fk.begin(), fk.end(), 0.0);
-  for(int k = 0; k < ngenk; k++ )
-  {
-    for(int k1 = 0; k1 < ngenk1; k1++ )
-    {
-      fk[k] =  addlog(fk[k], fk1[k1] +
-                             T1[ik[k]][ik1[k1]] +
-                             T2[ik[k+ngenk]][ik1[k1+ngenk1]] +
-                             emit[k1]);
     }
   }
   return(fk);
