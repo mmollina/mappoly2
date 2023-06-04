@@ -121,16 +121,21 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
-// vs_biallelic_Rcpp
-List vs_biallelic_Rcpp(List PH, IntegerMatrix G, NumericMatrix pedigree);
-RcppExport SEXP _mappoly2_vs_biallelic_Rcpp(SEXP PHSEXP, SEXP GSEXP, SEXP pedigreeSEXP) {
+// est_hmm_map_biallelic2
+List est_hmm_map_biallelic2(List PH, IntegerMatrix G, NumericMatrix pedigree, NumericVector rf, bool verbose, bool detailed_verbose, double tol, bool ret_H0);
+RcppExport SEXP _mappoly2_est_hmm_map_biallelic2(SEXP PHSEXP, SEXP GSEXP, SEXP pedigreeSEXP, SEXP rfSEXP, SEXP verboseSEXP, SEXP detailed_verboseSEXP, SEXP tolSEXP, SEXP ret_H0SEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
     Rcpp::traits::input_parameter< List >::type PH(PHSEXP);
     Rcpp::traits::input_parameter< IntegerMatrix >::type G(GSEXP);
     Rcpp::traits::input_parameter< NumericMatrix >::type pedigree(pedigreeSEXP);
-    rcpp_result_gen = Rcpp::wrap(vs_biallelic_Rcpp(PH, G, pedigree));
+    Rcpp::traits::input_parameter< NumericVector >::type rf(rfSEXP);
+    Rcpp::traits::input_parameter< bool >::type verbose(verboseSEXP);
+    Rcpp::traits::input_parameter< bool >::type detailed_verbose(detailed_verboseSEXP);
+    Rcpp::traits::input_parameter< double >::type tol(tolSEXP);
+    Rcpp::traits::input_parameter< bool >::type ret_H0(ret_H0SEXP);
+    rcpp_result_gen = Rcpp::wrap(est_hmm_map_biallelic2(PH, G, pedigree, rf, verbose, detailed_verbose, tol, ret_H0));
     return rcpp_result_gen;
 END_RCPP
 }
@@ -146,7 +151,7 @@ static const R_CallMethodDef CallEntries[] = {
     {"_mappoly2_est_hmm_map_biallelic_single", (DL_FUNC) &_mappoly2_est_hmm_map_biallelic_single, 7},
     {"_mappoly2_twopt_phasing_cpp", (DL_FUNC) &_mappoly2_twopt_phasing_cpp, 6},
     {"_mappoly2_segreg_poly", (DL_FUNC) &_mappoly2_segreg_poly, 4},
-    {"_mappoly2_vs_biallelic_Rcpp", (DL_FUNC) &_mappoly2_vs_biallelic_Rcpp, 3},
+    {"_mappoly2_est_hmm_map_biallelic2", (DL_FUNC) &_mappoly2_est_hmm_map_biallelic2, 8},
     {"pairwise_rf_estimation", (DL_FUNC) &pairwise_rf_estimation, 9},
     {NULL, NULL, 0}
 };

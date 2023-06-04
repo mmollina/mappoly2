@@ -64,7 +64,7 @@ segreg_poly <- function(ploidy_p1, ploidy_p2, d_p1, d_p2) {
     .Call('_mappoly2_segreg_poly', PACKAGE = 'mappoly2', ploidy_p1, ploidy_p2, d_p1, d_p2)
 }
 
-vs_biallelic_Rcpp <- function(PH, G, pedigree) {
-    .Call('_mappoly2_vs_biallelic_Rcpp', PACKAGE = 'mappoly2', PH, G, pedigree)
+est_hmm_map_biallelic2 <- function(PH, G, pedigree, rf, verbose, detailed_verbose, tol, ret_H0) {
+    .Call('_mappoly2_est_hmm_map_biallelic2', PACKAGE = 'mappoly2', PH, G, pedigree, rf, verbose, detailed_verbose, tol, ret_H0)
 }
 
