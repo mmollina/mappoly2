@@ -198,14 +198,14 @@ table_to_mappoly <- function(dat,
     cat("\n", txt[[3]], n.ind)
     cat("\n", txt[[4]], n.mrk)
     cat("\n ", txt[[5]], " ", sum(id), " (", round(100 * sum(id) / n.mrk, 1), "%)", sep = "")
-    cat("\n     ------------------------")
+    cat("\n     ---")
     if (any(!is.na(chrom))) {
       cat("\n     This dataset contains chromosome information.")
     }
     if (any(!is.na(genome.pos))) {
       cat("\n     This dataset contains position information.")
     }
-    cat("\n     ...")
+    cat("\n     ")
   }
 
   # Get genotypic info
@@ -215,10 +215,6 @@ table_to_mappoly <- function(dat,
   # Replacing non-conforming values with NA
   geno.dose[geno.dose > ploidy.p1/2 + ploidy.p2/2] <- NA
 
-  # Return the 'mappoly.data' object
-  if (verbose) {
-    cat("\n     Done with reading.\n")
-  }
   geno.dose <- geno.dose[id, , drop = FALSE]
   res <- structure(
     list(
@@ -250,20 +246,18 @@ table_to_mappoly <- function(dat,
 
   # Screening non-conforming markers
   if (filter.non.conforming) {
-    if (verbose) cat("     Filtering non-conforming markers.\n     ...")
+    if (verbose) cat(" -->  Filtering non-conforming markers.\n     ")
     res <- filter_non_conforming_classes(res)
-    if (verbose) cat("\n     Done with filtering.\n")
   }
   # Screening redundant markers
   if(filter.redundant){
-    if (verbose) cat("     Filtering redundant markers.\n     ...")
+    if (verbose) cat(" -->  Filtering redundant markers.\n     ")
     s <- make_sequence(res, arg = "all")
     sf <- filter_redundant(s)
     res$redundant <- sf$redundant
     res <- subset_data(res, select.mrk = setdiff(res$mrk.names, sf$redundant$removed))
-    if (verbose) cat("\n     Done with filtering.\n")
   }
-  if(verbose) cat("     ------------------------")
+  if(verbose) cat("----------------------------------")
   return(res)
 }
 #' @rdname read_geno_csv

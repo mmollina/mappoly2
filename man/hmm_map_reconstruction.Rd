@@ -8,6 +8,7 @@ hmm_map_reconstruction(
   input.seq,
   phase.conf = "all",
   rf = NULL,
+  error = 0,
   verbose = FALSE,
   tol = 0.001
 )

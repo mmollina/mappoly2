@@ -4,6 +4,7 @@
 #include <Rcpp.h>
 #include <algorithm>
 #include <iostream>
+#include <iomanip>
 #include <vector>
 #include <math.h>
 #include <R.h>
@@ -29,17 +30,27 @@ NumericMatrix retainUniqueAndSortByLastColumn(NumericMatrix x);
 List vs_multiallelic_Rcpp(List PH,
                           List GENO,
                           NumericMatrix pedigree);
-List vs_biallelic_Rcpp(List PH,
+List vs_biallelic(List PH,
                        IntegerMatrix G,
                        NumericMatrix pedigree);
 
-List vs_biallelic_single_Rcpp(NumericMatrix PH,
+List vs_biallelic_single(NumericMatrix PH,
                               IntegerMatrix G);
 
 List vs_biallelic_error(List PH,
                         IntegerMatrix G,
                         NumericMatrix pedigree,
-                        double err);
+                        double err,
+                        bool logatithm);
+
+List visit_states_biallelic(List PH,
+                            IntegerMatrix G,
+                            NumericMatrix pedigree,
+                            double err);
+
+List visit_states_biallelic_single(NumericMatrix PH,
+                                   IntegerMatrix G,
+                                   double err);
 
 List hmm_vectors(List input_list);
 
