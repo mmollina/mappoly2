@@ -257,7 +257,7 @@ table_to_mappoly <- function(dat,
     res$redundant <- sf$redundant
     res <- subset_data(res, select.mrk = setdiff(res$mrk.names, sf$redundant$removed))
   }
-  if(verbose) cat("----------------------------------")
+  if(verbose) cat("----------------------------------\n")
   return(res)
 }
 #' @rdname read_geno_csv

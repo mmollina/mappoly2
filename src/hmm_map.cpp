@@ -24,18 +24,15 @@
  */
 
 /*
- File: est_hmm_map.cpp
 
- Description:
-
- Functions Written by Marcelo Mollinari.
+  Functions Written by Marcelo Mollinari.
 
  Bioinformatics Research Center
  Department of Horticultural Science
  North Carolina State University
  Contact: mmollin@ncsu.edu
  First version:       2022
- Last update: Jun 3, 2023
+ Last update: Jun 6, 2023
  */
 
 #include <Rcpp.h>
@@ -52,7 +49,6 @@
 #include "utils.h"
 using namespace std;
 using namespace Rcpp;
-
 
 double calc_loglike(std::vector<std::vector<std::vector<int> > > v,
                     std::vector<std::vector<std::vector<double> > > emit,

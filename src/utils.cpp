@@ -429,6 +429,8 @@ List vs_biallelic_single(NumericMatrix PH,
                       Named("emit") = E);
 }
 
+// Helper function for states to visit - biallelic
+// using emission to model error
 List vs_biallelic_error(List PH,
                         IntegerMatrix G,
                         NumericMatrix pedigree,
@@ -513,6 +515,8 @@ List vs_biallelic_error(List PH,
                       Named("emit") = E);
 }
 
+// Helper function for states to visit - biallelic - single parent
+// using emission to model error
 List vs_biallelic_error_single(NumericMatrix PH,
                                IntegerMatrix G,
                                double err,
@@ -589,7 +593,7 @@ List vs_biallelic_error_single(NumericMatrix PH,
                       Named("emit") = E);
 }
 
-
+// Wrapper function - states to visit - both parents
 List visit_states_biallelic(List PH,
                             IntegerMatrix G,
                             NumericMatrix pedigree,
@@ -601,7 +605,7 @@ List visit_states_biallelic(List PH,
   }
 }
 
-// [[Rcpp::export]]
+// Wrapper function - states to visit - single parents
 List visit_states_biallelic_single(NumericMatrix PH,
                                    IntegerMatrix G,
                                    double err){

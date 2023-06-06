@@ -54,10 +54,10 @@ using namespace std;
 using namespace Rcpp;
 
 double calc_loglike_log(std::vector<std::vector<std::vector<int> > > v,
-                     std::vector<std::vector<std::vector<double> > > emit,
-                     std::vector<double> rf_vec,
-                     NumericVector ploidy_p1,
-                     NumericVector ploidy_p2) {
+                        std::vector<std::vector<std::vector<double> > > emit,
+                        std::vector<double> rf_vec,
+                        NumericVector ploidy_p1,
+                        NumericVector ploidy_p2) {
 
   std::vector<int> pl{2,4,6};
   double loglike = 0.0;
@@ -130,15 +130,15 @@ double calc_loglike_log(std::vector<std::vector<std::vector<int> > > v,
 }
 
 // [[Rcpp::export]]
-List est_hmm_map_biallelic2(List PH,
-                            IntegerMatrix G,
-                            NumericMatrix pedigree,
-                            NumericVector rf,
-                            double err,
-                            bool verbose,
-                            bool detailed_verbose,
-                            double tol,
-                            bool ret_H0) {
+List est_hmm_map_biallelic_log_implementation(List PH,
+                                              IntegerMatrix G,
+                                              NumericMatrix pedigree,
+                                              NumericVector rf,
+                                              double err,
+                                              bool verbose,
+                                              bool detailed_verbose,
+                                              double tol,
+                                              bool ret_H0) {
   NumericVector ploidy_p1 = pedigree(_,2)/2 - 1;
   NumericVector ploidy_p2 = pedigree(_,3)/2 - 1;
   int n_ind = pedigree.nrow();
