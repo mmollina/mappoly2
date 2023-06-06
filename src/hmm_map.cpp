@@ -211,7 +211,6 @@ List est_hmm_map_biallelic(List PH,
 
   // HMM states that should be visited given the phase of
   // the founders, genotype of the offspring and pedigree
-
   List result = visit_states_biallelic(PH, G, pedigree, err);
   List ve = hmm_vectors(result);
   std::vector<std::vector<std::vector<int> > > v = ve["v"];
@@ -333,10 +332,6 @@ List est_hmm_map_biallelic(List PH,
       }
     } // loop over individuals
 
-
-//    if(it ==0)
-//      printAlphaBeta(alpha, beta, 0);
-
     //Likelihood using a specific recombination fraction vector
     //Usually, this is used to compute LOD Score under H0: rf=0.5
     if(ret_H0 == 1)
@@ -428,6 +423,7 @@ List est_hmm_map_biallelic_single(NumericMatrix PH,
       beta[ind].push_back(temp3);
     }
   }
+ 
   //Initializing recombination number matrix
   std::vector< std::vector<double> > R = rec_num(ploidy);;
 
@@ -512,7 +508,7 @@ List est_hmm_map_biallelic_single(NumericMatrix PH,
       }
     } // loop over individuals
 
-    //Likelihood using a specific recombination fraction vector
+    //Likelihood using teh specified recombination fraction vector
     //Usually, this is used to compute LOD Score under H0: rf=0.5
     if(ret_H0 == 1)
     {
@@ -558,15 +554,8 @@ List est_hmm_map_biallelic_single(NumericMatrix PH,
   for(int j=0; j<n_mrk-1; j++)
     rf_cur[j] = rf[j];
 
-//  for(int j = 0; j < 10; j++)
-//  {
-//    Rcout.precision(3);
-//    Rcout << std::fixed << rf[j] << " ";
-//  }
-
   //Loglike computation
   loglike = calc_loglike_single(v, e, rf_cur, ploidy);
-  //Rcpp::Rcout << " --> loglike: " << loglike << "\n";
 
   if(verbose)
     Rcpp::Rcout << "\n";
