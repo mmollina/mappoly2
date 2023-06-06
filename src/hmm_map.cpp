@@ -130,6 +130,7 @@ double calc_loglike(std::vector<std::vector<std::vector<int> > > v,
   return(loglike);
 }
 
+
 double calc_loglike_single(std::vector<std::vector<std::vector<int> > > v,
                            std::vector<std::vector<std::vector<double> > > emit,
                            std::vector<double> rf_vec,
@@ -188,6 +189,7 @@ List est_hmm_map_biallelic(List PH,
                            IntegerMatrix G,
                            NumericMatrix pedigree,
                            NumericVector rf,
+                           double err,
                            bool verbose,
                            bool detailed_verbose,
                            double tol,
@@ -213,7 +215,8 @@ List est_hmm_map_biallelic(List PH,
 
   // HMM states that should be visited given the phase of
   // the founders, genotype of the offspring and pedigree
-  List result = vs_biallelic_Rcpp(PH, G, pedigree);
+
+  List result = visit_states_biallelic(PH, G, pedigree, err);
   List ve = hmm_vectors(result);
   std::vector<std::vector<std::vector<int> > > v = ve["v"];
   std::vector<std::vector<std::vector<double> > > e = ve["e"];
@@ -275,10 +278,9 @@ List est_hmm_map_biallelic(List PH,
         // Normalization to avoid underflow
         // NOTE: The LogSumExp (LSE) method is not used here for efficiency reasons,
         // as it has been observed that this normalization technique performs adequately.
-        double zeta = 0;
-        for(int j=0; (unsigned)j < temp4.size(); j++)
-          zeta = zeta + temp4[j];
-
+         double zeta = 0;
+         for(int j=0; (unsigned)j < temp4.size(); j++)
+           zeta = zeta + temp4[j];
         for(int j=0; (unsigned)j < temp4.size(); j++)
         {
           alpha[ind][k][j]=temp4[j]/zeta;
@@ -291,9 +293,9 @@ List est_hmm_map_biallelic(List PH,
                                                T[ploidy_p1[ind]][k1],
                                                                 T[ploidy_p2[ind]][k1]);
         // Normalization to avoid underflow
-        zeta = 0;
-        for(int j=0; (unsigned)j < temp5.size(); j++)
-          zeta = zeta + temp5[j];
+         zeta = 0;
+         for(int j=0; (unsigned)j < temp5.size(); j++)
+           zeta = zeta + temp5[j];
         for(int j=0; (unsigned)j < temp5.size(); j++)
         {
           beta[ind][k1][j]=temp5[j]/zeta;
@@ -315,7 +317,8 @@ List est_hmm_map_biallelic(List PH,
             {
               gamma[i][j] = alpha[ind][k][i] * beta[ind][k+1][j] *
                 T[ploidy_p1[ind]][k][v[k][ind][i]][v[k+1][ind][j]] *
-                T[ploidy_p2[ind]][k][v[k][ind][i+ngeni]][v[k+1][ind][j+ngenj]];
+                T[ploidy_p2[ind]][k][v[k][ind][i+ngeni]][v[k+1][ind][j+ngenj]] *
+                e[k+1][ind][j];
               if(i==0 && j==0) s = gamma[i][j];
               else s += gamma[i][j];
             }
@@ -333,6 +336,11 @@ List est_hmm_map_biallelic(List PH,
         }
       }
     } // loop over individuals
+
+
+//    if(it ==0)
+//      printAlphaBeta(alpha, beta, 0);
+
     //Likelihood using a specific recombination fraction vector
     //Usually, this is used to compute LOD Score under H0: rf=0.5
     if(ret_H0 == 1)
@@ -392,6 +400,7 @@ List est_hmm_map_biallelic(List PH,
 List est_hmm_map_biallelic_single(NumericMatrix PH,
                                   IntegerMatrix G,
                                   NumericVector rf,
+                                  double err,
                                   bool verbose,
                                   bool detailed_verbose,
                                   double tol,
@@ -406,7 +415,7 @@ List est_hmm_map_biallelic_single(NumericMatrix PH,
 
   // HMM states that should be visited given the phase of
   // the founders, genotype of the offspring and pedigree
-  List result = vs_biallelic_single_Rcpp(PH, G);
+  List result = visit_states_biallelic_single(PH, G, err);
   List ve = hmm_vectors(result);
   std::vector<std::vector<std::vector<int> > > v = ve["v"];
   std::vector<std::vector<std::vector<double> > > e = ve["e"];

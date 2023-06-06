@@ -57,8 +57,8 @@ BEGIN_RCPP
 END_RCPP
 }
 // est_hmm_map_biallelic
-List est_hmm_map_biallelic(List PH, IntegerMatrix G, NumericMatrix pedigree, NumericVector rf, bool verbose, bool detailed_verbose, double tol, bool ret_H0);
-RcppExport SEXP _mappoly2_est_hmm_map_biallelic(SEXP PHSEXP, SEXP GSEXP, SEXP pedigreeSEXP, SEXP rfSEXP, SEXP verboseSEXP, SEXP detailed_verboseSEXP, SEXP tolSEXP, SEXP ret_H0SEXP) {
+List est_hmm_map_biallelic(List PH, IntegerMatrix G, NumericMatrix pedigree, NumericVector rf, double err, bool verbose, bool detailed_verbose, double tol, bool ret_H0);
+RcppExport SEXP _mappoly2_est_hmm_map_biallelic(SEXP PHSEXP, SEXP GSEXP, SEXP pedigreeSEXP, SEXP rfSEXP, SEXP errSEXP, SEXP verboseSEXP, SEXP detailed_verboseSEXP, SEXP tolSEXP, SEXP ret_H0SEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -66,28 +66,30 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< IntegerMatrix >::type G(GSEXP);
     Rcpp::traits::input_parameter< NumericMatrix >::type pedigree(pedigreeSEXP);
     Rcpp::traits::input_parameter< NumericVector >::type rf(rfSEXP);
+    Rcpp::traits::input_parameter< double >::type err(errSEXP);
     Rcpp::traits::input_parameter< bool >::type verbose(verboseSEXP);
     Rcpp::traits::input_parameter< bool >::type detailed_verbose(detailed_verboseSEXP);
     Rcpp::traits::input_parameter< double >::type tol(tolSEXP);
     Rcpp::traits::input_parameter< bool >::type ret_H0(ret_H0SEXP);
-    rcpp_result_gen = Rcpp::wrap(est_hmm_map_biallelic(PH, G, pedigree, rf, verbose, detailed_verbose, tol, ret_H0));
+    rcpp_result_gen = Rcpp::wrap(est_hmm_map_biallelic(PH, G, pedigree, rf, err, verbose, detailed_verbose, tol, ret_H0));
     return rcpp_result_gen;
 END_RCPP
 }
 // est_hmm_map_biallelic_single
-List est_hmm_map_biallelic_single(NumericMatrix PH, IntegerMatrix G, NumericVector rf, bool verbose, bool detailed_verbose, double tol, bool ret_H0);
-RcppExport SEXP _mappoly2_est_hmm_map_biallelic_single(SEXP PHSEXP, SEXP GSEXP, SEXP rfSEXP, SEXP verboseSEXP, SEXP detailed_verboseSEXP, SEXP tolSEXP, SEXP ret_H0SEXP) {
+List est_hmm_map_biallelic_single(NumericMatrix PH, IntegerMatrix G, NumericVector rf, double err, bool verbose, bool detailed_verbose, double tol, bool ret_H0);
+RcppExport SEXP _mappoly2_est_hmm_map_biallelic_single(SEXP PHSEXP, SEXP GSEXP, SEXP rfSEXP, SEXP errSEXP, SEXP verboseSEXP, SEXP detailed_verboseSEXP, SEXP tolSEXP, SEXP ret_H0SEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
     Rcpp::traits::input_parameter< NumericMatrix >::type PH(PHSEXP);
     Rcpp::traits::input_parameter< IntegerMatrix >::type G(GSEXP);
     Rcpp::traits::input_parameter< NumericVector >::type rf(rfSEXP);
+    Rcpp::traits::input_parameter< double >::type err(errSEXP);
     Rcpp::traits::input_parameter< bool >::type verbose(verboseSEXP);
     Rcpp::traits::input_parameter< bool >::type detailed_verbose(detailed_verboseSEXP);
     Rcpp::traits::input_parameter< double >::type tol(tolSEXP);
     Rcpp::traits::input_parameter< bool >::type ret_H0(ret_H0SEXP);
-    rcpp_result_gen = Rcpp::wrap(est_hmm_map_biallelic_single(PH, G, rf, verbose, detailed_verbose, tol, ret_H0));
+    rcpp_result_gen = Rcpp::wrap(est_hmm_map_biallelic_single(PH, G, rf, err, verbose, detailed_verbose, tol, ret_H0));
     return rcpp_result_gen;
 END_RCPP
 }
@@ -122,8 +124,8 @@ BEGIN_RCPP
 END_RCPP
 }
 // est_hmm_map_biallelic2
-List est_hmm_map_biallelic2(List PH, IntegerMatrix G, NumericMatrix pedigree, NumericVector rf, bool verbose, bool detailed_verbose, double tol, bool ret_H0);
-RcppExport SEXP _mappoly2_est_hmm_map_biallelic2(SEXP PHSEXP, SEXP GSEXP, SEXP pedigreeSEXP, SEXP rfSEXP, SEXP verboseSEXP, SEXP detailed_verboseSEXP, SEXP tolSEXP, SEXP ret_H0SEXP) {
+List est_hmm_map_biallelic2(List PH, IntegerMatrix G, NumericMatrix pedigree, NumericVector rf, double err, bool verbose, bool detailed_verbose, double tol, bool ret_H0);
+RcppExport SEXP _mappoly2_est_hmm_map_biallelic2(SEXP PHSEXP, SEXP GSEXP, SEXP pedigreeSEXP, SEXP rfSEXP, SEXP errSEXP, SEXP verboseSEXP, SEXP detailed_verboseSEXP, SEXP tolSEXP, SEXP ret_H0SEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -131,11 +133,25 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< IntegerMatrix >::type G(GSEXP);
     Rcpp::traits::input_parameter< NumericMatrix >::type pedigree(pedigreeSEXP);
     Rcpp::traits::input_parameter< NumericVector >::type rf(rfSEXP);
+    Rcpp::traits::input_parameter< double >::type err(errSEXP);
     Rcpp::traits::input_parameter< bool >::type verbose(verboseSEXP);
     Rcpp::traits::input_parameter< bool >::type detailed_verbose(detailed_verboseSEXP);
     Rcpp::traits::input_parameter< double >::type tol(tolSEXP);
     Rcpp::traits::input_parameter< bool >::type ret_H0(ret_H0SEXP);
-    rcpp_result_gen = Rcpp::wrap(est_hmm_map_biallelic2(PH, G, pedigree, rf, verbose, detailed_verbose, tol, ret_H0));
+    rcpp_result_gen = Rcpp::wrap(est_hmm_map_biallelic2(PH, G, pedigree, rf, err, verbose, detailed_verbose, tol, ret_H0));
+    return rcpp_result_gen;
+END_RCPP
+}
+// visit_states_biallelic_single
+List visit_states_biallelic_single(NumericMatrix PH, IntegerMatrix G, double err);
+RcppExport SEXP _mappoly2_visit_states_biallelic_single(SEXP PHSEXP, SEXP GSEXP, SEXP errSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< NumericMatrix >::type PH(PHSEXP);
+    Rcpp::traits::input_parameter< IntegerMatrix >::type G(GSEXP);
+    Rcpp::traits::input_parameter< double >::type err(errSEXP);
+    rcpp_result_gen = Rcpp::wrap(visit_states_biallelic_single(PH, G, err));
     return rcpp_result_gen;
 END_RCPP
 }
@@ -147,11 +163,12 @@ static const R_CallMethodDef CallEntries[] = {
     {"_mappoly2_filter_non_conforming_classes", (DL_FUNC) &_mappoly2_filter_non_conforming_classes, 1},
     {"_mappoly2_find_valid_permutations", (DL_FUNC) &_mappoly2_find_valid_permutations, 3},
     {"_mappoly2_filter_matrices", (DL_FUNC) &_mappoly2_filter_matrices, 1},
-    {"_mappoly2_est_hmm_map_biallelic", (DL_FUNC) &_mappoly2_est_hmm_map_biallelic, 8},
-    {"_mappoly2_est_hmm_map_biallelic_single", (DL_FUNC) &_mappoly2_est_hmm_map_biallelic_single, 7},
+    {"_mappoly2_est_hmm_map_biallelic", (DL_FUNC) &_mappoly2_est_hmm_map_biallelic, 9},
+    {"_mappoly2_est_hmm_map_biallelic_single", (DL_FUNC) &_mappoly2_est_hmm_map_biallelic_single, 8},
     {"_mappoly2_twopt_phasing_cpp", (DL_FUNC) &_mappoly2_twopt_phasing_cpp, 6},
     {"_mappoly2_segreg_poly", (DL_FUNC) &_mappoly2_segreg_poly, 4},
-    {"_mappoly2_est_hmm_map_biallelic2", (DL_FUNC) &_mappoly2_est_hmm_map_biallelic2, 8},
+    {"_mappoly2_est_hmm_map_biallelic2", (DL_FUNC) &_mappoly2_est_hmm_map_biallelic2, 9},
+    {"_mappoly2_visit_states_biallelic_single", (DL_FUNC) &_mappoly2_visit_states_biallelic_single, 3},
     {"pairwise_rf_estimation", (DL_FUNC) &pairwise_rf_estimation, 9},
     {NULL, NULL, 0}
 };
