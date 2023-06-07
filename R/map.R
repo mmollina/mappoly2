@@ -14,6 +14,7 @@ hmm_map_reconstruction <- function(input.seq,
   assert_that(is.mappoly2.sequence(input.seq))
   mrk.id <- rownames(input.seq$phases[[1]]$p1)
   g <- input.seq$data$geno.dose[mrk.id, ]
+  g[is.na(g)] <- -1
   ret_H0 <- TRUE
   if(is.null(rf)){
     rf <- rep(0.01, nrow(g) - 1)
