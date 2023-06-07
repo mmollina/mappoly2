@@ -333,3 +333,5 @@ List est_hmm_map_biallelic_log_implementation(List PH,
   List z = List::create(wrap(loglike), wrap(rf_cur));
   return(z);
 }
+
+

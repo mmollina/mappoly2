@@ -286,11 +286,11 @@ List vs_multiallelic_Rcpp(List PH,
 }
 
 // Helper function for states to visit - biallelic
+// [[Rcpp::export]]
 List vs_biallelic(List PH,
                   IntegerMatrix G,
                   NumericMatrix pedigree) {
   NumericMatrix unique_pop_mat = retainUniqueAndSortByLastColumn(pedigree);
-  //Rcpp::Rcout << unique_pop_mat << "\n";
   int n_fullsib_pop = unique_pop_mat.nrow();
   int n_ind = pedigree.nrow();
   NumericMatrix temp_phase_mat = PH[0];
@@ -308,9 +308,7 @@ List vs_biallelic(List PH,
       // Emission function
       NumericMatrix L_mat = as<NumericMatrix>(L[pop_id]);
       NumericMatrix temp_emit(L_mat.nrow(), 1);
-      //TEST
-      //std::fill(temp_emit.begin(), temp_emit.end(), 1.0);
-      std::fill(temp_emit.begin(), temp_emit.end(), 1.0/temp_emit.size());
+      std::fill(temp_emit.begin(), temp_emit.end(), 1.0);
       // States to visit
       IntegerVector ind_id = which(pedigree(_,4) == pop_id + 1) - 1;
       NumericMatrix matrix_PH1 =  PH[unique_pop_mat(pop_id,0) - 1];
@@ -332,9 +330,10 @@ List vs_biallelic(List PH,
           }
         }
         for(int j = 0; j < ind_id.size(); j++) { // ***************************** Ind ALL
-          if (R_IsNA(G(k, ind_id[j]))) {  // ************************************* Ind NA
+            if (G(k, ind_id[j]) < 0) {  // ************************************* Ind NA
             H_k[ind_id[j]] = L[pop_id];
             E_k[ind_id[j]] = temp_emit;
+           // Rcout << "Here!!!\n" << "\n";
           } else{  // *********************************************************** Ind Visit
             IntegerVector y;
             for (int i = 0; i < x.size(); i++) {
@@ -349,9 +348,7 @@ List vs_biallelic(List PH,
             }
             H_k[ind_id[j]] = subset_L_pop;
             NumericMatrix temp_emit2(y.size(), 1);
-            //TEST
-            //std::fill(temp_emit2.begin(), temp_emit2.end(), 1.0);
-            std::fill(temp_emit2.begin(), temp_emit2.end(), 1.0/temp_emit2.size());
+            std::fill(temp_emit2.begin(), temp_emit2.end(), 1.0);
             E_k[ind_id[j]] = temp_emit2;
           }
         }
@@ -401,7 +398,7 @@ List vs_biallelic_single(NumericMatrix PH,
         x(i) = sum(x1(_ ,i));
       }
       for(int j = 0; j < n_ind; j++) { // ***************************** Ind ALL
-        if (R_IsNA(G(k, j))) {  // ************************************* Ind NA
+        if (G(k, j) < 0) {  // ************************************* Ind NA
           H_k[j] = L_mat;
           E_k[j] = temp_emit;
         } else{  // *********************************************************** Ind Visit
@@ -431,6 +428,7 @@ List vs_biallelic_single(NumericMatrix PH,
 
 // Helper function for states to visit - biallelic
 // using emission to model error
+// [[Rcpp::export]]
 List vs_biallelic_error(List PH,
                         IntegerMatrix G,
                         NumericMatrix pedigree,
@@ -480,9 +478,10 @@ List vs_biallelic_error(List PH,
           }
         }
         for(int j = 0; j < ind_id.size(); j++) { // ***************************** Ind ALL
-          if (R_IsNA(G(k, ind_id[j]))) {  // ************************************* Ind NA
+          if (G(k, ind_id[j]) < 0) {  // ************************************* Ind NA
             H_k[ind_id[j]] = L[pop_id];
             E_k[ind_id[j]] = temp_emit;
+            //Rcout << "Here!!!\n" << "\n";
           } else{  // *********************************************************** Ind Visit
             IntegerVector y;
             for (int i = 0; i < x.size(); i++) {
@@ -558,7 +557,7 @@ List vs_biallelic_error_single(NumericMatrix PH,
         x(i) = sum(x1(_ ,i));
       }
       for(int j = 0; j < n_ind; j++) { // ***************************** Ind ALL
-        if (R_IsNA(G(k, j))) {  // ************************************* Ind NA
+        if (G(k, j) < 0) {  // ************************************* Ind NA
           H_k[j] = L_mat;
           E_k[j] = temp_emit;
         } else{  // *********************************************************** Ind Visit

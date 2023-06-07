@@ -43,6 +43,11 @@ List vs_biallelic_error(List PH,
                         double err,
                         bool logatithm);
 
+List vs_biallelic_error_single(NumericMatrix PH,
+                               IntegerMatrix G,
+                               double err,
+                               bool logatithm);
+
 List visit_states_biallelic(List PH,
                             IntegerMatrix G,
                             NumericMatrix pedigree,

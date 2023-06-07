@@ -337,7 +337,6 @@ List est_hmm_map_biallelic(List PH,
     if(ret_H0 == 1)
     {
       loglike = calc_loglike(v, e, rf_cur, ploidy_p1, ploidy_p2);
-      //loglike = calc_loglike(PH, G, pedigree, rf_cur);
       if(verbose)
         Rcpp::Rcout << "   \n";
       List z = List::create(wrap(loglike), rf_cur);
@@ -423,7 +422,7 @@ List est_hmm_map_biallelic_single(NumericMatrix PH,
       beta[ind].push_back(temp3);
     }
   }
- 
+
   //Initializing recombination number matrix
   std::vector< std::vector<double> > R = rec_num(ploidy);;
 
