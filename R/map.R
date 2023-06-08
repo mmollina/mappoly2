@@ -4,7 +4,7 @@
 #' @keywords internal
 #' @author Marcelo Mollinari, \email{mmollin@ncsu.edu}
 #' @export
-hmm_map_reconstruction <- function(input.seq,
+mapping <- function(input.seq,
                                    phase.conf = "all",
                                    rf = NULL,
                                    error = 0.0,
@@ -21,13 +21,14 @@ hmm_map_reconstruction <- function(input.seq,
     ret_H0 <- FALSE
   }
   assert_that(length(rf) == nrow(g) - 1)
-  if(phase.conf == "all")
+  if(all(phase.conf == "all"))
     phase.conf <- 1:length(input.seq$phases)
-
-  output.seq <- input.seq
 
   assert_that(all(phase.conf%in%1:length(input.seq$phases)),
               msg = "invalid phases specified in 'phase.conf'")
+
+  output.seq <- input.seq
+
   cat("Multi-locus map estimation\n")
   cat("   Number of phase configurations: ", length(phase.conf), "\n")
   if (detect_info_par(input.seq) == "both"){
@@ -52,9 +53,11 @@ hmm_map_reconstruction <- function(input.seq,
                                  ret_H0 = ret_H0)
       output.seq$phases[[i]]$loglike <- w[[1]]
       output.seq$phases[[i]]$rf <- w[[2]]
+      output.seq$phases[[i]]$error <- error
     }
-    cat("Done with map estimation ~~~~~~ \n")
-    return(output.seq)
+    cat("Done with map estimation\n")
+
+    return(sort_phase(output.seq))
   } else if(detect_info_par(input.seq) == "p1"){
     id <- which(input.seq$data$ploidy.p2 == input.seq$data$dosage.p2[mrk.id])
     g[id, ] <- g[id, ] - input.seq$data$ploidy.p2/2
@@ -70,9 +73,10 @@ hmm_map_reconstruction <- function(input.seq,
                                         ret_H0 = ret_H0)
       output.seq$phases[[i]]$loglike <- w[[1]]
       output.seq$phases[[i]]$rf <- w[[2]]
+      output.seq$phases[[i]]$error <- error
     }
     cat("Done with map estimation\n")
-    return(output.seq)
+    return(sort_phase(output.seq))
   } else if(detect_info_par(input.seq) == "p2") {
     id <- which(input.seq$data$ploidy.p1 == input.seq$data$dosage.p1[mrk.id])
     g[id, ] <- g[id, ] - input.seq$data$ploidy.p1/2
@@ -88,9 +92,10 @@ hmm_map_reconstruction <- function(input.seq,
                                         ret_H0 = ret_H0)
       output.seq$phases[[i]]$loglike <- w[[1]]
       output.seq$phases[[i]]$rf <- w[[2]]
+      output.seq$phases[[i]]$error <- error
     }
     cat("Done with map estimation\n")
-    return(output.seq)
+    return(sort_phase(output.seq))
   } else {
     stop("it should not get here")
   }

@@ -4,72 +4,51 @@ require(mappoly2)
 source("~/repos/official_repos/misc/simulation.R")
 ploidy.p1 = 2
 ploidy.p2 = 4
-n.mrk <- 200
+n.mrk <- 700
 ph<-test_simulate(ploidy.p1 = ploidy.p1,
                   ploidy.p2 = ploidy.p2,
                   fpath = "~/repos/official_repos/misc/fake_triploid.csv",
                   n.mrk = n.mrk,
-                  n.ind = 1000,
+                  n.ind = 200,
                   map.length =100,
                   miss.perc = 0,
                   n.chrom = 1,
                   random = FALSE,
                   seed = 2986876)
+####Read ####
 dat <- read_geno_csv(file.in = "~/repos/official_repos/misc/fake_triploid.csv",
                      ploidy.p1 = ploidy.p1, ploidy.p2 = ploidy.p2)
 dat
+#### Select parent ####
 s <- make_sequence(dat, "all", info.parent = "both")
-tpt <- est_pairwise_rf(s)
+#s <- make_sequence(dat, "all", info.parent = "p1")
+#s <- make_sequence(dat, "all", info.parent = "p2")
+#### Two-points ####
+tpt <- est_pairwise_rf(s, ncpus = 7)
+
+#### Phasing ####
 s.phased <- pairwise_phasing(input.seq = s,
                              input.twopt = tpt,
                              thresh.LOD.ph = 5,
                              max.conf.btnk.p1 = 10)
 s.phased
-#### error = 0.0 ########
-s.map1 <- hmm_map_reconstruction(input.seq = s.phased,
+#### Mapping ####
+s.map1 <- mapping(input.seq = s.phased,
                                 verbose = TRUE,
-                                error = 0.00,
+                                error = 0.00,# error = 0.0
                                 tol = 10e-4)
-best <- which.max(sapply(s.map1$phases, function(x) x$loglike))
-plot(cumsum(imf_h(s.map1$phases[[best]]$rf)))
-#### error = 0.05 ########
-# s.map2 <- hmm_map_reconstruction(input.seq = s.phased,
-#                                  verbose = TRUE,
-#                                  error = 0.05,
-#                                  tol = 10e-4)
-# best <- which.max(sapply(s.map2$phases, function(x) x$loglike))
-# points(cumsum(imf_h(s.map2$phases[[best]]$rf)), col = 7, pch = 6)
+s.map2 <- mapping(input.seq = s.phased,
+                                  verbose = TRUE,
+                                  error = 0.05,# error = 0.05
+                                  tol = 10e-4)
 
-#########################################
-mrk.id <- rownames(s.map1$phases[[best]]$p1)
-g <- s.map1$data$geno.dose[mrk.id, ]
-g[is.na(g)] <- -1
-pedigree <- matrix(rep(c(1,
-                         2,
-                         s.map1$data$ploidy.p1,
-                         s.map1$data$ploidy.p2, 1),
-                       s.map1$data$n.ind),
-                   nrow = s.map1$data$n.ind,
-                   byrow = TRUE)
-PH = list(s.map1$phases[[best]]$p1,
-          s.map1$phases[[best]]$p2)
-#########################################################
-w1 <- mappoly2:::calc_genoprob_biallelic(PH = PH,
-                                   G = g,
-                                   pedigree = pedigree,
-                                   rf = s.map1$phases[[best]]$rf,
-                                   err = 0.05)
-w2 <- mappoly2:::calc_genoprob_biallelic(PH = PH,
-                                         G = g,
-                                         pedigree = pedigree,
-                                         rf = s.map2$phases[[best]]$rf,
-                                         err = 0.05)
+plot(cumsum(imf_h(s.map1$phases[[1]]$rf)))
+points(cumsum(imf_h(s.map2$phases[[1]]$rf)), col = 7, pch = 6)
+#### Haplotypes ####
+s.haplo1 <- calc_haplotypes(s.map1)
+s.haplo2 <- calc_haplotypes(s.map2)
 
-i<-3
-round(w1, 2)
-image((as.matrix(w1[1:500, -c(1:2)])))
-
-round(w2, 2)
-image((as.matrix(w2[1:500, -c(1:2)])))
+image((as.matrix(s.haplo1$phases[[1]]$haploprob[1:16, -c(1:2)])), main = s.haplo1$phases[[1]]$error)
+image((as.matrix(s.haplo2$phases[[1]]$haploprob[1:16, -c(1:2)])), main = s.haplo2$phases[[1]]$error)
 
 

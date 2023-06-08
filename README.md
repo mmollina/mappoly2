@@ -16,12 +16,12 @@ Genetic Linkage Maps in Autopolyploids v 2.0
 
 6. [x] DONE ~~Integrate emission probabilities to address global genotyping error, within the multilocus approach to improve accuracy.~~ 
 
-7. [ ] TODO Develop a procedure to calculate conditional probabilities of genotypes:
+7. [x] DONE Develop a procedure to calculate conditional probabilities of genotypes:
     - ~~When genotypes from both parents are informative.~~
     - ~~When only the genotype from one parent is informative.~~
     - ~~When genotypes from both parents are informative, with error consideration.~~
     - ~~When only the genotype from one parent is informative, with error consideration.~~
-    - Implement the R wrapper functions for C++ calc_genoprob (still to be implemented --> genoprob.R)
+    - ~~Implement the R wrapper functions for C++ calc_genoprob (still to be implemented --> genoprob.R)~~
     
 8. [ ] TODO Implement function add_marker, given a phased map. Use pre-computed conditional probabilities of genotypes. 
 
