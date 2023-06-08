@@ -38,7 +38,7 @@
  Last update: Jun 6, 2023
  */
 
-#include <Rcpp.h>
+#include <RcppArmadillo.h>
 #include <algorithm>
 #include <iostream>
 #include <vector>
@@ -50,16 +50,17 @@
 #include "combinatorics.h"
 #include "hmm_elements.h"
 #include "utils.h"
+#define SparseThreshold 1e-3
 using namespace std;
 using namespace Rcpp;
 
-
+// [[Rcpp::depends(RcppArmadillo)]]
 // [[Rcpp::export]]
-List calc_genoprob_biallelic(List PH,
-                             IntegerMatrix G,
-                             NumericMatrix pedigree,
-                             NumericVector rf,
-                             double err) {
+arma::sp_mat calc_genoprob_biallelic(List PH,
+                                     IntegerMatrix G,
+                                     NumericMatrix pedigree,
+                                     NumericVector rf,
+                                     double err) {
   NumericVector ploidy_p1 = pedigree(_,2)/2 - 1;
   NumericVector ploidy_p2 = pedigree(_,3)/2 - 1;
   int n_ind = pedigree.nrow();
@@ -170,26 +171,49 @@ List calc_genoprob_biallelic(List PH,
     }
   }
 
-  int n1 = gamma.size();
-  int n2 = gamma[0].size();
-  int n3 = gamma[0][0].size();
 
-  List L(n1);
-
-  for(int i = 0; i < n1; i++) {
-    NumericMatrix M(n3, n2);
-    for(int j = 0; j < n2; j++) {
-      for(int k = 0; k < n3; k++) {
-        M(k,j) = gamma[i][j][k];
+  int cte = 0, tot = 0;
+  for(int i = 0; i < n_ind; i++)
+    tot += pl[ploidy_p1[i]] + pl[ploidy_p2[i]];
+  arma::sp_mat M(tot, n_mrk + 2);
+  for(int i = 0; i < n_ind; i++) {
+    NumericVector x1(pl[ploidy_p1[i]]);
+    for(int i1 = 0; i1 < x1.size(); i1++)
+      x1[i1] = i1;
+    IntegerMatrix homolog_combn1  = combn(x1, x1.size()/2);
+    NumericVector x2(pl[ploidy_p2[i]]);
+    for(int i2 = 0; i2 < x2.size(); i2++)
+      x2[i2] = i2;
+    IntegerMatrix homolog_combn2  = combn(x2, x2.size()/2);
+    int id1 = x1.size(), id2 = x2.size();
+    NumericVector x3(id1 + id2);
+    std::copy(x1.begin(), x1.end(), x3.begin());
+    std::copy(x2.begin(), x2.end(), x3.begin() + id1);
+    for(int s = 0; s < pl[ploidy_p1[i]] + pl[ploidy_p2[i]]; s++){
+      M(cte + s,0) = i + 1;
+      M(cte + s,1) = x3[s] + 1;
+    }
+    for(int k = 2; k < n_mrk + 2; k++) {
+      int n3 = gamma[i][k-2].size();
+      for(int s = 0; s < n3; s++) {
+        if(gamma[i][k-2][s] > SparseThreshold){
+          IntegerVector y1  = homolog_combn1(_,v[k-2][i][s]);
+          IntegerVector y2 = homolog_combn2(_,v[k-2][i][s + n3]);
+          for(int j = 0; j < y1.size(); j++)
+            M(cte + y1[j], k) += gamma[i][k-2][s];
+          for(int j = 0; j < y2.size(); j++)
+            M(cte + y2[j] + pl[ploidy_p1[i]], k) += gamma[i][k-2][s];
+        }
       }
     }
-    L[i] = M;
+    cte += pl[ploidy_p1[i]] + pl[ploidy_p2[i]];
   }
-  return L ;
+  return M;
 }
 
+
 // [[Rcpp::export]]
-List calc_genoprob_biallelic_single(NumericMatrix PH,
+arma::sp_mat calc_genoprob_biallelic_single(NumericMatrix PH,
                                     IntegerMatrix G,
                                     NumericVector rf,
                                     double err){
@@ -266,20 +290,29 @@ List calc_genoprob_biallelic_single(NumericMatrix PH,
         gamma[ind][k][j] = alpha[ind][k][j]*beta[ind][k][j]/w;
     }
   }
-  int n1 = gamma.size();
-  int n2 = gamma[0].size();
-  int n3 = gamma[0][0].size();
 
-  List L(n1);
-
-  for(int i = 0; i < n1; i++) {
-    NumericMatrix M(n3, n2);
-    for(int j = 0; j < n2; j++) {
-      for(int k = 0; k < n3; k++) {
-        M(k,j) = gamma[i][j][k];
+  int cte = 0, tot = ploidy * n_ind;
+  arma::sp_mat M(tot, n_mrk + 2);
+  for(int i = 0; i < n_ind; i++) {
+    NumericVector x1(ploidy);
+    for(int i1 = 0; i1 < x1.size(); i1++)
+      x1[i1] = i1;
+    IntegerMatrix homolog_combn1  = combn(x1, x1.size()/2);
+    for(int s = 0; s < ploidy; s++){
+      M(cte + s,0) = i + 1;
+      M(cte + s,1) = s + 1;
+    }
+    for(int k = 2; k < n_mrk + 2; k++) {
+      int n3 = gamma[i][k-2].size();
+      for(int s = 0; s < n3; s++) {
+        if(gamma[i][k-2][s] > SparseThreshold){
+          IntegerVector y1  = homolog_combn1(_,v[k-2][i][s]);
+          for(int j = 0; j < y1.size(); j++)
+            M(cte + y1[j], k) += gamma[i][k-2][s];
+        }
       }
     }
-    L[i] = M;
+    cte += ploidy;
   }
-  return L ;
+  return M;
 }
