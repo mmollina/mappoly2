@@ -2,14 +2,14 @@
 rm(list = ls())
 require(mappoly2)
 source("~/repos/official_repos/misc/simulation.R")
-ploidy.p1 = 4
+ploidy.p1 = 2
 ploidy.p2 = 4
-n.mrk <- 200
+n.mrk <- 500
 ph<-test_simulate(ploidy.p1 = ploidy.p1,
                   ploidy.p2 = ploidy.p2,
                   fpath = "~/repos/official_repos/misc/fake_triploid.csv",
                   n.mrk = n.mrk,
-                  n.ind = 200,
+                  n.ind = 300,
                   map.length =100,
                   miss.perc = 0,
                   n.chrom = 1,
@@ -60,10 +60,12 @@ w2 <- mappoly2:::calc_genoprob_biallelic(PH = PH,
                                          pedigree = pedigree,
                                          rf = s.map2$phases[[best]]$rf,
                                          err = 0.05)
-i<-4
-layout(matrix(1:2,2,1))
-image(w1[[i]])
-image(w2[[i]])
+i<-3
+round(w1, 2)
+image((as.matrix(w1[1:500, -c(1:2)])))
+
+round(w2, 2)
+image((as.matrix(w2[1:500, -c(1:2)])))
 #############################################
 mrk.id <- rownames(s.map1$phases[[best]]$p1)
 g <- s.map1$data$geno.dose[mrk.id, ]
@@ -85,8 +87,10 @@ w2 <- mappoly2:::calc_genoprob_biallelic_single(PH = PH,
                                                 G = g,
                                                 rf = s.map2$phases[[best]]$rf,
                                                 err = 0.05)
-i<-4
-layout(matrix(1:2,2,1))
-image(w1[[i]])
-image(w2[[i]])
+i<-3
+round(w1, 2)
+image((as.matrix(w1[1:500, -c(1:2)])))
+
+round(w2, 2)
+image((as.matrix(w2[1:500, -c(1:2)])))
 

@@ -21,7 +21,7 @@ Genetic Linkage Maps in Autopolyploids v 2.0
     - ~~When only the genotype from one parent is informative.~~
     - ~~When genotypes from both parents are informative, with error consideration.~~
     - ~~When only the genotype from one parent is informative, with error consideration.~~
-    - Implement the R wrapper functions for C++ calc_genoprob
+    - Implement the R wrapper functions for C++ calc_genoprob (still to be implemented --> genoprob.R)
     
 8. [ ] TODO Implement function add_marker, given a phased map. Use pre-computed conditional probabilities of genotypes. 
 
