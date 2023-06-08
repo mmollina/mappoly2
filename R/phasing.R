@@ -54,7 +54,9 @@ pairwise_phasing <- function(input.seq,
       Ph[[cte]] <- list(p1 = Ph.p1$phase_configs[[i]][mrks,],
                         p2 = Ph.p2$phase_configs[[j]][mrks,],
                         loglike = NULL,
-                        rf = NULL)
+                        rf = NULL,
+                        error = NULL,
+                        haploprob = NULL)
       cte <- cte + 1
     }
   }
