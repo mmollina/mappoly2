@@ -24,7 +24,12 @@ Genetic Linkage Maps in Autopolyploids v 2.0
     - ~~Implement the R wrapper functions for C++ calc_genoprob (still to be implemented --> genoprob.R)~~
     
 8. [ ] TODO Implement function add_marker, given a phased map. Use pre-computed conditional probabilities of genotypes. 
-
+    - ~~Implement function to list possible phase configurations of a sequence of unmapped 
+      markers given a phased map and a pairwise recombination fraction matrix and associated 
+      phase statistics~~
+    - Implement a function that receives as input a matrix whose rows represent possible phases 
+      for a marker, insert it on a precomputed map and return the log-likelihood
+    
 9. [ ] TODO Use Hidden Markov Models (HMM) to assimilate remaining markers into the phased map.
 
 10. [ ] TODO Enhance the efficiency of two-point calculations by harnessing the power of RcppParallel for its implementation.

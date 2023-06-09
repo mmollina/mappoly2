@@ -84,6 +84,14 @@ IntegerMatrix combn(NumericVector x, int m) {
   return result;
 }
 
+NumericMatrix make_mat(double x, int nrow, int ncol) {
+  NumericMatrix res(nrow,ncol);
+  for(int i = 0; i < nrow; i++)
+    for(int j = 0; j < ncol; j++)
+      res(i,j) = x;
+  return res;
+}
+
 // Function for rep_each
 IntegerVector rep_each(IntegerVector x, int n) {
   int sz = x.size() * n;

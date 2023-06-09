@@ -139,6 +139,21 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
+// phasing_one
+List phasing_one(CharacterVector mrk_id, IntegerVector dose_vec, NumericMatrix S, NumericMatrix InitPh, bool verbose);
+RcppExport SEXP _mappoly2_phasing_one(SEXP mrk_idSEXP, SEXP dose_vecSEXP, SEXP SSEXP, SEXP InitPhSEXP, SEXP verboseSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< CharacterVector >::type mrk_id(mrk_idSEXP);
+    Rcpp::traits::input_parameter< IntegerVector >::type dose_vec(dose_vecSEXP);
+    Rcpp::traits::input_parameter< NumericMatrix >::type S(SSEXP);
+    Rcpp::traits::input_parameter< NumericMatrix >::type InitPh(InitPhSEXP);
+    Rcpp::traits::input_parameter< bool >::type verbose(verboseSEXP);
+    rcpp_result_gen = Rcpp::wrap(phasing_one(mrk_id, dose_vec, S, InitPh, verbose));
+    return rcpp_result_gen;
+END_RCPP
+}
 // segreg_poly
 NumericVector segreg_poly(int ploidy_p1, int ploidy_p2, int d_p1, int d_p2);
 RcppExport SEXP _mappoly2_segreg_poly(SEXP ploidy_p1SEXP, SEXP ploidy_p2SEXP, SEXP d_p1SEXP, SEXP d_p2SEXP) {
@@ -213,6 +228,7 @@ static const R_CallMethodDef CallEntries[] = {
     {"_mappoly2_est_hmm_map_biallelic", (DL_FUNC) &_mappoly2_est_hmm_map_biallelic, 9},
     {"_mappoly2_est_hmm_map_biallelic_single", (DL_FUNC) &_mappoly2_est_hmm_map_biallelic_single, 8},
     {"_mappoly2_twopt_phasing_cpp", (DL_FUNC) &_mappoly2_twopt_phasing_cpp, 6},
+    {"_mappoly2_phasing_one", (DL_FUNC) &_mappoly2_phasing_one, 5},
     {"_mappoly2_segreg_poly", (DL_FUNC) &_mappoly2_segreg_poly, 4},
     {"_mappoly2_est_hmm_map_biallelic_log_implementation", (DL_FUNC) &_mappoly2_est_hmm_map_biallelic_log_implementation, 9},
     {"_mappoly2_vs_biallelic", (DL_FUNC) &_mappoly2_vs_biallelic, 3},

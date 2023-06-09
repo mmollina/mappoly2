@@ -37,6 +37,10 @@ twopt_phasing_cpp <- function(mrk_id, ploidy, dose_vec, S, max_conf_number, verb
     .Call('_mappoly2_twopt_phasing_cpp', PACKAGE = 'mappoly2', mrk_id, ploidy, dose_vec, S, max_conf_number, verbose)
 }
 
+phasing_one <- function(mrk_id, dose_vec, S, InitPh, verbose) {
+    .Call('_mappoly2_phasing_one', PACKAGE = 'mappoly2', mrk_id, dose_vec, S, InitPh, verbose)
+}
+
 #' Mendelian segregation
 #'
 #' Computes the Mendelian segregation frequencies given the ploidy level
