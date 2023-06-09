@@ -16,6 +16,7 @@ using namespace std;
 using namespace Rcpp;
 
 IntegerMatrix combn(NumericVector x, int m);
+NumericMatrix make_mat(double x, int nrow, int ncol);
 IntegerVector rep_each(IntegerVector x, int n);
 IntegerVector rep_len(IntegerVector x, int n);
 IntegerMatrix expand_grid(IntegerVector v1, IntegerVector v2);

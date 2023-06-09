@@ -45,6 +45,7 @@
 #include <iostream>
 #include <vector>
 #include "combinatorics.h"
+#include "utils.h"
 #include <math.h>
 #include <Rmath.h>
 #include <R_ext/PrtUtil.h>
@@ -169,4 +170,47 @@ List twopt_phasing_cpp(CharacterVector mrk_id,
                         Named("phase_configs") = H);
   return z;
 }
+
+// [[Rcpp::export]]
+List phasing_one(CharacterVector mrk_id,
+                 IntegerVector dose_vec,
+                 NumericMatrix S,
+                 NumericMatrix InitPh,
+                 bool verbose){
+
+  int ploidy = InitPh.ncol();//ploidy
+  int n = mrk_id.size();//markers to be positioned
+  List H(n);
+  Progress p(n, verbose); //Progress bar
+  for(int i = 0; i < n; ++i){
+    if (Progress::check_abort())
+      return -1.0;
+    int x = dose_vec[i];
+    if(x == ploidy)
+      H[i] = make_mat(1.0, 1, ploidy);
+    else if(x == 0)
+      H[i] = make_mat(0.0, 1, ploidy);
+    else {
+      NumericMatrix z = find_valid_permutations(InitPh, S(i,_), x);
+      if(z.nrow() == 0)
+        H[i] = make_mat(-1.0, 1, ploidy); //FIXME
+      else{
+        List Htemp(z.nrow());
+        for(int k = 0; k < z.nrow(); ++k)
+          Htemp[k] = rbind_cpp(InitPh, z(k, _));
+        List Hres = filter_matrices(Htemp);
+        NumericMatrix w(Hres.size(), ploidy);
+        for(int k = 0; k < Hres.size(); k++){
+          NumericMatrix y = Hres[k];
+          w(k,_) = y(y.nrow() - 1,_);
+        }
+        H[i] = w;
+      }
+    }
+  }
+  return H;
+}
+
+
+
 
