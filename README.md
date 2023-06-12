@@ -36,7 +36,7 @@ Genetic Linkage Maps in Autopolyploids v 2.0
       for a marker, insert it on a precomputed map and return the log-likelihood
 
 9. [ ] TODO Enhance the efficiency of two-point calculations by harnessing the power of RcppParallel for its implementation.
-10.[ ] TODO Enhance the user-friendliness of the software:
+10. [ ] TODO Enhance the user-friendliness of the software:
     - A
     - B
     - C
