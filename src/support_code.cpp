@@ -334,4 +334,38 @@ List est_hmm_map_biallelic_log_implementation(List PH,
   return(z);
 }
 
+// [[Rcpp::export]]
+NumericVector homologprob_to_hmmstates(NumericVector h,
+                                       int ploidy1,
+                                       int ploidy2){
+  NumericVector v1(ploidy1),  v2(ploidy2);
+  for(int i=0; i < ploidy1; i++)
+    v1[i] = i;
+  for(int i=0; i < ploidy2; i++)
+    v2[i] = i + ploidy1;
+  IntegerMatrix u1 = combn(v1, ploidy1/2);
+  IntegerMatrix u2 = combn(v2, ploidy2/2);
+  NumericVector res(u1.ncol() * u2.ncol());
+  NumericVector w1(u1.ncol());
+  for(int i=0; i < u1.ncol(); i++){
+    double temp = 1.0;
+    for(int j=0; j < u1.nrow(); j++){
+      temp *= h[u1(j,i)];
+    }
+    w1[i] = temp;
+  }
+  NumericVector w2(u2.ncol());
+  for(int i=0; i < u2.ncol(); i++){
+    double temp = 1.0;
+    for(int j=0; j < u2.nrow(); j++){
+      temp *= h[u2(j,i)];
+    }
+    w2[i] = temp;
+  }
+  for(int i=0; i < u1.ncol(); i++)
+    for(int j=0; j < u2.ncol(); j++)
+      res[j + (i*u2.ncol())] = w1[i] * w2[j];
+  return(res);
+}
+
 

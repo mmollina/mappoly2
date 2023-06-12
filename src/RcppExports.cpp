@@ -187,6 +187,19 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
+// homologprob_to_hmmstates
+NumericVector homologprob_to_hmmstates(NumericVector h, int ploidy1, int ploidy2);
+RcppExport SEXP _mappoly2_homologprob_to_hmmstates(SEXP hSEXP, SEXP ploidy1SEXP, SEXP ploidy2SEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< NumericVector >::type h(hSEXP);
+    Rcpp::traits::input_parameter< int >::type ploidy1(ploidy1SEXP);
+    Rcpp::traits::input_parameter< int >::type ploidy2(ploidy2SEXP);
+    rcpp_result_gen = Rcpp::wrap(homologprob_to_hmmstates(h, ploidy1, ploidy2));
+    return rcpp_result_gen;
+END_RCPP
+}
 // vs_biallelic
 List vs_biallelic(List PH, IntegerMatrix G, NumericMatrix pedigree);
 RcppExport SEXP _mappoly2_vs_biallelic(SEXP PHSEXP, SEXP GSEXP, SEXP pedigreeSEXP) {
@@ -231,6 +244,7 @@ static const R_CallMethodDef CallEntries[] = {
     {"_mappoly2_phasing_one", (DL_FUNC) &_mappoly2_phasing_one, 5},
     {"_mappoly2_segreg_poly", (DL_FUNC) &_mappoly2_segreg_poly, 4},
     {"_mappoly2_est_hmm_map_biallelic_log_implementation", (DL_FUNC) &_mappoly2_est_hmm_map_biallelic_log_implementation, 9},
+    {"_mappoly2_homologprob_to_hmmstates", (DL_FUNC) &_mappoly2_homologprob_to_hmmstates, 3},
     {"_mappoly2_vs_biallelic", (DL_FUNC) &_mappoly2_vs_biallelic, 3},
     {"_mappoly2_vs_biallelic_error", (DL_FUNC) &_mappoly2_vs_biallelic_error, 5},
     {"pairwise_rf_estimation", (DL_FUNC) &pairwise_rf_estimation, 9},

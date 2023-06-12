@@ -27,6 +27,11 @@ Genetic Linkage Maps in Autopolyploids v 2.0
     - ~~Implement function to list possible phase configurations of a sequence of unmapped 
       markers given a phased map and a pairwise recombination fraction matrix and associated 
       phase statistics~~
+    - ~~Implement the function 'homologprob_to_hmmstates': This subroutine takes in a homolog 
+        probability vector (associated with both parent units) and outputs an emission vector. 
+        This resultant vector serves as input for the reconstruction of flanking positions, 
+        enabling the incorporation of a new marker for subsequent phasing and re-estimation 
+        via three-point analysis.~~
     - Implement a function that receives as input a matrix whose rows represent possible phases 
       for a marker, insert it on a precomputed map and return the log-likelihood
     

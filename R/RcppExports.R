@@ -80,6 +80,10 @@ est_hmm_map_biallelic_log_implementation <- function(PH, G, pedigree, rf, err, v
     .Call('_mappoly2_est_hmm_map_biallelic_log_implementation', PACKAGE = 'mappoly2', PH, G, pedigree, rf, err, verbose, detailed_verbose, tol, ret_H0)
 }
 
+homologprob_to_hmmstates <- function(h, ploidy1, ploidy2) {
+    .Call('_mappoly2_homologprob_to_hmmstates', PACKAGE = 'mappoly2', h, ploidy1, ploidy2)
+}
+
 vs_biallelic <- function(PH, G, pedigree) {
     .Call('_mappoly2_vs_biallelic', PACKAGE = 'mappoly2', PH, G, pedigree)
 }
