@@ -34,7 +34,5 @@ Genetic Linkage Maps in Autopolyploids v 2.0
         via three-point analysis.~~
     - Implement a function that receives as input a matrix whose rows represent possible phases 
       for a marker, insert it on a precomputed map and return the log-likelihood
-    
-9. [ ] TODO Use Hidden Markov Models (HMM) to assimilate remaining markers into the phased map.
 
-10. [ ] TODO Enhance the efficiency of two-point calculations by harnessing the power of RcppParallel for its implementation.
+9. [ ] TODO Enhance the efficiency of two-point calculations by harnessing the power of RcppParallel for its implementation.
