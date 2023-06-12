@@ -55,10 +55,3 @@ for(i in seq(30,0,-5)){
   x <- cbind(x, sort(sapply(L, nrow)))
 }
 image(x)
-
-
-
-
-
-
-

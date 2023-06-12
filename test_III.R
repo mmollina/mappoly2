@@ -52,4 +52,10 @@ s2 <- calc_haplotypes(s2)
 image((as.matrix(s1$phases[[1]]$haploprob[1:500, -c(1:2)])), main = s1$phases[[1]]$error)
 image((as.matrix(s2$phases[[1]]$haploprob[1:16, -c(1:2)])), main = s2$phases[[1]]$error)
 
+x<-s1$phases[[1]]$haploprob[1:6, 6]
+x<-c(0.2,0.8,0,1,1,0)
+mappoly2:::homologprob_to_hmmstates(h = x,
+                                    ploidy1 = 2, ploidy2 = 4)
+
+
 
