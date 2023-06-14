@@ -50,6 +50,10 @@ double addlog(double a, double b);
 List vs_multiallelic_Rcpp(List PH,
                           List GENO,
                           NumericMatrix pedigree);
+List vs_inserted_mrk(List PH,
+                     IntegerVector G,
+                     NumericMatrix pedigree,
+                     NumericMatrix  M);
 List vs_biallelic(List PH,
                   IntegerMatrix G,
                   NumericMatrix pedigree);

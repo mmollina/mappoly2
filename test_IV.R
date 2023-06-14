@@ -80,8 +80,8 @@ S <- m$Sh.p2[mrk.id, mrk.pos]
 verbose <- TRUE
 L2 <- mappoly2:::phasing_one(mrk.id, dose.vec, S, InitPh, verbose)
 L2[[48]]
-PH <- list(L1[[48]], L2[[48]][1,,drop = FALSE])
-G <- s1$data$geno.dose[mrk.id[48], ,drop = FALSE]
+L1[[48]]
+G <- s1$data$geno.dose[mrk.id[48], ,drop = TRUE]
 pedigree <- matrix(rep(c(1,
                          2,
                          s1$data$ploidy.p1,
@@ -93,11 +93,30 @@ s1<-calc_haplotypes(s1)
 mrk.id[48]
 s1$phases[[1]]$p1[18:19,]
 s1$phases[[1]]$p2[18:19,]
-homolog_prob <- s1$phases[[1]]$haploprob[,18:19+2]
-mrk_position <- 0
-z<-mappoly2:::vs_inserted_mrk(PH,
-                              G,
-                              pedigree,
-                              homolog_prob,
-                              mrk_position)
+homolog_prob <- as.matrix(s1$phases[[1]]$haploprob[,18:19+2])
+
+L2[[48]]
+L1[[48]]
+PH1 <- list(L1[[48]][1,,drop=TRUE], L2[[48]][1,,drop = TRUE])
+z1<-mappoly2:::est_hmm_map_biallelic_insert_marker(PH1,
+                                                   G,
+                                                   pedigree,
+                                                   homolog_prob,
+                                                  rf = c(0.01,0.01),
+                                                  verbose = TRUE,
+                                                  detailed_verbose = FALSE,
+                                                  tol = 10e-4,
+                                                  ret_H0 = FALSE)
+PH2 <- list(L1[[48]][1,,drop=TRUE], L2[[48]][2,,drop = TRUE])
+z2<-mappoly2:::est_hmm_map_biallelic_insert_marker(PH2,
+                                                   G,
+                                                   pedigree,
+                                                   homolog_prob,
+                                                   rf = c(0.01,0.01),
+                                                   verbose = TRUE,
+                                                   detailed_verbose = FALSE,
+                                                   tol = 10e-4,
+                                                   ret_H0 = FALSE)
+z1
+z2
 

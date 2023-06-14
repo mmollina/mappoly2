@@ -33,5 +33,5 @@ IntegerVector which(LogicalVector x);
 IntegerVector concatenate_vectors(IntegerVector x1, IntegerVector x2);
 List calculate_L_and_initialize_H(int n_fullsib_pop, int n_mrk, int n_ind, NumericVector ploidy_p1, NumericVector ploidy_p2);
 NumericMatrix retainUniqueAndSortByLastColumn(NumericMatrix x);
-
+NumericVector calculate_hmm_combinatorial_products(NumericVector h,int ploidy_p1,int ploidy_p2);
 #endif // COMBINATORICS_H
