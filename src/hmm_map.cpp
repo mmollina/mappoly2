@@ -126,7 +126,6 @@ double calc_loglike(std::vector<std::vector<std::vector<int> > > v,
   return(loglike);
 }
 
-
 double calc_loglike_single(std::vector<std::vector<std::vector<int> > > v,
                            std::vector<std::vector<std::vector<double> > > emit,
                            std::vector<double> rf_vec,
@@ -542,6 +541,30 @@ List main_hmm_full_single(int ploidy,
 }
 
 // [[Rcpp::export]]
+List est_hmm_map_biallelic_insert_marker (List PH, //list of vectors
+                                          IntegerVector G, //vector of dosages for inserted marker
+                                          NumericMatrix pedigree,
+                                          NumericMatrix  M,
+                                          NumericVector rf,
+                                          bool verbose,
+                                          bool detailed_verbose,
+                                          double tol,
+                                          bool ret_H0) {
+  NumericVector ploidy_p1 = pedigree(_,2)/2 - 1;
+  NumericVector ploidy_p2 = pedigree(_,3)/2 - 1;
+  // HMM states that should be visited given the phase of
+  // the founders, genotype of the offspring and pedigree
+  List result = vs_inserted_mrk(PH, G, pedigree, M);
+  List ve = hmm_vectors(result);
+  std::vector<std::vector<std::vector<int> > > v = ve["v"];
+  std::vector<std::vector<std::vector<double> > > e = ve["e"];
+  List z = main_hmm_full(ploidy_p1, ploidy_p2, v, e, rf,
+                         tol, verbose, detailed_verbose, ret_H0);
+  return(z);
+}
+
+
+// [[Rcpp::export]]
 List est_hmm_map_biallelic(List PH,
                            IntegerMatrix G,
                            NumericMatrix pedigree,
@@ -553,8 +576,6 @@ List est_hmm_map_biallelic(List PH,
                            bool ret_H0) {
   NumericVector ploidy_p1 = pedigree(_,2)/2 - 1;
   NumericVector ploidy_p2 = pedigree(_,3)/2 - 1;
-  NumericMatrix temp_phase_mat = PH[0];
-
   // HMM states that should be visited given the phase of
   // the founders, genotype of the offspring and pedigree
   List result = visit_states_biallelic(PH, G, pedigree, err);
@@ -564,7 +585,7 @@ List est_hmm_map_biallelic(List PH,
   List z = main_hmm_full(ploidy_p1, ploidy_p2, v,e,rf,
                          tol, verbose,
                          detailed_verbose,ret_H0);
-    return(z);
+  return(z);
 }
 
 // [[Rcpp::export]]
@@ -584,7 +605,7 @@ List est_hmm_map_biallelic_single(NumericMatrix PH,
   std::vector<std::vector<std::vector<int> > > v = ve["v"];
   std::vector<std::vector<std::vector<double> > > e = ve["e"];
   List z = main_hmm_full_single(ploidy, v,e,rf,
-                         tol, verbose,
-                         detailed_verbose,ret_H0);
+                                tol, verbose,
+                                detailed_verbose,ret_H0);
   return(z);
 }

@@ -53,16 +53,17 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
-// vs_biallelic
-List vs_biallelic(List PH, IntegerMatrix G, NumericMatrix pedigree);
-RcppExport SEXP _mappoly2_vs_biallelic(SEXP PHSEXP, SEXP GSEXP, SEXP pedigreeSEXP) {
+// vs_inserted_mrk
+List vs_inserted_mrk(List PH, IntegerVector G, NumericMatrix pedigree, NumericMatrix M);
+RcppExport SEXP _mappoly2_vs_inserted_mrk(SEXP PHSEXP, SEXP GSEXP, SEXP pedigreeSEXP, SEXP MSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
     Rcpp::traits::input_parameter< List >::type PH(PHSEXP);
-    Rcpp::traits::input_parameter< IntegerMatrix >::type G(GSEXP);
+    Rcpp::traits::input_parameter< IntegerVector >::type G(GSEXP);
     Rcpp::traits::input_parameter< NumericMatrix >::type pedigree(pedigreeSEXP);
-    rcpp_result_gen = Rcpp::wrap(vs_biallelic(PH, G, pedigree));
+    Rcpp::traits::input_parameter< NumericMatrix >::type M(MSEXP);
+    rcpp_result_gen = Rcpp::wrap(vs_inserted_mrk(PH, G, pedigree, M));
     return rcpp_result_gen;
 END_RCPP
 }
@@ -78,6 +79,25 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< double >::type err(errSEXP);
     Rcpp::traits::input_parameter< bool >::type logatithm(logatithmSEXP);
     rcpp_result_gen = Rcpp::wrap(vs_biallelic_error(PH, G, pedigree, err, logatithm));
+    return rcpp_result_gen;
+END_RCPP
+}
+// est_hmm_map_biallelic_insert_marker
+List est_hmm_map_biallelic_insert_marker(List PH, IntegerVector G, NumericMatrix pedigree, NumericMatrix M, NumericVector rf, bool verbose, bool detailed_verbose, double tol, bool ret_H0);
+RcppExport SEXP _mappoly2_est_hmm_map_biallelic_insert_marker(SEXP PHSEXP, SEXP GSEXP, SEXP pedigreeSEXP, SEXP MSEXP, SEXP rfSEXP, SEXP verboseSEXP, SEXP detailed_verboseSEXP, SEXP tolSEXP, SEXP ret_H0SEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< List >::type PH(PHSEXP);
+    Rcpp::traits::input_parameter< IntegerVector >::type G(GSEXP);
+    Rcpp::traits::input_parameter< NumericMatrix >::type pedigree(pedigreeSEXP);
+    Rcpp::traits::input_parameter< NumericMatrix >::type M(MSEXP);
+    Rcpp::traits::input_parameter< NumericVector >::type rf(rfSEXP);
+    Rcpp::traits::input_parameter< bool >::type verbose(verboseSEXP);
+    Rcpp::traits::input_parameter< bool >::type detailed_verbose(detailed_verboseSEXP);
+    Rcpp::traits::input_parameter< double >::type tol(tolSEXP);
+    Rcpp::traits::input_parameter< bool >::type ret_H0(ret_H0SEXP);
+    rcpp_result_gen = Rcpp::wrap(est_hmm_map_biallelic_insert_marker(PH, G, pedigree, M, rf, verbose, detailed_verbose, tol, ret_H0));
     return rcpp_result_gen;
 END_RCPP
 }
@@ -168,34 +188,6 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
-// calculate_hmm_combinatorial_products
-NumericVector calculate_hmm_combinatorial_products(NumericVector h, int ploidy_p1, int ploidy_p2);
-RcppExport SEXP _mappoly2_calculate_hmm_combinatorial_products(SEXP hSEXP, SEXP ploidy_p1SEXP, SEXP ploidy_p2SEXP) {
-BEGIN_RCPP
-    Rcpp::RObject rcpp_result_gen;
-    Rcpp::RNGScope rcpp_rngScope_gen;
-    Rcpp::traits::input_parameter< NumericVector >::type h(hSEXP);
-    Rcpp::traits::input_parameter< int >::type ploidy_p1(ploidy_p1SEXP);
-    Rcpp::traits::input_parameter< int >::type ploidy_p2(ploidy_p2SEXP);
-    rcpp_result_gen = Rcpp::wrap(calculate_hmm_combinatorial_products(h, ploidy_p1, ploidy_p2));
-    return rcpp_result_gen;
-END_RCPP
-}
-// vs_inserted_mrk
-List vs_inserted_mrk(List PH, IntegerMatrix G, NumericMatrix pedigree, arma::sp_mat homolog_prob, int mrk_position);
-RcppExport SEXP _mappoly2_vs_inserted_mrk(SEXP PHSEXP, SEXP GSEXP, SEXP pedigreeSEXP, SEXP homolog_probSEXP, SEXP mrk_positionSEXP) {
-BEGIN_RCPP
-    Rcpp::RObject rcpp_result_gen;
-    Rcpp::RNGScope rcpp_rngScope_gen;
-    Rcpp::traits::input_parameter< List >::type PH(PHSEXP);
-    Rcpp::traits::input_parameter< IntegerMatrix >::type G(GSEXP);
-    Rcpp::traits::input_parameter< NumericMatrix >::type pedigree(pedigreeSEXP);
-    Rcpp::traits::input_parameter< arma::sp_mat >::type homolog_prob(homolog_probSEXP);
-    Rcpp::traits::input_parameter< int >::type mrk_position(mrk_positionSEXP);
-    rcpp_result_gen = Rcpp::wrap(vs_inserted_mrk(PH, G, pedigree, homolog_prob, mrk_position));
-    return rcpp_result_gen;
-END_RCPP
-}
 // segreg_poly
 NumericVector segreg_poly(int ploidy_p1, int ploidy_p2, int d_p1, int d_p2);
 RcppExport SEXP _mappoly2_segreg_poly(SEXP ploidy_p1SEXP, SEXP ploidy_p2SEXP, SEXP d_p1SEXP, SEXP d_p2SEXP) {
@@ -239,15 +231,14 @@ static const R_CallMethodDef CallEntries[] = {
     {"_mappoly2_calc_haploprob_biallelic", (DL_FUNC) &_mappoly2_calc_haploprob_biallelic, 5},
     {"_mappoly2_calc_haploprob_biallelic_single", (DL_FUNC) &_mappoly2_calc_haploprob_biallelic_single, 4},
     {"_mappoly2_find_valid_permutations", (DL_FUNC) &_mappoly2_find_valid_permutations, 3},
-    {"_mappoly2_vs_biallelic", (DL_FUNC) &_mappoly2_vs_biallelic, 3},
+    {"_mappoly2_vs_inserted_mrk", (DL_FUNC) &_mappoly2_vs_inserted_mrk, 4},
     {"_mappoly2_vs_biallelic_error", (DL_FUNC) &_mappoly2_vs_biallelic_error, 5},
+    {"_mappoly2_est_hmm_map_biallelic_insert_marker", (DL_FUNC) &_mappoly2_est_hmm_map_biallelic_insert_marker, 9},
     {"_mappoly2_est_hmm_map_biallelic", (DL_FUNC) &_mappoly2_est_hmm_map_biallelic, 9},
     {"_mappoly2_est_hmm_map_biallelic_single", (DL_FUNC) &_mappoly2_est_hmm_map_biallelic_single, 8},
     {"_mappoly2_twopt_phasing_cpp", (DL_FUNC) &_mappoly2_twopt_phasing_cpp, 6},
     {"_mappoly2_phasing_one", (DL_FUNC) &_mappoly2_phasing_one, 5},
     {"_mappoly2_est_hmm_map_biallelic_log_implementation", (DL_FUNC) &_mappoly2_est_hmm_map_biallelic_log_implementation, 9},
-    {"_mappoly2_calculate_hmm_combinatorial_products", (DL_FUNC) &_mappoly2_calculate_hmm_combinatorial_products, 3},
-    {"_mappoly2_vs_inserted_mrk", (DL_FUNC) &_mappoly2_vs_inserted_mrk, 5},
     {"_mappoly2_segreg_poly", (DL_FUNC) &_mappoly2_segreg_poly, 4},
     {"_mappoly2_mappoly_chisq_test", (DL_FUNC) &_mappoly2_mappoly_chisq_test, 1},
     {"_mappoly2_filter_non_conforming_classes", (DL_FUNC) &_mappoly2_filter_non_conforming_classes, 1},

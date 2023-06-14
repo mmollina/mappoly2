@@ -386,4 +386,38 @@ NumericMatrix retainUniqueAndSortByLastColumn(NumericMatrix x) {
   return result;
 }
 
+// Helper function to calculate genotype probabilities given homolog probabilities (h)
+NumericVector calculate_hmm_combinatorial_products(NumericVector h,
+                                                   int ploidy_p1,
+                                                   int ploidy_p2){
+  NumericVector v1(ploidy_p1),  v2(ploidy_p2);
+  for(int i=0; i < ploidy_p1; i++)
+    v1[i] = i;
+  for(int i=0; i < ploidy_p2; i++)
+    v2[i] = i + ploidy_p1;
+  IntegerMatrix u1 = combn(v1, ploidy_p1/2);
+  IntegerMatrix u2 = combn(v2, ploidy_p2/2);
+  NumericVector res(u1.ncol() * u2.ncol());
+  NumericVector w1(u1.ncol());
+  for(int i=0; i < u1.ncol(); i++){
+    double temp = 1.0;
+    for(int j=0; j < u1.nrow(); j++){
+      temp *= h[u1(j,i)];
+    }
+    w1[i] = temp;
+  }
+  NumericVector w2(u2.ncol());
+  for(int i=0; i < u2.ncol(); i++){
+    double temp = 1.0;
+    for(int j=0; j < u2.nrow(); j++){
+      temp *= h[u2(j,i)];
+    }
+    w2[i] = temp;
+  }
+  for(int i=0; i < u1.ncol(); i++)
+    for(int j=0; j < u2.ncol(); j++)
+      res[j + (i*u2.ncol())] = w1[i] * w2[j];
+  return(res);
+}
+
 //end of file
