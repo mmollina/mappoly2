@@ -24,7 +24,7 @@
  */
 
 /*
- File: calc_genoprob.cpp
+ File: calc_haploprob.cpp
 
  Description:
 
@@ -56,7 +56,7 @@ using namespace Rcpp;
 
 // [[Rcpp::depends(RcppArmadillo)]]
 // [[Rcpp::export]]
-arma::sp_mat calc_genoprob_biallelic(List PH,
+arma::sp_mat calc_haploprob_biallelic(List PH,
                                      IntegerMatrix G,
                                      NumericMatrix pedigree,
                                      NumericVector rf,
@@ -213,7 +213,7 @@ arma::sp_mat calc_genoprob_biallelic(List PH,
 
 
 // [[Rcpp::export]]
-arma::sp_mat calc_genoprob_biallelic_single(NumericMatrix PH,
+arma::sp_mat calc_haploprob_biallelic_single(NumericMatrix PH,
                                     IntegerMatrix G,
                                     NumericVector rf,
                                     double err){

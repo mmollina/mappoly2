@@ -15,49 +15,6 @@
 using namespace std;
 using namespace Rcpp;
 
-IntegerMatrix combn(NumericVector x, int m);
-NumericMatrix make_mat(double x, int nrow, int ncol);
-IntegerVector rep_each(IntegerVector x, int n);
-IntegerVector rep_len(IntegerVector x, int n);
-IntegerMatrix expand_grid(IntegerVector v1, IntegerVector v2);
-IntegerVector which(LogicalVector x);
-IntegerVector concatenate_vectors(IntegerVector x1, IntegerVector x2);
-List calculate_L_and_initialize_H(int n_fullsib_pop,
-                                  int n_mrk,
-                                  int n_ind,
-                                  NumericVector ploidy_p1,
-                                  NumericVector ploidy_p2);
-NumericMatrix retainUniqueAndSortByLastColumn(NumericMatrix x);
-List vs_multiallelic_Rcpp(List PH,
-                          List GENO,
-                          NumericMatrix pedigree);
-List vs_biallelic(List PH,
-                       IntegerMatrix G,
-                       NumericMatrix pedigree);
-
-List vs_biallelic_single(NumericMatrix PH,
-                              IntegerMatrix G);
-
-List vs_biallelic_error(List PH,
-                        IntegerMatrix G,
-                        NumericMatrix pedigree,
-                        double err,
-                        bool logatithm);
-
-List vs_biallelic_error_single(NumericMatrix PH,
-                               IntegerMatrix G,
-                               double err,
-                               bool logatithm);
-
-List visit_states_biallelic(List PH,
-                            IntegerMatrix G,
-                            NumericMatrix pedigree,
-                            double err);
-
-List visit_states_biallelic_single(NumericMatrix PH,
-                                   IntegerMatrix G,
-                                   double err);
-
-List hmm_vectors(List input_list);
+NumericVector segreg_poly(int ploidy_p1, int ploidy_p2, int d_p1, int d_p2);
 
 #endif /* UTILS_H */
