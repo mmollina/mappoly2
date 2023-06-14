@@ -1,5 +1,5 @@
-#ifndef HMM_FUNCTIONS_H
-#define HMM_FUNCTIONS_H
+#ifndef HMM_ELEMENTS_H
+#define HMM_ELEMENTS_H
 
 #include <algorithm>
 #include <iostream>
@@ -47,4 +47,29 @@ std::vector<double> backward_emit_single_parent(int m,
                                                 std::vector<std::vector<double> >& T);
 double addlog(double a, double b);
 
-#endif // HMM_FUNCTIONS_H
+List vs_multiallelic_Rcpp(List PH,
+                          List GENO,
+                          NumericMatrix pedigree);
+List vs_biallelic(List PH,
+                  IntegerMatrix G,
+                  NumericMatrix pedigree);
+List vs_biallelic_single(NumericMatrix PH,
+                         IntegerMatrix G);
+List vs_biallelic_error(List PH,
+                        IntegerMatrix G,
+                        NumericMatrix pedigree,
+                        double err,
+                        bool logatithm);
+List vs_biallelic_error_single(NumericMatrix PH,
+                               IntegerMatrix G,
+                               double err,
+                               bool logatithm);
+List visit_states_biallelic(List PH,
+                            IntegerMatrix G,
+                            NumericMatrix pedigree,
+                            double err);
+List visit_states_biallelic_single(NumericMatrix PH,
+                                   IntegerMatrix G,
+                                   double err);
+List hmm_vectors(List input_list);
+#endif // HMM_ELEMENTS_H

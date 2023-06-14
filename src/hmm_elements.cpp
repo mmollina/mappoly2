@@ -246,3 +246,451 @@ double addlog(double a, double b)
   else if(a > b + THRESH) return(a);
   else return(a + log1p(exp(b-a)));
 }
+
+
+// Helper function for states to visit - multiallelic
+List vs_multiallelic_Rcpp(List PH,
+                          List GENO,
+                          NumericMatrix pedigree) {
+  NumericMatrix unique_pop_mat = retainUniqueAndSortByLastColumn(pedigree);
+  int n_fullsib_pop = unique_pop_mat.nrow();
+  int n_ind = pedigree.nrow();
+  NumericMatrix temp_phase_mat = PH[0];
+  int n_mrk = temp_phase_mat.nrow();
+  NumericVector ploidy_p1 = unique_pop_mat(_,2);
+  NumericVector ploidy_p2 = unique_pop_mat(_,3);
+  List result = calculate_L_and_initialize_H(n_fullsib_pop, n_mrk, n_ind, ploidy_p1, ploidy_p2);
+  List L = result["L"];
+  List H = result["H"];
+  List E = result["E"]; // Emission probabilities to be implemented
+  for(int k = 0; k < n_mrk; k++) { // ***************************************** Markers
+    List H_k(n_ind);
+    List E_k(n_ind);// Emission probabilities to be implemented
+    for(int pop_id = 0; pop_id < n_fullsib_pop; pop_id ++){ // ************ Pop id
+      // Emission function
+      NumericMatrix L_mat = as<NumericMatrix>(L[pop_id]);
+      NumericMatrix temp_emit(L_mat.nrow(), 1);
+      std::fill(temp_emit.begin(), temp_emit.end(), 1);
+      // std::fill(temp_emit.begin(), temp_emit.end(), 1/temp_emit.size());
+      // States to visit
+      IntegerVector ind_id = which(pedigree(_,4) == pop_id + 1) - 1;
+      NumericMatrix matrix_PH1 =  PH[unique_pop_mat(pop_id,0) - 1];
+      NumericMatrix matrix_PH2 = PH[unique_pop_mat(pop_id,1) - 1];
+      NumericVector v1 = matrix_PH1(k, _);
+      NumericVector v2 = matrix_PH2(k, _);
+      if (any(is_na(v1)).is_true() || any(is_na(v2)).is_true()) {
+        for(int j = 0; j < ind_id.size(); j++) { // ***************************** Ind Parents NA
+          H_k[ind_id[j]] = L[pop_id];
+          E_k[ind_id[j]] = temp_emit;
+        } // end individual loop when NA
+      } else {
+        IntegerMatrix x1 = combn(v1, v1.size() / 2);
+        IntegerMatrix x2 = combn(v2, v2.size() / 2);
+        IntegerMatrix x(x1.nrow() + x2.nrow(), x1.ncol() * x2.ncol());
+        for (int i = 0; i < x1.ncol(); i++) {
+          for (int j = 0; j < x2.ncol(); j++) {
+            IntegerVector temp = concatenate_vectors(x1(_, i), x2(_, j));
+            temp.sort();
+            x(_, (i * x2.ncol()) + j) = temp;
+          }
+        }
+        for(int j = 0; j < ind_id.size(); j++) { // ***************************** Ind ALL
+          IntegerMatrix matrix_GENO = as<IntegerMatrix>(GENO[ind_id[j]]);
+          IntegerVector a = matrix_GENO(k, _);
+          if (is_true(any(is_na(a)))) {  // ************************************* Ind NA
+            H_k[ind_id[j]] = L[pop_id];
+            E_k[ind_id[j]] = temp_emit;
+          } else{  // *********************************************************** Ind Visit
+            a.sort();
+            IntegerVector y;
+            for (int i = 0; i < x.ncol(); i++) {
+              bool all_equal = true;
+              for (int l = 0; l < x.nrow(); l++) {
+                if (x(l, i) != a[l]) {
+                  all_equal = false;
+                  break;
+                }
+              }
+              if (all_equal) {
+                y.push_back(i);
+              }
+            }
+            IntegerMatrix L_pop = L[pop_id];
+            IntegerMatrix subset_L_pop(y.size(), L_pop.ncol());
+            for (int row = 0; row < y.size(); ++row) {
+              subset_L_pop(row, _) = L_pop(y[row], _);
+            }
+            H_k[ind_id[j]] = subset_L_pop;
+            NumericMatrix temp_emit2(y.size(), 1);
+            std::fill(temp_emit2.begin(), temp_emit2.end(), 1);
+            E_k[ind_id[j]] = temp_emit2;
+          }
+        }
+      }
+    } // end population loop
+    H[k] = H_k;
+    E[k] = E_k;
+  } // end marker loop
+  return List::create(Named("states") = H,
+                      Named("emit") = E);
+}
+
+// Helper function for states to visit - biallelic
+// [[Rcpp::export]]
+List vs_biallelic(List PH,
+                  IntegerMatrix G,
+                  NumericMatrix pedigree) {
+  NumericMatrix unique_pop_mat = retainUniqueAndSortByLastColumn(pedigree);
+  int n_fullsib_pop = unique_pop_mat.nrow();
+  int n_ind = pedigree.nrow();
+  NumericMatrix temp_phase_mat = PH[0];
+  int n_mrk = temp_phase_mat.nrow();
+  NumericVector ploidy_p1 = unique_pop_mat(_,2);
+  NumericVector ploidy_p2 = unique_pop_mat(_,3);
+  List result = calculate_L_and_initialize_H(n_fullsib_pop, n_mrk, n_ind, ploidy_p1, ploidy_p2);
+  List L = result["L"];
+  List H = result["H"];
+  List E = result["E"]; // Emission probabilities to be implemented
+  for(int k = 0; k < n_mrk; k++) { // ***************************************** Markers
+    List H_k(n_ind);
+    List E_k(n_ind);
+    for(int pop_id = 0; pop_id < n_fullsib_pop; pop_id ++){ // ************ Pop id
+      // Emission function
+      NumericMatrix L_mat = as<NumericMatrix>(L[pop_id]);
+      NumericMatrix temp_emit(L_mat.nrow(), 1);
+      std::fill(temp_emit.begin(), temp_emit.end(), 1.0);
+      // States to visit
+      IntegerVector ind_id = which(pedigree(_,4) == pop_id + 1) - 1;
+      NumericMatrix matrix_PH1 =  PH[unique_pop_mat(pop_id,0) - 1];
+      NumericMatrix matrix_PH2 = PH[unique_pop_mat(pop_id,1) - 1];
+      NumericVector v1 = matrix_PH1(k, _);
+      NumericVector v2 = matrix_PH2(k, _);
+      if (any(is_na(v1)).is_true() || any(is_na(v2)).is_true()) {
+        for(int j = 0; j < ind_id.size(); j++) { // ***************************** Ind Parents NA
+          H_k[ind_id[j]] = L[pop_id];
+          E_k[ind_id[j]] = temp_emit;
+        } // end individual loop when NA
+      } else {
+        IntegerMatrix x1 = combn(v1, v1.size() / 2);
+        IntegerMatrix x2 = combn(v2, v2.size() / 2);
+        IntegerVector x(x1.ncol() * x2.ncol());
+        for (int i = 0; i < x1.ncol(); i++) {
+          for (int j = 0; j < x2.ncol(); j++) {
+            x((i * x2.ncol()) + j) = sum(x1(_ ,i)) + sum(x2(_ ,j));
+          }
+        }
+        for(int j = 0; j < ind_id.size(); j++) { // ***************************** Ind ALL
+          if (G(k, ind_id[j]) < 0) {  // ************************************* Ind NA
+            H_k[ind_id[j]] = L[pop_id];
+            E_k[ind_id[j]] = temp_emit;
+            // Rcout << "Here!!!\n" << "\n";
+          } else{  // *********************************************************** Ind Visit
+            IntegerVector y;
+            for (int i = 0; i < x.size(); i++) {
+              if (x(i) == G(k, ind_id[j])) {
+                y.push_back(i);
+              }
+            }
+            IntegerMatrix L_pop = L[pop_id];
+            IntegerMatrix subset_L_pop(y.size(), L_pop.ncol());
+            for (int row = 0; row < y.size(); ++row) {
+              subset_L_pop(row, _) = L_pop(y[row], _);
+            }
+            H_k[ind_id[j]] = subset_L_pop;
+            NumericMatrix temp_emit2(y.size(), 1);
+            std::fill(temp_emit2.begin(), temp_emit2.end(), 1.0);
+            E_k[ind_id[j]] = temp_emit2;
+          }
+        }
+      }
+    } // end population loop
+    H[k] = H_k;
+    E[k] = E_k;
+  } // end marker loop
+  return List::create(Named("states") = H,
+                      Named("emit") = E);
+}
+
+// Helper function for states to visit - biallelic - single parent
+List vs_biallelic_single(NumericMatrix PH,
+                         IntegerMatrix G) {
+  int ploidy = PH.ncol();
+  int n_ind = G.ncol();
+  int n_mrk = G.nrow();
+  List H(n_mrk); //H[[n_mrk]][[n_ind]]
+  List E(n_mrk);
+  for (int k = 0; k < n_mrk; k++) {
+    H[k] = List(n_ind);
+    E[k] = List(n_ind);// Emission probabilities to be implemented
+  }
+  for(int k = 0; k < n_mrk; k++) { // ***************************************** Markers
+    List H_k(n_ind);
+    List E_k(n_ind);
+    int ngam = R::choose(ploidy, ploidy / 2);
+    NumericMatrix L_mat(ngam, 1);
+    NumericMatrix temp_emit(ngam, 1);
+    for (int i = 0; i < ngam; i++) {
+      L_mat(i, 0) = i;
+      temp_emit(i,0) = 1.0;    // Emission [to be implemented]
+    }
+    // States to visit
+    // "ind_id" will be 0:n_ind
+    NumericVector v1 = PH(k, _);
+    if (any(is_na(v1)).is_true()) {
+      for(int j = 0; j < n_ind; j++) { // ***************************** Ind Parents NA
+        H_k[j] = L_mat;
+        E_k[j] = temp_emit;
+      } // end individual loop when NA
+    } else {
+      IntegerMatrix x1 = combn(v1, v1.size()/2);
+      IntegerVector x(x1.ncol());
+      for (int i = 0; i < x1.ncol(); i++) {
+        x(i) = sum(x1(_ ,i));
+      }
+      for(int j = 0; j < n_ind; j++) { // ***************************** Ind ALL
+        if (G(k, j) < 0) {  // ************************************* Ind NA
+          H_k[j] = L_mat;
+          E_k[j] = temp_emit;
+        } else{  // *********************************************************** Ind Visit
+          IntegerVector y;
+          for (int i = 0; i < x.size(); i++) {
+            if (x(i) == G(k, j)) {
+              y.push_back(i);
+            }
+          }
+          IntegerMatrix subset_L_pop(y.size(), L_mat.ncol());
+          for (int row = 0; row < y.size(); ++row) {
+            subset_L_pop(row, _) = L_mat(y[row], _);
+          }
+          H_k[j] = subset_L_pop;
+          NumericMatrix temp_emit2(y.size(), 1);
+          std::fill(temp_emit2.begin(), temp_emit2.end(), 1.0);
+          E_k[j] = temp_emit2;
+        }
+      }
+    }
+    H[k] = H_k;
+    E[k] = E_k;
+  } // end marker loop
+  return List::create(Named("states") = H,
+                      Named("emit") = E);
+}
+
+// Helper function for states to visit - biallelic
+// using emission to model error
+// [[Rcpp::export]]
+List vs_biallelic_error(List PH,
+                        IntegerMatrix G,
+                        NumericMatrix pedigree,
+                        double err,
+                        bool logatithm) {
+  if(err<1e-50) err = 1e-50;
+  NumericMatrix unique_pop_mat = retainUniqueAndSortByLastColumn(pedigree);
+  int n_fullsib_pop = unique_pop_mat.nrow();
+  int n_ind = pedigree.nrow();
+  NumericMatrix temp_phase_mat = PH[0];
+  int n_mrk = temp_phase_mat.nrow();
+  NumericVector ploidy_p1 = unique_pop_mat(_,2);
+  NumericVector ploidy_p2 = unique_pop_mat(_,3);
+  List result = calculate_L_and_initialize_H(n_fullsib_pop, n_mrk, n_ind, ploidy_p1, ploidy_p2);
+  List L = result["L"];
+  List H = result["H"];
+  List E = result["E"]; // Emission probabilities to be implemented
+  for(int k = 0; k < n_mrk; k++) { // ***************************************** Markers
+    List H_k(n_ind);
+    List E_k(n_ind);
+    for(int pop_id = 0; pop_id < n_fullsib_pop; pop_id ++){ // ************ Pop id
+      // Emission function
+      NumericMatrix L_mat = as<NumericMatrix>(L[pop_id]);
+      NumericMatrix temp_emit(L_mat.nrow(), 1);
+      if(logatithm)
+        std::fill(temp_emit.begin(), temp_emit.end(), -log(temp_emit.size()));
+      else
+        std::fill(temp_emit.begin(), temp_emit.end(), (1.0/temp_emit.size()));
+      // States to visit
+      IntegerVector ind_id = which(pedigree(_,4) == pop_id + 1) - 1;
+      NumericMatrix matrix_PH1 =  PH[unique_pop_mat(pop_id,0) - 1];
+      NumericMatrix matrix_PH2 = PH[unique_pop_mat(pop_id,1) - 1];
+      NumericVector v1 = matrix_PH1(k, _);
+      NumericVector v2 = matrix_PH2(k, _);
+      if (any(is_na(v1)).is_true() || any(is_na(v2)).is_true()) {
+        for(int j = 0; j < ind_id.size(); j++) { // ***************************** Ind Parents NA
+          H_k[ind_id[j]] = L[pop_id];
+          E_k[ind_id[j]] = temp_emit;
+        } // end individual loop when NA
+      } else {
+        IntegerMatrix x1 = combn(v1, v1.size() / 2);
+        IntegerMatrix x2 = combn(v2, v2.size() / 2);
+        IntegerVector x(x1.ncol() * x2.ncol());
+        for (int i = 0; i < x1.ncol(); i++) {
+          for (int j = 0; j < x2.ncol(); j++) {
+            x((i * x2.ncol()) + j) = sum(x1(_ ,i)) + sum(x2(_ ,j));
+          }
+        }
+        for(int j = 0; j < ind_id.size(); j++) { // ***************************** Ind ALL
+          if (G(k, ind_id[j]) < 0) {  // ************************************* Ind NA
+            H_k[ind_id[j]] = L[pop_id];
+            E_k[ind_id[j]] = temp_emit;
+            //Rcout << "Here!!!\n" << "\n";
+          } else{  // *********************************************************** Ind Visit
+            IntegerVector y;
+            for (int i = 0; i < x.size(); i++) {
+              if (x(i) == G(k, ind_id[j])) {
+                y.push_back(i);
+              }
+            }
+            H_k[ind_id[j]] = L[pop_id];
+            NumericMatrix temp_emit2(L_mat.nrow(), 1);
+            if(logatithm)
+              std::fill(temp_emit2.begin(), temp_emit2.end(), log(err) - log((x.size() - y.size())));
+            else
+              std::fill(temp_emit2.begin(), temp_emit2.end(), err/(x.size() - y.size()));
+
+            for (int row = 0; row < y.size(); ++row){
+              if(logatithm)
+                temp_emit2(y[row], 0) = log(1.0 - err)-log(y.size());
+              else
+                temp_emit2(y[row], 0) = (1.0 - err)/y.size();
+            }
+            E_k[ind_id[j]] = temp_emit2;
+          }
+        }
+      }
+    } // end population loop
+    H[k] = H_k;
+    E[k] = E_k;
+  } // end marker loop
+  return List::create(Named("states") = H,
+                      Named("emit") = E);
+}
+
+// Helper function for states to visit - biallelic - single parent
+// using emission to model error
+List vs_biallelic_error_single(NumericMatrix PH,
+                               IntegerMatrix G,
+                               double err,
+                               bool logatithm) {
+  int ploidy = PH.ncol();
+  int n_ind = G.ncol();
+  int n_mrk = G.nrow();
+  List H(n_mrk); //H[[n_mrk]][[n_ind]]
+  List E(n_mrk);
+  for (int k = 0; k < n_mrk; k++) {
+    H[k] = List(n_ind);
+    E[k] = List(n_ind);// Emission probabilities to be implemented
+  }
+  for(int k = 0; k < n_mrk; k++) { // ***************************************** Markers
+    List H_k(n_ind);
+    List E_k(n_ind);
+    int ngam = R::choose(ploidy, ploidy / 2);
+    NumericMatrix L_mat(ngam, 1);
+    NumericMatrix temp_emit(ngam, 1);
+    for (int i = 0; i < ngam; i++) {
+      L_mat(i, 0) = i;
+      if(logatithm)
+        temp_emit(i,0) = -log(ngam);
+      else
+        temp_emit(i,0) = 1.0/ngam;
+    }
+    // States to visit
+    // "ind_id" will be 0:n_ind
+    NumericVector v1 = PH(k, _);
+    if (any(is_na(v1)).is_true()) {
+      for(int j = 0; j < n_ind; j++) { // ***************************** Ind Parents NA
+        H_k[j] = L_mat;
+        E_k[j] = temp_emit;
+      } // end individual loop when NA
+    } else {
+      IntegerMatrix x1 = combn(v1, v1.size()/2);
+      IntegerVector x(x1.ncol());
+      for (int i = 0; i < x1.ncol(); i++) {
+        x(i) = sum(x1(_ ,i));
+      }
+      for(int j = 0; j < n_ind; j++) { // ***************************** Ind ALL
+        if (G(k, j) < 0) {  // ************************************* Ind NA
+          H_k[j] = L_mat;
+          E_k[j] = temp_emit;
+        } else{  // *********************************************************** Ind Visit
+          IntegerVector y;
+          for (int i = 0; i < x.size(); i++) {
+            if (x(i) == G(k, j)) {
+              y.push_back(i);
+            }
+          }
+          IntegerMatrix subset_L_pop(y.size(), L_mat.ncol());
+          H_k[j] = L_mat;
+          NumericMatrix temp_emit2(L_mat.nrow(), 1);
+          if(logatithm)
+            std::fill(temp_emit2.begin(), temp_emit2.end(), log(err/(x.size() - y.size())));
+          else
+            std::fill(temp_emit2.begin(), temp_emit2.end(), (err/(x.size() - y.size())));
+
+          for (int row = 0; row < y.size(); ++row){
+            if(logatithm)
+              temp_emit2(y[row], 0) = log((1.0 - err)/y.size());
+            else
+              temp_emit2(y[row], 0) = ((1.0 - err)/y.size());
+          }
+          E_k[j] = temp_emit2;
+        }
+      }
+    }
+    H[k] = H_k;
+    E[k] = E_k;
+  } // end marker loop
+  return List::create(Named("states") = H,
+                      Named("emit") = E);
+}
+
+// Wrapper function - states to visit - both parents
+List visit_states_biallelic(List PH,
+                            IntegerMatrix G,
+                            NumericMatrix pedigree,
+                            double err){
+  if(err <= 0.001){
+    return(vs_biallelic(PH, G, pedigree));
+  } else {
+    return(vs_biallelic_error(PH, G, pedigree, err, 0));
+  }
+}
+
+// Wrapper function - states to visit - single parents
+List visit_states_biallelic_single(NumericMatrix PH,
+                                   IntegerMatrix G,
+                                   double err){
+  if(err <= 0.001){
+    return(vs_biallelic_single(PH, G));
+  } else {
+    return(vs_biallelic_error_single(PH, G, err, 0));
+  }
+}
+
+List hmm_vectors(List input_list) {
+  // Getting the input lists
+  List haplo = input_list["states"];
+  List emit = input_list["emit"];
+
+  // Initializing v: states hmm should visit for each marker
+  // Initializing e: emission probabilities associated to the states hmm should visit for each marker
+  std::vector<std::vector<std::vector<int> > > v;
+  std::vector<std::vector<std::vector<double> > > e;
+  for(int i=0; i < haplo.size(); i++) // i: number of markers
+  {
+    Rcpp::List haplo_temp(haplo[i]); //states hmm should visit for marker i
+    Rcpp::List emit_temp(emit[i]); //emission probs. for states hmm should visit for marker i
+    std::vector<std::vector<int> > v1;
+    std::vector<std::vector<double> > e1;
+    for(int j=0; j < haplo_temp.size(); j++) //iterate for all j individuals
+    {
+      Rcpp::NumericMatrix M_temp = haplo_temp[j];
+      Rcpp::NumericVector E_temp = emit_temp[j];
+      std::vector<int> v2 = as<std::vector<int> >(M_temp);
+      std::vector<double> e2 = as<std::vector<double> >(E_temp);
+      v1.push_back(v2);
+      e1.push_back(e2);
+    }
+    v.push_back(v1);
+    e.push_back(e1);
+  }
+  return List::create(Named("v") = v, Named("e") = e);
+}

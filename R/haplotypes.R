@@ -35,7 +35,7 @@ calc_haplotypes <- function(input.seq,
                              input.seq$data$n.ind),
                          nrow = input.seq$data$n.ind,
                          byrow = TRUE)
-      output.seq$phases[[phase.conf[i]]]$haploprob <- calc_genoprob_biallelic(PH = list(input.seq$phases[[i]]$p1,
+      output.seq$phases[[phase.conf[i]]]$haploprob <- calc_haploprob_biallelic(PH = list(input.seq$phases[[i]]$p1,
                                                                                         input.seq$phases[[i]]$p2),
                                                                               G = g,
                                                                               pedigree = pedigree,
@@ -50,7 +50,7 @@ calc_haplotypes <- function(input.seq,
     g[id, ] <- g[id, ] - input.seq$data$ploidy.p2/2
     for(i in phase.conf){
       cat("   Conf.", i,":")
-      output.seq$phases[[phase.conf[i]]]$haploprob <- calc_genoprob_biallelic_single(PH = input.seq$phases[[i]]$p1,
+      output.seq$phases[[phase.conf[i]]]$haploprob <- calc_haploprob_biallelic_single(PH = input.seq$phases[[i]]$p1,
                                                                                      G = g,
                                                                                      rf = input.seq$phases[[phase.conf[i]]]$rf,
                                                                                      err = input.seq$phases[[phase.conf[i]]]$error)
@@ -63,7 +63,7 @@ calc_haplotypes <- function(input.seq,
     g[id, ] <- g[id, ] - input.seq$data$ploidy.p1/2
     for(i in phase.conf){
       cat("   Conf.", i,":")
-      output.seq$phases[[phase.conf[i]]]$haploprob <- calc_genoprob_biallelic_single(PH = input.seq$phases[[i]]$p2,
+      output.seq$phases[[phase.conf[i]]]$haploprob <- calc_haploprob_biallelic_single(PH = input.seq$phases[[i]]$p2,
                                                                                    G = g,
                                                                                    rf = input.seq$phases[[phase.conf[i]]]$rf,
                                                                                    err = input.seq$phases[[phase.conf[i]]]$error)

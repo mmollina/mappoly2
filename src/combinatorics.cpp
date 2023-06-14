@@ -55,9 +55,7 @@
 using namespace Rcpp;
 using namespace std;
 
-/*
-This function calculates the binomial coefficient of `n` and `k`.
-*/
+//This function calculates the binomial coefficient of `n` and `k`.
 int nChoosek(int n, int k)
 {
   if (k > n) return 0;
@@ -72,11 +70,7 @@ int nChoosek(int n, int k)
   return result;
 }
 
-/*
-Given the ploidy level and two indices representing two genotypes,
-this function calculates the number of recombinant events between
-the two genotypes.
-*/
+//Given the ploidy level and two indices representing two genotypes, this function calculates the number of recombinant events between the two genotypes.
 int n_rec_given_genk_and_k1(int ploidy, int index1, int index2)
 {
   int i, result = 0;
@@ -96,10 +90,7 @@ int n_rec_given_genk_and_k1(int ploidy, int index1, int index2)
   return result;
 }
 
-/*
-This function generates a Boolean vector representing a lexicographical
-combination of a given index at a certain ploidy level.
-*/
+//This function generates a Boolean vector representing a lexicographical combination of a given index at a certain ploidy level.
 std::vector <bool> get_boolean_vec_from_lexicographical_index(int ploidy, int index)
 {
   int i, j, increment, sentinel;
@@ -127,10 +118,7 @@ std::vector <bool> get_boolean_vec_from_lexicographical_index(int ploidy, int in
   return vec;
 }
 
-/*
-This function checks if a permutation vector `v` is valid, given matrix `H`
-and vector `d`.
-*/
+//This function checks if a permutation vector `v` is valid, given matrix `H` and vector `d`.
 bool valid_permutation(NumericVector v, NumericMatrix H, NumericVector d) {
   for (int i = 0; i < H.nrow(); ++i) {
     if (!R_IsNA(d[i])) {
@@ -146,10 +134,7 @@ bool valid_permutation(NumericVector v, NumericMatrix H, NumericVector d) {
   return true;
 }
 
-
-/*
-A recursive function used to find all valid permutations of a given vector `v`.
-*/
+//A recursive function used to find all valid permutations of a given vector `v`.
 void find_permutations(NumericVector v, NumericMatrix H, NumericVector d, int start_idx, int num_ones, NumericMatrix &results, int &resultIdx) {
   if (num_ones == 0) {
     if (valid_permutation(v, H, d)) {
@@ -165,10 +150,7 @@ void find_permutations(NumericVector v, NumericMatrix H, NumericVector d, int st
   }
 }
 
-/*
-This function uses `find_permutations()` to find all valid permutations, then
-returns them as a `NumericMatrix`.
-*/
+// Finds all valid permutations, then returns them as a `NumericMatrix`.
 // [[Rcpp::export]]
 NumericMatrix find_valid_permutations(NumericMatrix H, NumericVector d, int x) {
   NumericVector v(H.ncol(), 0.0);
@@ -188,9 +170,7 @@ NumericMatrix find_valid_permutations(NumericMatrix H, NumericVector d, int x) {
   return results;
 }
 
-/*
-This function converts a matrix into a string representation.
-*/
+// This function converts a matrix into a string representation.
 string mat_to_string(IntegerMatrix mat) {
   string str = "";
   for(int i = 0; i < mat.nrow(); i++) {
@@ -201,10 +181,7 @@ string mat_to_string(IntegerMatrix mat) {
   return str;
 }
 
-/*
-This function generates all unique permutations of columns for a given
- binary matrix.
-*/
+// This function generates all unique permutations of columns for a given binary matrix.
 unordered_set<string> get_all_permutations(IntegerMatrix mat) {
   unordered_set<string> permutations;
   int ncols = mat.ncol();
@@ -227,11 +204,7 @@ unordered_set<string> get_all_permutations(IntegerMatrix mat) {
   return permutations;
 }
 
-/*
-This function removes any matrices from a list that have the same permutations
-as another matrix in the list.
-*/
-// [[Rcpp::export]]
+// This function removes any matrices from a list that have the same permutations as another matrix in the list.
 List filter_matrices(List mat_list) {
   int n = mat_list.size();
   vector<bool> is_unique(n, true);
@@ -258,6 +231,159 @@ List filter_matrices(List mat_list) {
   }
 
   return unique_matrices;
+}
+
+// Helper function to calculate the combinations
+IntegerMatrix combn(NumericVector x, int m) {
+  int n = x.size();
+  if (m > n) return IntegerMatrix(0);
+  if (m == n) return IntegerMatrix(x);
+
+  int count = Rf_choose(n, m);
+  IntegerMatrix result(m, count);
+
+  std::vector<int> indices(m);
+  std::iota(indices.begin(), indices.end(), 0);
+
+  for (int col = 0; col < count; ++col) {
+    for (int row = 0; row < m; ++row) {
+      result(row, col) = x[indices[row]];
+    }
+
+    for (int i = m - 1; i >= 0; --i) {
+      if (++indices[i] <= n - m + i) {
+        while (++i < m) {
+          indices[i] = indices[i - 1] + 1;
+        }
+        break;
+      }
+    }
+  }
+
+  return result;
+}
+
+// Creates a matrix of dimensions (nrow x ncol) populated by double x
+NumericMatrix make_mat(double x, int nrow, int ncol) {
+  NumericMatrix res(nrow,ncol);
+  for(int i = 0; i < nrow; i++)
+    for(int j = 0; j < ncol; j++)
+      res(i,j) = x;
+  return res;
+}
+
+// Function for rep_each
+IntegerVector rep_each(IntegerVector x, int n) {
+  int sz = x.size() * n;
+  IntegerVector res(sz);
+  for (int i = 0; i < x.size(); ++i) {
+    std::fill_n(res.begin() + i * n, n, x[i]);
+  }
+  return res;
+}
+
+// Function for rep_len
+IntegerVector rep_len(IntegerVector x, int n) {
+  IntegerVector res(n);
+  std::copy_n(x.begin(), std::min<int>(n, x.size()), res.begin());
+  for (int i = x.size(); i < n; i += x.size()) {
+    std::copy_n(x.begin(), std::min<int>(n - i, x.size()), res.begin() + i);
+  }
+  return res;
+}
+
+// Helper function for expand_grid
+IntegerMatrix expand_grid(IntegerVector v1, IntegerVector v2) {
+  int n_v1 = v1.size();
+  int n_v2 = v2.size();
+  IntegerVector res_v1 = rep_len(v1, n_v1 * n_v2); // Adjust the rep_len() usage
+  IntegerVector res_v2 = rep_each(v2, n_v1); // Adjust the rep_each() usage
+  return cbind(res_v2, res_v1);
+}
+
+// Helper function for which
+IntegerVector which(LogicalVector x) {
+  IntegerVector idx = seq_len(x.size());
+  IntegerVector out;
+  for (int i = 0; i < x.size(); ++i) {
+    if (x[i]) {
+      out.push_back(idx[i]);
+    }
+  }
+  return out;
+}
+
+// Helper function for concatenating vectors
+IntegerVector concatenate_vectors(IntegerVector x1, IntegerVector x2) {
+  int n1 = x1.size();
+  int n2 = x2.size();
+  IntegerVector result(n1 + n2);
+  std::copy(x1.begin(), x1.end(), result.begin());
+  std::copy(x2.begin(), x2.end(), result.begin() + n1);
+  return result;
+}
+
+// Helper function for calculate L and initialize H
+List calculate_L_and_initialize_H(int n_fullsib_pop,
+                                  int n_mrk,
+                                  int n_ind,
+                                  NumericVector ploidy_p1,
+                                  NumericVector ploidy_p2) {
+  List L(n_fullsib_pop);
+  for (int i = 0; i < n_fullsib_pop; i++) {
+    int ngam1 = R::choose(ploidy_p1[i], ploidy_p1[i] / 2);
+    int ngam2 = R::choose(ploidy_p2[i], ploidy_p2[i] / 2);
+    IntegerMatrix S = expand_grid(seq_len(ngam2) - 1, seq_len(ngam1) - 1);
+    L[i] = S;
+  }
+  List H(n_mrk); //H[[n_mrk]][[n_ind]]
+  List E(n_mrk);
+  for (int k = 0; k < n_mrk; k++) {
+    H[k] = List(n_ind);
+    E[k] = List(n_ind);
+  }
+  return List::create(Named("L") = L,
+                      Named("H") = H,
+                      Named("E") = E);
+}
+
+// Helper function for unique rows
+NumericMatrix retainUniqueAndSortByLastColumn(NumericMatrix x) {
+  std::set<std::vector<double>> uniqueRows;
+  int numRows = x.nrow();
+  int numCols = x.ncol();
+
+  // Iterate over each row
+  for (int i = 0; i < numRows; i++) {
+    std::vector<double> row;
+
+    // Extract values from the current row
+    for (int j = 0; j < numCols; j++) {
+      row.push_back(x(i, j));
+    }
+
+    // Check if the row is already present
+    if (uniqueRows.find(row) == uniqueRows.end()) {
+      uniqueRows.insert(row); // Insert the row into the set
+    }
+  }
+
+  // Sort the unique rows based on the last column value
+  std::vector<std::vector<double>> sortedRows(uniqueRows.begin(), uniqueRows.end());
+  std::sort(sortedRows.begin(), sortedRows.end(), [numCols](const std::vector<double>& a, const std::vector<double>& b) {
+    return a[numCols - 1] < b[numCols - 1];
+  });
+
+  // Create a new matrix to store the sorted and unique rows
+  NumericMatrix result(sortedRows.size(), numCols);
+  for (int i = 0; i < sortedRows.size(); i++) {
+    const std::vector<double>& row = sortedRows[i];
+    for (int j = 0; j < numCols; j++) {
+      result(i, j) = row[j];
+    }
+  }
+
+  return result;
 }
 
 //end of file

@@ -25,7 +25,7 @@
 
 /*
 
-  Functions Written by Marcelo Mollinari.
+ Functions Written by Marcelo Mollinari.
 
  Bioinformatics Research Center
  Department of Horticultural Science
@@ -180,25 +180,21 @@ double calc_loglike_single(std::vector<std::vector<std::vector<int> > > v,
   }
   return(loglike);
 }
-// [[Rcpp::export]]
-List est_hmm_map_biallelic(List PH,
-                           IntegerMatrix G,
-                           NumericMatrix pedigree,
-                           NumericVector rf,
-                           double err,
-                           bool verbose,
-                           bool detailed_verbose,
-                           double tol,
-                           bool ret_H0) {
-  NumericVector ploidy_p1 = pedigree(_,2)/2 - 1;
-  NumericVector ploidy_p2 = pedigree(_,3)/2 - 1;
-  int n_ind = pedigree.nrow();
-  NumericMatrix temp_phase_mat = PH[0];
-  int n_mrk = temp_phase_mat.nrow();
+
+List main_hmm_full(NumericVector ploidy_p1,
+                   NumericVector ploidy_p2,
+                   std::vector<std::vector<std::vector<int> > > v,
+                   std::vector<std::vector<std::vector<double> > > e,
+                   NumericVector init_rf,
+                   double tol,
+                   bool verbose,
+                   bool detailed_verbose,
+                   bool ret_H0){
   std::vector<int> pl{2,4,6};
   int k, k1,  maxit = 1000, flag=0;
   double s, loglike = 0.0, nr=0.0;
-
+  int n_mrk  = v.size();
+  int n_ind  = v[0].size();
   // Getting the maximum ploidy level among founders
   int mpi1 = max(ploidy_p1);
   int mpi2 = max(ploidy_p2);
@@ -207,15 +203,7 @@ List est_hmm_map_biallelic(List PH,
     max_ploidy_id = mpi1;
   else
     max_ploidy_id = mpi2;
-  std::vector<double> rf_cur(rf.size());
-
-  // HMM states that should be visited given the phase of
-  // the founders, genotype of the offspring and pedigree
-  List result = visit_states_biallelic(PH, G, pedigree, err);
-  List ve = hmm_vectors(result);
-  std::vector<std::vector<std::vector<int> > > v = ve["v"];
-  std::vector<std::vector<std::vector<double> > > e = ve["e"];
-
+  std::vector<double> rf_cur(init_rf.size());
   //Initializing alpha and beta
   std::vector<std::vector<std::vector<double> > > alpha(n_ind);
   std::vector<std::vector<std::vector<double> > > beta(n_ind);
@@ -238,8 +226,8 @@ List est_hmm_map_biallelic(List PH,
     //Initializing recombination fraction vector for Baum-Welch
     for(int j=0; j<n_mrk-1; j++)
     {
-      rf_cur[j] = rf[j];
-      rf[j] = 0.0;
+      rf_cur[j] = init_rf[j];
+      init_rf[j] = 0.0;
     }
     //Initializing transition matrices
     std::vector< std::vector< std::vector< std::vector<double> > > >T;
@@ -273,9 +261,9 @@ List est_hmm_map_biallelic(List PH,
         // Normalization to avoid underflow
         // NOTE: The LogSumExp (LSE) method is not used here for efficiency reasons,
         // as it has been observed that this normalization technique performs adequately.
-         double zeta = 0;
-         for(int j=0; (unsigned)j < temp4.size(); j++)
-           zeta = zeta + temp4[j];
+        double zeta = 0;
+        for(int j=0; (unsigned)j < temp4.size(); j++)
+          zeta = zeta + temp4[j];
         for(int j=0; (unsigned)j < temp4.size(); j++)
         {
           alpha[ind][k][j]=temp4[j]/zeta;
@@ -288,9 +276,9 @@ List est_hmm_map_biallelic(List PH,
                                                T[ploidy_p1[ind]][k1],
                                                                 T[ploidy_p2[ind]][k1]);
         // Normalization to avoid underflow
-         zeta = 0;
-         for(int j=0; (unsigned)j < temp5.size(); j++)
-           zeta = zeta + temp5[j];
+        zeta = 0;
+        for(int j=0; (unsigned)j < temp5.size(); j++)
+          zeta = zeta + temp5[j];
         for(int j=0; (unsigned)j < temp5.size(); j++)
         {
           beta[ind][k1][j]=temp5[j]/zeta;
@@ -325,7 +313,7 @@ List est_hmm_map_biallelic(List PH,
               nr=R[ploidy_p1[ind]][v[k][ind][i]][v[k+1][ind][j]] +
                 R[ploidy_p2[ind]][v[k][ind][i+ngeni]][v[k+1][ind][j+ngenj]];
               if(s > 0) // Verify theoretical implications of this condition
-                rf[k] +=  nr * gamma[i][j]/s;
+                init_rf[k] +=  nr * gamma[i][j]/s;
             }
           }
         }
@@ -345,15 +333,15 @@ List est_hmm_map_biallelic(List PH,
     // re-scale
     for(int j=0; j<n_mrk-1; j++)
     {
-      rf[j] /= (double)n_ind;
-      if(rf[j] < tol/100.0) rf[j] = tol/100.0;
-      else if(rf[j] > 0.5-tol/100.0) rf[j] = 0.5-tol/100.0;
+      init_rf[j] /= (double)n_ind;
+      if(init_rf[j] < tol/100.0) init_rf[j] = tol/100.0;
+      else if(init_rf[j] > 0.5-tol/100.0) init_rf[j] = 0.5-tol/100.0;
     }
     // check convergence
     flag=0;
     for(int j=0; j < n_mrk-1; j++)
     {
-      if(fabs(rf[j] - rf_cur[j]) > tol*(rf_cur[j]+tol*100.0))
+      if(fabs(init_rf[j] - rf_cur[j]) > tol*(rf_cur[j]+tol*100.0))
       {
         flag = 1;
         break;
@@ -369,7 +357,7 @@ List est_hmm_map_biallelic(List PH,
       for(int j = 0; j < n_mrk-1; j++)
       {
         Rcpp::Rcout.precision(3);
-        Rcpp::Rcout << std::fixed << rf[j] << " ";
+        Rcpp::Rcout << std::fixed << init_rf[j] << " ";
       }
     }
     if(!flag) break;
@@ -377,7 +365,7 @@ List est_hmm_map_biallelic(List PH,
   if(flag && verbose) Rcpp::Rcout << "Didn't converge!\n";
 
   for(int j=0; j<n_mrk-1; j++)
-    rf_cur[j] = rf[j];
+    rf_cur[j] = init_rf[j];
 
   //Loglike computation
   loglike = calc_loglike(v, e, rf_cur, ploidy_p1, ploidy_p2);
@@ -386,30 +374,21 @@ List est_hmm_map_biallelic(List PH,
   List z = List::create(wrap(loglike), wrap(rf_cur));
   return(z);
 }
-// [[Rcpp::export]]
-List est_hmm_map_biallelic_single(NumericMatrix PH,
-                                  IntegerMatrix G,
-                                  NumericVector rf,
-                                  double err,
-                                  bool verbose,
-                                  bool detailed_verbose,
-                                  double tol,
-                                  bool ret_H0) {
-  int n_mrk = G.nrow();
-  int n_ind = G.ncol();
-  int ploidy = PH.ncol();
+
+List main_hmm_full_single(int ploidy,
+                          std::vector<std::vector<std::vector<int> > > v,
+                          std::vector<std::vector<std::vector<double> > > e,
+                          NumericVector init_rf,
+                          double tol,
+                          bool verbose,
+                          bool detailed_verbose,
+                          bool ret_H0){
+
   int k, k1,  maxit = 1000, flag=0;
   double s, loglike=0.0, nr=0.0;
-  // Getting the maximum ploidy level among founders
-  std::vector<double> rf_cur(rf.size());
-
-  // HMM states that should be visited given the phase of
-  // the founders, genotype of the offspring and pedigree
-  List result = visit_states_biallelic_single(PH, G, err);
-  List ve = hmm_vectors(result);
-  std::vector<std::vector<std::vector<int> > > v = ve["v"];
-  std::vector<std::vector<std::vector<double> > > e = ve["e"];
-
+  int n_mrk  = v.size();
+  int n_ind  = v[0].size();
+  std::vector<double> rf_cur(init_rf.size());
   //Initializing alpha and beta
   std::vector<std::vector<std::vector<double> > > alpha(n_ind);
   std::vector<std::vector<std::vector<double> > > beta(n_ind);
@@ -432,8 +411,8 @@ List est_hmm_map_biallelic_single(NumericMatrix PH,
     //Initializing recombination fraction vector for Baum-Welch
     for(int j=0; j<n_mrk-1; j++)
     {
-      rf_cur[j] = rf[j];
-      rf[j] = 0.0;
+      rf_cur[j] = init_rf[j];
+      init_rf[j] = 0.0;
     }
     //Initializing transition matrices
     std::vector< std::vector< std::vector<double> > > T;
@@ -500,7 +479,7 @@ List est_hmm_map_biallelic_single(NumericMatrix PH,
             {
               nr = R[v[k][ind][i]][v[k+1][ind][j]] * 2;
               if(s > 0)
-                rf[k] +=  nr * gamma[i][j]/s;
+                init_rf[k] +=  nr * gamma[i][j]/s;
             }
           }
         }
@@ -519,15 +498,15 @@ List est_hmm_map_biallelic_single(NumericMatrix PH,
     // re-scale
     for(int j=0; j<n_mrk-1; j++)
     {
-      rf[j] /= (double)n_ind;
-      if(rf[j] < tol/100.0) rf[j] = tol/100.0;
-      else if(rf[j] > 0.5-tol/100.0) rf[j] = 0.5-tol/100.0;
+      init_rf[j] /= (double)n_ind;
+      if(init_rf[j] < tol/100.0) init_rf[j] = tol/100.0;
+      else if(init_rf[j] > 0.5-tol/100.0) init_rf[j] = 0.5-tol/100.0;
     }
     // check convergence
     flag=0;
     for(int j=0; j < n_mrk-1; j++)
     {
-      if(fabs(rf[j] - rf_cur[j]) > tol*(rf_cur[j]+tol*100.0))
+      if(fabs(init_rf[j] - rf_cur[j]) > tol*(rf_cur[j]+tol*100.0))
       {
         flag = 1;
         break;
@@ -543,7 +522,7 @@ List est_hmm_map_biallelic_single(NumericMatrix PH,
       for(int j = 0; j < n_mrk-1; j++)
       {
         Rcout.precision(3);
-        Rcout << std::fixed << rf[j] << " ";
+        Rcout << std::fixed << init_rf[j] << " ";
       }
     }
     if(!flag) break;
@@ -551,7 +530,7 @@ List est_hmm_map_biallelic_single(NumericMatrix PH,
   if(flag && verbose) Rcpp::Rcout << "Didn't converge!\n";
 
   for(int j=0; j<n_mrk-1; j++)
-    rf_cur[j] = rf[j];
+    rf_cur[j] = init_rf[j];
 
   //Loglike computation
   loglike = calc_loglike_single(v, e, rf_cur, ploidy);
@@ -562,4 +541,50 @@ List est_hmm_map_biallelic_single(NumericMatrix PH,
   return(z);
 }
 
+// [[Rcpp::export]]
+List est_hmm_map_biallelic(List PH,
+                           IntegerMatrix G,
+                           NumericMatrix pedigree,
+                           NumericVector rf,
+                           double err,
+                           bool verbose,
+                           bool detailed_verbose,
+                           double tol,
+                           bool ret_H0) {
+  NumericVector ploidy_p1 = pedigree(_,2)/2 - 1;
+  NumericVector ploidy_p2 = pedigree(_,3)/2 - 1;
+  NumericMatrix temp_phase_mat = PH[0];
 
+  // HMM states that should be visited given the phase of
+  // the founders, genotype of the offspring and pedigree
+  List result = visit_states_biallelic(PH, G, pedigree, err);
+  List ve = hmm_vectors(result);
+  std::vector<std::vector<std::vector<int> > > v = ve["v"];
+  std::vector<std::vector<std::vector<double> > > e = ve["e"];
+  List z = main_hmm_full(ploidy_p1, ploidy_p2, v,e,rf,
+                         tol, verbose,
+                         detailed_verbose,ret_H0);
+    return(z);
+}
+
+// [[Rcpp::export]]
+List est_hmm_map_biallelic_single(NumericMatrix PH,
+                                  IntegerMatrix G,
+                                  NumericVector rf,
+                                  double err,
+                                  bool verbose,
+                                  bool detailed_verbose,
+                                  double tol,
+                                  bool ret_H0) {
+  int ploidy = PH.ncol();
+  // HMM states that should be visited given the phase of
+  // the founders, genotype of the offspring and pedigree
+  List result = visit_states_biallelic_single(PH, G, err);
+  List ve = hmm_vectors(result);
+  std::vector<std::vector<std::vector<int> > > v = ve["v"];
+  std::vector<std::vector<std::vector<double> > > e = ve["e"];
+  List z = main_hmm_full_single(ploidy, v,e,rf,
+                         tol, verbose,
+                         detailed_verbose,ret_H0);
+  return(z);
+}
