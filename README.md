@@ -32,13 +32,16 @@ Genetic Linkage Maps in Autopolyploids v 2.0
         This resultant vector serves as input for the reconstruction of flanking positions, 
         enabling the incorporation of a new marker for subsequent phasing and re-estimation 
         via three-point analysis.~~
+    - ~~Implement function to visit states for one unmapped marker flanked by two mapped markers~~
     - Implement a function that receives as input a matrix whose rows represent possible phases 
-      for a marker, insert it on a precomputed map and return the log-likelihood
-
-9. [ ] TODO Enhance the efficiency of two-point calculations by harnessing the power of RcppParallel for its implementation.
-10. [ ] TODO Enhance the user-friendliness of the software:
+      for a marker, insert it on a pre-computed map and return the log-likelihood
+9. [ ] TODO I am updating MAPpoly to streamline its core C++ functions for easier adaptation to 
+        multi-population mapping. Once this is done, I will evaluate the adaptability of these 
+        updated functions for multi-population scenarios.
+10. [ ] TODO Enhance the efficiency of two-point calculations by harnessing the power of RcppParallel for its implementation.
+11. [ ] TODO Enhance the user-friendliness of the software:
     - A
     - B
     - C
     - etc
-11. [ ] TODO Tutorial on how to use MAPpoly2.0 to build maps in diploid families derived from inbred lines (BC, F2, RILs, etc)
+12. [ ] TODO Tutorial on how to use MAPpoly2.0 to build maps in diploid families derived from inbred lines (BC, F2, RILs, etc)
