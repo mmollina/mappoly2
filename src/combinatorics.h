@@ -25,6 +25,7 @@ string mat_to_string(IntegerMatrix mat);
 unordered_set<string> get_all_permutations(IntegerMatrix mat);
 List filter_matrices(List mat_list);
 IntegerMatrix combn(NumericVector x, int m);
+IntegerMatrix get_all_combinations(int ploidy, int dose);
 NumericMatrix make_mat(double x, int nrow, int ncol);
 IntegerVector rep_each(IntegerVector x, int n);
 IntegerVector rep_len(IntegerVector x, int n);
