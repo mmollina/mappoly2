@@ -134,8 +134,10 @@ bool valid_permutation(NumericVector v, NumericMatrix H, NumericVector d) {
   return true;
 }
 
-//A recursive function used to find all valid permutations of a given vector `v`.
-void find_permutations(NumericVector v, NumericMatrix H, NumericVector d, int start_idx, int num_ones, NumericMatrix &results, int &resultIdx) {
+//A recursive function used to find all permutations of a given vector `v`.
+void find_permutations(NumericVector v, NumericMatrix H, NumericVector d,
+                       int start_idx, int num_ones, NumericMatrix &results,
+                       int &resultIdx) {
   if (num_ones == 0) {
     if (valid_permutation(v, H, d)) {
       results(resultIdx, _) = v;
@@ -152,7 +154,9 @@ void find_permutations(NumericVector v, NumericMatrix H, NumericVector d, int st
 
 // Finds all valid permutations, then returns them as a `NumericMatrix`.
 // [[Rcpp::export]]
-NumericMatrix find_valid_permutations(NumericMatrix H, NumericVector d, int x) {
+NumericMatrix find_valid_permutations(NumericMatrix H,
+                                      NumericVector d,
+                                      int x) {
   NumericVector v(H.ncol(), 0.0);
   int maxPermutations = nChoosek(H.ncol(), x);
   NumericMatrix results(maxPermutations, H.ncol());
@@ -262,6 +266,22 @@ IntegerMatrix combn(NumericVector x, int m) {
 
   return result;
 }
+
+IntegerMatrix get_all_combinations(int ploidy, int dose){
+  NumericVector result(ploidy);
+  for (int i = 0; i < ploidy; i++){
+    result[i] = i;
+  }
+  IntegerMatrix id = combn(result, dose);
+  IntegerMatrix M(id.ncol(), ploidy);
+  for (int i = 0; i < M.nrow(); ++i) {
+    for (int j = 0; j < id.nrow(); ++j) {
+      M(i,id(j,i)) = 1;
+    }
+  }
+  return(M);
+}
+
 
 // Creates a matrix of dimensions (nrow x ncol) populated by double x
 NumericMatrix make_mat(double x, int nrow, int ncol) {

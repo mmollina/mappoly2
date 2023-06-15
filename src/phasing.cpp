@@ -193,7 +193,7 @@ List phasing_one(CharacterVector mrk_id,
     else {
       NumericMatrix z = find_valid_permutations(InitPh, S(i,_), x);
       if(z.nrow() == 0)
-        H[i] = make_mat(-1.0, 1, ploidy); //FIXME
+        H[i] = get_all_combinations(ploidy, x);
       else{
         List Htemp(z.nrow());
         for(int k = 0; k < z.nrow(); ++k)

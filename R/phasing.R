@@ -64,3 +64,102 @@ pairwise_phasing <- function(input.seq,
   return(input.seq)
 }
 
+
+#' Phasing remaining markers based on pairwise recombination fraction estimation and multilocus estimation
+#'
+#' @param void internal function
+#' @author Marcelo Mollinari, \email{mmollin@ncsu.edu}
+#' @export
+phase_remaining <- function(input.seq,
+                            input.twopt,
+                            thresh.LOD.ph = 3,
+                            thresh.LOD.rf = 3,
+                            thresh.rf = 0.5,
+                            max.phases = 3,
+                            tol = 10e-4,
+                            verbose = TRUE){
+  assert_that(is.haplotype.sequence(input.seq))
+  assert_that(is.mappoly2.twopt(input.twopt))
+  M <- rf_list_to_matrix(input.twopt,
+                         thresh.LOD.ph = thresh.LOD.ph,
+                         thresh.LOD.rf = thresh.LOD.rf,
+                         thresh.rf = thresh.rf,
+                         shared.alleles = TRUE)
+  assert_that(matrix_contain_data_seq(M,s1))
+  mrk.pos <- rownames(input.seq$phases[[1]]$p1) # positioned markers
+  mrk.id <- setdiff(input.seq$mrk.names, mrk.pos) # markers to be positioned
+  ## two-point phasing parent 1
+  dose.vec <- input.seq$data$dosage.p1[mrk.id]
+  InitPh1 <- input.seq$phases[[1]]$p1
+  S1 <- M$Sh.p1[mrk.id, mrk.pos]
+  L1 <- mappoly2:::phasing_one(mrk.id, dose.vec, S1, InitPh1, verbose)
+  ## two-point phasing parent 2
+  dose.vec <- input.seq$data$dosage.p2[mrk.id]
+  InitPh2 <- input.seq$phases[[1]]$p2
+  S2 <- M$Sh.p2[mrk.id, mrk.pos]
+  L2 <- mappoly2:::phasing_one(mrk.id, dose.vec, S2, InitPh2, verbose)
+  ## Selecting phase configurations
+  n.conf <- sapply(L1, nrow) + sapply(L2, nrow)
+  if(verbose){
+    cat("Distribution of phase configurations.\n")
+    txtplot::txtboxplot(n.conf)
+  }
+  mrk.sel <- which(n.conf <= max.phases)
+  if(length(mrk.sel) == 0)
+    stop("No markers were selected for 'max.phases' = ", max.phases,
+         "\n'max.phases' should be at least ", min(n.conf))
+  L1 <- L1[n.conf <= max.phases]
+  L2 <- L2[n.conf <= max.phases]
+  mrk.id <- mrk.id[n.conf <= max.phases]
+  pedigree <- matrix(rep(c(1,
+                           2,
+                           input.seq$data$ploidy.p1,
+                           input.seq$data$ploidy.p2, 1),
+                         input.seq$data$n.ind),
+                     nrow = input.seq$data$n.ind,
+                     byrow = TRUE)
+  flanking <- find_flanking_markers(input.seq$mrk.names, mrk.pos, mrk.id)
+  phasing_results <- vector("list", length(flanking))
+  names(phasing_results) <- names(flanking)
+  if(verbose) pb <- txtProgressBar(min = 0, max = length(L1), style = 3)
+
+  for(i in 1:length(L1)){
+    G <- input.seq$data$geno.dose[mrk.id[i], ,drop = TRUE]
+    G[is.na(G)] <- -1
+    u <- match(unlist(flanking[[mrk.id[i]]]), mrk.pos)
+    homolog_prob <- as.matrix(input.seq$phases[[1]]$haploprob[,u+2])
+    w2<-w1<-NULL
+    z<-vector("list", nrow(L1[[i]]) * nrow(L2[[i]]))
+    count <- 1
+    for(j in 1:nrow(L1[[i]])){
+      for(k in 1:nrow(L2[[i]])){
+        PH <- list(L1[[i]][j,], L2[[i]][k,])
+        z[[count]]<-mappoly2:::est_hmm_map_biallelic_insert_marker(PH,
+                                                                   G,
+                                                                   pedigree,
+                                                                   homolog_prob,
+                                                                   rf = c(0.01,0.01),
+                                                                   verbose = FALSE,
+                                                                   detailed_verbose = FALSE,
+                                                                   tol = tol,
+                                                                   ret_H0 = FALSE)
+        w1 <- rbind(w1, L1[[i]][j,])
+        w2 <- rbind(w2, L2[[i]][k,])
+        count <- count + 1
+      }
+    }
+    x <- sapply(z, function(x) x[[1]])
+    x <- max(x) - x
+    id <- order(x)
+    phasing_results[[mrk.id[i]]] <- list(loglike = x[id],
+                                         rf.vec = t(sapply(z[id],
+                                                           function(x) x[[2]])),
+                                         phases = list(p1 = w1[id,],
+                                                       p2 = w2[id,]))
+    if(verbose) setTxtProgressBar(pb, i)
+  }
+  if(verbose) close(pb)
+  return(phasing_results)
+}
+
+
