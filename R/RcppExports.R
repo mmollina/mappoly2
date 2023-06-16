@@ -13,16 +13,16 @@ find_valid_permutations <- function(H, d, x) {
     .Call('_mappoly2_find_valid_permutations', PACKAGE = 'mappoly2', H, d, x)
 }
 
-vs_inserted_mrk <- function(PH, G, pedigree, M) {
-    .Call('_mappoly2_vs_inserted_mrk', PACKAGE = 'mappoly2', PH, G, pedigree, M)
+vs_inserted_mrk <- function(PH, G, pedigree, M, idx) {
+    .Call('_mappoly2_vs_inserted_mrk', PACKAGE = 'mappoly2', PH, G, pedigree, M, idx)
 }
 
 vs_biallelic_error <- function(PH, G, pedigree, err, logatithm) {
     .Call('_mappoly2_vs_biallelic_error', PACKAGE = 'mappoly2', PH, G, pedigree, err, logatithm)
 }
 
-est_hmm_map_biallelic_insert_marker <- function(PH, G, pedigree, M, rf, verbose, detailed_verbose, tol, ret_H0) {
-    .Call('_mappoly2_est_hmm_map_biallelic_insert_marker', PACKAGE = 'mappoly2', PH, G, pedigree, M, rf, verbose, detailed_verbose, tol, ret_H0)
+est_hmm_map_biallelic_insert_marker <- function(PH, G, pedigree, M, rf, idx, verbose, detailed_verbose, tol, ret_H0) {
+    .Call('_mappoly2_est_hmm_map_biallelic_insert_marker', PACKAGE = 'mappoly2', PH, G, pedigree, M, rf, idx, verbose, detailed_verbose, tol, ret_H0)
 }
 
 est_hmm_map_biallelic <- function(PH, G, pedigree, rf, err, verbose, detailed_verbose, tol, ret_H0) {

@@ -340,7 +340,8 @@ List vs_multiallelic_Rcpp(List PH,
 List vs_inserted_mrk(List PH, //list of vectors
                      IntegerVector G, //vector of dosages for inserted marker
                      NumericMatrix pedigree,
-                     NumericMatrix  M) {
+                     NumericMatrix  M,
+                     IntegerVector idx) {
   NumericMatrix unique_pop_mat = retainUniqueAndSortByLastColumn(pedigree);
   int n_fullsib_pop = unique_pop_mat.nrow();
   int n_ind = pedigree.nrow();
@@ -402,8 +403,8 @@ List vs_inserted_mrk(List PH, //list of vectors
       }
     }
   } // end population loop
-  H[1] = H_k;
-  E[1] = E_k;
+  H[idx(1)] = H_k;
+  E[idx(1)] = E_k;
   // For loop to obtain the states of markers that are positioned adjacently to the un-mapped marker
   NumericMatrix L_mat = as<NumericMatrix>(L[0]);   // FIXME for multi-population: zero here refers to the first (and only bi-parental population)
   for(int k = 0; k < 2; k++){
@@ -432,8 +433,8 @@ List vs_inserted_mrk(List PH, //list of vectors
       H_k[i] = subset_L_pop;
       E_k[i] = subset_E_pop;
     }
-    H[k * 2] = H_k;
-    E[k * 2] = E_k;
+    H[idx(k * 2)] = H_k;
+    E[idx(k * 2)] = E_k;
   }
   return List::create(Named("states") = H,
                       Named("emit") = E);
