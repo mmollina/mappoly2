@@ -59,8 +59,7 @@ Imports:
     ggplot2,
     dendextend,
     princurve,
-    smacof,
-    txtplot
+    smacof
 LinkingTo: Rcpp, RcppProgress, RcppArmadillo
 Encoding: UTF-8
 Roxygen: list(markdown = TRUE)

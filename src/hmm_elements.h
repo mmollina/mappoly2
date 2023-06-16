@@ -53,7 +53,8 @@ List vs_multiallelic_Rcpp(List PH,
 List vs_inserted_mrk(List PH,
                      IntegerVector G,
                      NumericMatrix pedigree,
-                     NumericMatrix  M);
+                     NumericMatrix  M,
+                     IntegerVector idx);
 List vs_biallelic(List PH,
                   IntegerMatrix G,
                   NumericMatrix pedigree);

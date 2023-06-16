@@ -54,8 +54,8 @@ BEGIN_RCPP
 END_RCPP
 }
 // vs_inserted_mrk
-List vs_inserted_mrk(List PH, IntegerVector G, NumericMatrix pedigree, NumericMatrix M);
-RcppExport SEXP _mappoly2_vs_inserted_mrk(SEXP PHSEXP, SEXP GSEXP, SEXP pedigreeSEXP, SEXP MSEXP) {
+List vs_inserted_mrk(List PH, IntegerVector G, NumericMatrix pedigree, NumericMatrix M, IntegerVector idx);
+RcppExport SEXP _mappoly2_vs_inserted_mrk(SEXP PHSEXP, SEXP GSEXP, SEXP pedigreeSEXP, SEXP MSEXP, SEXP idxSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -63,7 +63,8 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< IntegerVector >::type G(GSEXP);
     Rcpp::traits::input_parameter< NumericMatrix >::type pedigree(pedigreeSEXP);
     Rcpp::traits::input_parameter< NumericMatrix >::type M(MSEXP);
-    rcpp_result_gen = Rcpp::wrap(vs_inserted_mrk(PH, G, pedigree, M));
+    Rcpp::traits::input_parameter< IntegerVector >::type idx(idxSEXP);
+    rcpp_result_gen = Rcpp::wrap(vs_inserted_mrk(PH, G, pedigree, M, idx));
     return rcpp_result_gen;
 END_RCPP
 }
@@ -83,8 +84,8 @@ BEGIN_RCPP
 END_RCPP
 }
 // est_hmm_map_biallelic_insert_marker
-List est_hmm_map_biallelic_insert_marker(List PH, IntegerVector G, NumericMatrix pedigree, NumericMatrix M, NumericVector rf, bool verbose, bool detailed_verbose, double tol, bool ret_H0);
-RcppExport SEXP _mappoly2_est_hmm_map_biallelic_insert_marker(SEXP PHSEXP, SEXP GSEXP, SEXP pedigreeSEXP, SEXP MSEXP, SEXP rfSEXP, SEXP verboseSEXP, SEXP detailed_verboseSEXP, SEXP tolSEXP, SEXP ret_H0SEXP) {
+List est_hmm_map_biallelic_insert_marker(List PH, IntegerVector G, NumericMatrix pedigree, NumericMatrix M, NumericVector rf, IntegerVector idx, bool verbose, bool detailed_verbose, double tol, bool ret_H0);
+RcppExport SEXP _mappoly2_est_hmm_map_biallelic_insert_marker(SEXP PHSEXP, SEXP GSEXP, SEXP pedigreeSEXP, SEXP MSEXP, SEXP rfSEXP, SEXP idxSEXP, SEXP verboseSEXP, SEXP detailed_verboseSEXP, SEXP tolSEXP, SEXP ret_H0SEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -93,11 +94,12 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< NumericMatrix >::type pedigree(pedigreeSEXP);
     Rcpp::traits::input_parameter< NumericMatrix >::type M(MSEXP);
     Rcpp::traits::input_parameter< NumericVector >::type rf(rfSEXP);
+    Rcpp::traits::input_parameter< IntegerVector >::type idx(idxSEXP);
     Rcpp::traits::input_parameter< bool >::type verbose(verboseSEXP);
     Rcpp::traits::input_parameter< bool >::type detailed_verbose(detailed_verboseSEXP);
     Rcpp::traits::input_parameter< double >::type tol(tolSEXP);
     Rcpp::traits::input_parameter< bool >::type ret_H0(ret_H0SEXP);
-    rcpp_result_gen = Rcpp::wrap(est_hmm_map_biallelic_insert_marker(PH, G, pedigree, M, rf, verbose, detailed_verbose, tol, ret_H0));
+    rcpp_result_gen = Rcpp::wrap(est_hmm_map_biallelic_insert_marker(PH, G, pedigree, M, rf, idx, verbose, detailed_verbose, tol, ret_H0));
     return rcpp_result_gen;
 END_RCPP
 }
@@ -231,9 +233,9 @@ static const R_CallMethodDef CallEntries[] = {
     {"_mappoly2_calc_haploprob_biallelic", (DL_FUNC) &_mappoly2_calc_haploprob_biallelic, 5},
     {"_mappoly2_calc_haploprob_biallelic_single", (DL_FUNC) &_mappoly2_calc_haploprob_biallelic_single, 4},
     {"_mappoly2_find_valid_permutations", (DL_FUNC) &_mappoly2_find_valid_permutations, 3},
-    {"_mappoly2_vs_inserted_mrk", (DL_FUNC) &_mappoly2_vs_inserted_mrk, 4},
+    {"_mappoly2_vs_inserted_mrk", (DL_FUNC) &_mappoly2_vs_inserted_mrk, 5},
     {"_mappoly2_vs_biallelic_error", (DL_FUNC) &_mappoly2_vs_biallelic_error, 5},
-    {"_mappoly2_est_hmm_map_biallelic_insert_marker", (DL_FUNC) &_mappoly2_est_hmm_map_biallelic_insert_marker, 9},
+    {"_mappoly2_est_hmm_map_biallelic_insert_marker", (DL_FUNC) &_mappoly2_est_hmm_map_biallelic_insert_marker, 10},
     {"_mappoly2_est_hmm_map_biallelic", (DL_FUNC) &_mappoly2_est_hmm_map_biallelic, 9},
     {"_mappoly2_est_hmm_map_biallelic_single", (DL_FUNC) &_mappoly2_est_hmm_map_biallelic_single, 8},
     {"_mappoly2_twopt_phasing_cpp", (DL_FUNC) &_mappoly2_twopt_phasing_cpp, 6},
