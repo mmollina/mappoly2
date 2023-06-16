@@ -23,7 +23,7 @@ Genetic Linkage Maps in Autopolyploids v 2.0
     - ~~When only the genotype from one parent is informative, with error consideration.~~
     - ~~Implement the R wrapper functions for C++ calc_genoprob (still to be implemented --> genoprob.R)~~
     
-8. [ ] TODO Implement function add_marker, given a phased map. Use pre-computed conditional probabilities of genotypes. 
+8. [x] DONE ~~Implement function add_marker, given a phased map. Use pre-computed conditional probabilities of genotypes~~. 
     - ~~Implement function to list possible phase configurations of a sequence of unmapped 
       markers given a phased map and a pairwise recombination fraction matrix and associated 
       phase statistics~~
@@ -33,8 +33,8 @@ Genetic Linkage Maps in Autopolyploids v 2.0
         enabling the incorporation of a new marker for subsequent phasing and re-estimation 
         via three-point analysis.~~
     - ~~Implement function to visit states for one unmapped marker flanked by two mapped markers~~
-    - Implement a function that receives as input a matrix whose rows represent possible phases 
-      for a marker, insert it on a pre-computed map and return the log-likelihood
+    - ~~Implement a function that receives as input a matrix whose rows represent possible phases 
+      for a marker, insert it on a pre-computed map and return the log-likelihood~~
 9. [ ] TODO I am updating MAPpoly to streamline its core C++ functions for easier adaptation to 
         multi-population mapping. Once this is done, I will evaluate the adaptability of these 
         updated functions for multi-population scenarios.
