@@ -8,7 +8,8 @@ calc_haplotypes(
   input.seq,
   phase.conf = c("best", "all"),
   verbose = FALSE,
-  tol = 0.001
+  tol = 0.001,
+  compute.both.parents = TRUE
 )
 }
 \arguments{
