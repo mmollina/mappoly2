@@ -7,7 +7,8 @@
 calc_haplotypes <- function(input.seq,
                             phase.conf = c("best","all"),
                             verbose = FALSE,
-                            tol = 10e-4)
+                            tol = 10e-4,
+                            compute.both.parents = TRUE)
 {
   assert_that(is.mappoly2.sequence(input.seq))
   mrk.id <- rownames(input.seq$phases[[1]]$p1)
@@ -25,7 +26,7 @@ calc_haplotypes <- function(input.seq,
 
   cat("Computing haplotype probabilities\n")
   cat("   Number of phase configurations: ", length(phase.conf), "\n")
-  if (detect_info_par(input.seq) == "both"){
+  if (detect_info_par(input.seq) == "both" || compute.both.parents){
     for(i in 1: length(phase.conf)){
       cat("   Conf.", i,":")
       pedigree <- matrix(rep(c(1,

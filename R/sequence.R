@@ -182,8 +182,8 @@ print.mappoly2.sequence <- function(x, detailed = FALSE,  ...) {
     cat("\n ", txt[[7]], " 0", sep = "")
     cat("\n ", txt[[8]], " 0%", sep = "")
   } else {
-    cat("\n ", txt[[7]], " ",   length(x$phases), sep = "")
-    cat("\n ", txt[[8]], " ",   round(100*nrow(x$phases[[1]]$p1)/length(x$mrk.names),1), "%", sep = "")
+    cat("\n ", txt[[7]], " ", length(x$phases), sep = "")
+    cat("\n ", txt[[8]], " ", nrow(x$phases[[1]]$p1), " (",   round(100*nrow(x$phases[[1]]$p1)/length(x$mrk.names),1), "%)", sep = "")
   }
   w <- table(x$data$chrom[x$mrk.names], useNA = "always")
   w <- w[order(as.integer(gsub("[^0-9]", "", names(w))))]

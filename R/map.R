@@ -67,7 +67,7 @@ mapping <- function(input.seq,
                                         verbose = verbose,
                                         detailed_verbose = FALSE,
                                         tol = tol,
-                                        ret_H0 = ret_H0)
+                                        ret_H0 = FALSE)
       output.seq$phases[[i]]$loglike <- w[[1]]
       output.seq$phases[[i]]$rf <- w[[2]]
       output.seq$phases[[i]]$error <- error
@@ -86,7 +86,7 @@ mapping <- function(input.seq,
                                         verbose = verbose,
                                         detailed_verbose = FALSE,
                                         tol = tol,
-                                        ret_H0 = ret_H0)
+                                        ret_H0 = FALSE)
       output.seq$phases[[i]]$loglike <- w[[1]]
       output.seq$phases[[i]]$rf <- w[[2]]
       output.seq$phases[[i]]$error <- error
@@ -97,17 +97,19 @@ mapping <- function(input.seq,
     stop("it should not get here")
   }
 }
-#' Phasing remaining markers based on pairwise recombination fraction estimation and multilocus estimation
+#' Efficiently phases unprocessed markers in a given phased
+#' genetic map, circumventing the need for complete
+#' HMM-based map recomputation.
 #'
 #' @param void internal function
 #' @author Marcelo Mollinari, \email{mmollin@ncsu.edu}
 #' @export
 augment_phased_map <- function(input.seq,
                                input.twopt,
-                               thresh.LOD.ph = 3,
-                               thresh.LOD.rf = 3,
+                               thresh.LOD.ph = 5,
+                               thresh.LOD.rf = 5,
                                thresh.rf = 0.5,
-                               max.phases = 3,
+                               max.phases = 5,
                                thresh.LOD.ph.to.insert = 10,
                                thresh.rf.to.insert = NULL,
                                tol = 10e-4,
@@ -123,7 +125,7 @@ augment_phased_map <- function(input.seq,
                          thresh.LOD.rf = thresh.LOD.rf,
                          thresh.rf = thresh.rf,
                          shared.alleles = TRUE)
-  assert_that(matrix_contain_data_seq(M,s1))
+  assert_that(matrix_contain_data_seq(M,input.seq))
   mrk.pos <- rownames(input.seq$phases[[1]]$p1) # positioned markers
   mrk.id <- setdiff(input.seq$mrk.names, mrk.pos) # markers to be positioned
   ## two-point phasing parent 1
@@ -137,7 +139,7 @@ augment_phased_map <- function(input.seq,
   S2 <- M$Sh.p2[mrk.id, mrk.pos]
   L2 <- mappoly2:::phasing_one(mrk.id, dose.vec, S2, InitPh2, verbose)
   ## Selecting phase configurations
-  n.conf <- sapply(L1, nrow) + sapply(L2, nrow)
+  n.conf <- sapply(L1, nrow) * sapply(L2, nrow)
   if(verbose){
     cat("Distribution of phase configurations.\n")
     temp <- as.data.frame(table(n.conf))
@@ -249,6 +251,36 @@ augment_phased_map <- function(input.seq,
   return(input.seq)
 }
 
+
+#'This function merges two genetic maps built from markers that are exclusively
+#'informative in isolated parents, facilitating unified analysis and visualization
+#'of distinct genetic data.
+#'
+#' @param void internal function
+#' @author Marcelo Mollinari, \email{mmollin@ncsu.edu}
+#' @export
+merge_single_parent_maps <- function(input.seq.all,
+                                     input.seq.p1,
+                                     input.seq.p2,
+                                     input.twopt){
+  temp.mrk.id <- character(length(input.seq.all$mrk.names))
+  temp.mrk.id[match(rownames(input.seq.p1$phases[[1]]$p1), input.seq.all$mrk.names)] <- rownames(input.seq.p1$phases[[1]]$p1)
+  temp.mrk.id[match(rownames(input.seq.p2$phases[[1]]$p2), input.seq.all$mrk.names)] <- rownames(input.seq.p2$phases[[1]]$p2)
+  temp.mrk.id <- temp.mrk.id[temp.mrk.id != ""]
+  ph.p2 <- ph.p1 <- matrix(0, length(temp.mrk.id), input.seq.p1$data$ploidy.p1, dimnames = list(temp.mrk.id, NULL))
+  ph.p1[rownames(input.seq.p1$phases[[1]]$p1), ] <- input.seq.p1$phases[[1]]$p1
+  ph.p2[rownames(input.seq.p1$phases[[1]]$p2), ] <- input.seq.p1$phases[[1]]$p2
+  ph.p1[rownames(input.seq.p2$phases[[1]]$p1), ] <- input.seq.p2$phases[[1]]$p1
+  ph.p2[rownames(input.seq.p2$phases[[1]]$p2), ] <- input.seq.p2$phases[[1]]$p2
+  input.seq.all$phases <- list(list(p1 = ph.p1,
+                                    p2 = ph.p2,
+                                    loglike = NULL,
+                                    rf = NULL,
+                                    error = NULL,
+                                    haploprob = NULL))
+  return(input.seq.all)
+}
+
 #' prepare maps for plot
 #' @param void internal function to be documented
 #' @keywords internal
@@ -293,7 +325,8 @@ prepare_map <- function(input.seq){
 #' @export
 plot_map <- function(x, left.lim = 0, right.lim = Inf,
                      phase = TRUE, mrk.names = FALSE,
-                     cex = 0.7, xlim = NULL, ...) {
+                     plot.dose = TRUE,
+                     cex = 1, xlim = NULL, main = "",...) {
   old.p1ar <- par(no.readonly = TRUE)
   on.exit(par(old.p1ar))
 
@@ -306,10 +339,9 @@ plot_map <- function(x, left.lim = 0, right.lim = Inf,
   ploidy <- max(c(map.info$ploidy.p1, map.info$ploidy.p2))
   x <- map.info$map
   lab <- names(x)
-
-  zy <- seq(0, 0.5, length.out = ploidy)
-  zy.p1 <- zy[1:ploidy.p1] + 2.6
-  zy.p2 <- zy[1:ploidy.p2] + 1.5
+  zy <- seq(0, 0.6, by = 0.12)
+  zy.p1 <- zy[1:ploidy.p1] +1.8 + (0.3 * ((ploidy.p2/2)-1))
+  zy.p2 <- zy[1:ploidy.p2] + 1.1
   pp <- map.info$ph.p1
   pq <- map.info$ph.p2
   d.p1 <- map.info$d.p1
@@ -320,17 +352,11 @@ plot_map <- function(x, left.lim = 0, right.lim = Inf,
   id.right <- rev(which(x2 == min(x2)))[1]
   par(mai = c(1,0.15,0,0), mar = c(4.5,2,1,2))
   curx <- x[id.left:id.right]
-  layout(mat  = matrix(c(4,2,3, 1), ncol = 2), heights = c(2, 10), widths = c(1, 10))
+  layout(mat  = matrix(c(2,4,1,3), ncol = 2), heights = c(10, 1), widths = c(1, 10))
+  #layout(mat  = matrix(c(4,2,3, 1), ncol = 2), heights = c(2, 10), widths = c(1, 10))
   if(is.null(xlim))
     xlim <- range(curx)
-  if(ploidy.p1 + ploidy.p2 == 4)
-    max.y <- 3.0
-  if(ploidy.p1 + ploidy.p2 == 6)
-    max.y <- 3.5
-  if(ploidy.p1 + ploidy.p2 == 8)
-    max.y <- 4.0
-  if(ploidy.p1 + ploidy.p2 > 8)
-    max.y <- 4.5
+  max.y <- 4.0
   plot(x = curx,
        y = rep(.5,length(curx)),
        type = "n" ,
@@ -346,7 +372,7 @@ plot_map <- function(x, left.lim = 0, right.lim = Inf,
          pch = "|", cex = 1.5,
          ylim = c(0,2))
   axis(side = 1)
-  #Parent 2
+  ####Parent 2#####
   x1 <- seq(x[id.left], x[id.right], length.out = length(curx))
   x.control <- diff(x1[1:2])/2
   if(length(x1) < 150)
@@ -361,39 +387,68 @@ plot_map <- function(x, left.lim = 0, right.lim = Inf,
     x.control <- x.control * .8
   for(i in 1:ploidy.p2)
   {
-    lines(range(x1), c(zy.p2[i], zy.p2[i]), lwd = 8, col = "gray")
+    lines(range(x1), c(zy.p2[i], zy.p2[i]), lwd = 12, col = "gray")
     y1 <- rep(zy.p2[i], length(curx))
     pal <- var.col[pq[id.left:id.right,i]]
-    rect(xleft = x1 - x.control, ybottom = y1 -.05, xright = x1 + x.control, ytop = y1 +.05, col = pal, border = NA)
+    rect(xleft = x1 - x.control,
+         ybottom = y1 -.035,
+         xright = x1 + x.control,
+         ytop = y1 +.035,
+         col = pal,
+         border = NA)
   }
   #connecting allelic variants to markers
   for(i in 1:length(x1))
     lines(c(curx[i], x1[i]), c(0.575, zy.p2[1]-.05), lwd = 0.2)
-  points(x = x1,
-         y = zy.p2[ploidy.p2]+0.075+d.p2[id.left:id.right]/20,
-         col = "darkgray",
-         #col = d.col[as.character(d.p2[id.left:id.right])],
-         pch = 19, cex = .7)
-  #Parent 1
+  ####
+  if(plot.dose){
+    y <- zy.p2[ploidy.p2]+0.1 - ((ploidy.p2/2 - 1)*0.005)+d.p2[id.left:id.right]/20
+    y.l <- zy.p2[ploidy.p2]+0.1 - ((ploidy.p2/2 - 1)*0.005)+ c(0:ploidy.p2)[id.left:id.right]/20
+    #text(x = min(x1) - 1, y = mean(y.l), "doses", srt = 90)
+    for(i in 1:length(y.l)){
+      text(x = min(x1)-1,y=y.l[i],i-1, cex = .7)
+      lines(range(x1), c(y.l[i], y.l[i]), lwd = .5, col = "gray")
+    }
+
+    points(x = x1,
+           y = y,
+           col = "darkgray",
+           #col = d.col[as.character(d.p2[id.left:id.right])],
+           pch = 19, cex = .7)
+  }
+  ####Parent 1#####
   for(i in 1:ploidy.p1)
   {
-    lines(range(x1), c(zy.p1[i], zy.p1[i]), lwd = 8, col = "gray")
+    lines(range(x1), c(zy.p1[i], zy.p1[i]), lwd = 12, col = "gray")
     y1 <- rep(zy.p1[i], length(curx))
     pal <- var.col[pp[id.left:id.right,i]]
-    rect(xleft = x1 - x.control, ybottom = y1 -.05, xright = x1 + x.control, ytop = y1 +.05, col = pal, border = NA)
+    rect(xleft = x1 - x.control,
+         ybottom = y1 -.035,
+         xright = x1 + x.control,
+         ytop = y1 +.035,
+         col = pal,
+         border = NA)
   }
-  y <- zy.p1[ploidy.p1]+0.075+d.p1[id.left:id.right]/20
-  points(x = x1,
-         y = y,
-         col = "darkgray",
-         #col = d.col[as.character(d.p1[id.left:id.right])],
-         pch = 19, cex = .7)
-
+  ####
+  if(plot.dose){
+    y <- zy.p1[ploidy.p1]+0.1 -((ploidy.p1/2 - 1)*0.005)+d.p1[id.left:id.right]/20
+    y.l <- zy.p1[ploidy.p1]+0.1 -((ploidy.p1/2 - 1)*0.005)+c(0:ploidy.p1)[id.left:id.right]/20
+    #text(x = min(x1) - 1, y = mean(y.l), "doses", srt = 90)
+    for(i in 1:length(y.l)){
+      text(x = min(x1)-1,y=y.l[i],i-1, cex = .7)
+      lines(range(x1), c(y.l[i], y.l[i]), lwd = .5, col = "gray")
+    }
+    points(x = x1,
+           y = y,
+           col = "darkgray",
+           #col = d.col[as.character(d.p1[id.left:id.right])],
+           pch = 19, cex = .7)
+  }
   if(mrk.names)
     text(x = x1,
          y = rep(max(y)+.1, length(x1)),
          labels = names(curx),
-         srt = 90, adj = 0, cex = cex)
+         srt = 90, adj = 0, cex = cex *.6)
   par(mar = c(4.5,1,1,0), xpd = TRUE)
   plot(x = 0,
        y = 0,
@@ -403,14 +458,14 @@ plot_map <- function(x, left.lim = 0, right.lim = Inf,
        xlab = "",
        ylim = c(.25, max.y))
 
-
+  mtext(text = main, side = 2, at = mean(c(zy.p2, zy.p2)), line = -1, font = 4, cex = cex , adj = c(0,0))
   mtext(text = map.info$name.p2, side = 4, at = mean(zy.p2), line = -1, font = 4)
   for(i in 1:ploidy.p2)
-    mtext(colnames(map.info$ph.p2)[i], line = 1, at = zy.p2[i], side = 4, las = 2)
+    mtext(colnames(map.info$ph.p2)[i], line = 1, at = zy.p2[i], side = 4, las = 2, cex = 0.7 * cex)
   mtext(text = map.info$name.p1, side = 4, at = mean(zy.p1), line = -1, font = 4)
   for(i in 1:ploidy.p1)
-    mtext(colnames(map.info$ph.p1)[i],  line = 1, at = zy.p1[i], side = 4, las = 2)
-  par(mar = c(0,1,2,4), xpd = FALSE)
+    mtext(colnames(map.info$ph.p1)[i],  line = 1, at = zy.p1[i], side = 4, las = 2, cex = 0.7 * cex)
+  par(mar = c(0,0,0,0), xpd = FALSE)
   plot(x = curx,
        y = rep(.5,length(curx)),
        type = "n" ,
@@ -418,13 +473,14 @@ plot_map <- function(x, left.lim = 0, right.lim = Inf,
        xlab = "",
        ylab = "")
   if(any(map.info$ph.p1 == "B")){
-    legend("bottomleft", legend = c("A", "B"),
-           fill  = c(var.col), title = "Variants",
-           box.lty = 0, bg = "transparent", ncol = 2)
+    legend("topleft", legend = c("A", "B"),
+           fill  = c(var.col), #title = "Variants",
+           box.lty = 0, bg = "transparent", ncol = 6)
   } else {
-    legend("bottomleft", legend = c("A", "T", "C", "G", "-"),
-           fill  = c(var.col, "white"), title = "Nucleotides",
-           box.lty = 0, bg = "transparent", ncol = 4)
+    legend("topleft", legend = c("A", "T", "C", "G", "-"),
+           fill  = c(var.col, "white"),# title = "Nucleotides",
+           box.lty = 0, bg = "transparent", ncol = 6)
   }
+
 }
 
