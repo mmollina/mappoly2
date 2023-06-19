@@ -10,7 +10,8 @@ mapping(
   rf = NULL,
   error = 0,
   verbose = FALSE,
-  tol = 0.001
+  tol = 0.001,
+  ret_H0 = FALSE
 )
 }
 \arguments{

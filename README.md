@@ -36,7 +36,8 @@ Genetic Linkage Maps in Autopolyploids v 2.0
     - ~~Implement a function that receives as input a matrix whose rows represent possible phases 
       for a marker, insert it on a pre-computed map and return the log-likelihood~~
 9. [ ] TODO Implement two-point recombination fraction estimation using RcppParallel.    
-10. [ ] TODO Implement function to re-phase each marker individually, given the rest of teh map. 
+10. [x] ~~DONE Implement functions 'drop_marker', 'add_marker', and 'plot_genome_vs_map'~~
+10. [ ] TODO Implement function to re-phase each marker individually, given the rest of the map. 
         Implement for a pre-defined segment of the map or the whole map. 
 11. [ ] TODO I am updating MAPpoly to streamline its core C++ functions for easier adaptation to 
         multi-population mapping. Once this is done, I will evaluate the adaptability of these 
