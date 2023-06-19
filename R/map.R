@@ -9,7 +9,8 @@ mapping <- function(input.seq,
                     rf = NULL,
                     error = 0.0,
                     verbose = FALSE,
-                    tol = 10e-4)
+                    tol = 10e-4,
+                    ret_H0 = FALSE)
 {
   assert_that(is.mappoly2.sequence(input.seq))
   mrk.id <- rownames(input.seq$phases[[1]]$p1)
@@ -28,7 +29,7 @@ mapping <- function(input.seq,
 
   cat("Multi-locus map estimation\n")
   cat("   Number of phase configurations: ", length(phase.conf), "\n")
-  if (detect_info_par(input.seq) == "both"){
+  if (detect_info_par(input.seq) == "both" || ret_H0){
     for(i in phase.conf){
       cat("   Conf.", i,":")
       pedigree <- matrix(rep(c(1,
@@ -47,7 +48,7 @@ mapping <- function(input.seq,
                                  verbose = verbose,
                                  detailed_verbose = FALSE,
                                  tol = tol,
-                                 ret_H0 = FALSE)
+                                 ret_H0 = ret_H0)
       output.seq$phases[[i]]$loglike <- w[[1]]
       output.seq$phases[[i]]$rf <- w[[2]]
       output.seq$phases[[i]]$error <- error
@@ -67,7 +68,7 @@ mapping <- function(input.seq,
                                         verbose = verbose,
                                         detailed_verbose = FALSE,
                                         tol = tol,
-                                        ret_H0 = FALSE)
+                                        ret_H0 = ret_H0)
       output.seq$phases[[i]]$loglike <- w[[1]]
       output.seq$phases[[i]]$rf <- w[[2]]
       output.seq$phases[[i]]$error <- error
@@ -86,7 +87,7 @@ mapping <- function(input.seq,
                                         verbose = verbose,
                                         detailed_verbose = FALSE,
                                         tol = tol,
-                                        ret_H0 = FALSE)
+                                        ret_H0 = ret_H0)
       output.seq$phases[[i]]$loglike <- w[[1]]
       output.seq$phases[[i]]$rf <- w[[2]]
       output.seq$phases[[i]]$error <- error
@@ -251,7 +252,6 @@ augment_phased_map <- function(input.seq,
   return(input.seq)
 }
 
-
 #'This function merges two genetic maps built from markers that are exclusively
 #'informative in isolated parents, facilitating unified analysis and visualization
 #'of distinct genetic data.
@@ -329,7 +329,6 @@ plot_map <- function(x, left.lim = 0, right.lim = Inf,
                      cex = 1, xlim = NULL, main = "",...) {
   old.p1ar <- par(no.readonly = TRUE)
   on.exit(par(old.p1ar))
-
   map.info <- prepare_map(x)
   if(any(map.info$ph.p1 == "B")){
     var.col <- c(A = "black", B = "darkgray")
@@ -350,12 +349,13 @@ plot_map <- function(x, left.lim = 0, right.lim = Inf,
   x2 <- abs(right.lim - x)
   id.left <- which(x1 == min(x1))[1]
   id.right <- rev(which(x2 == min(x2)))[1]
-  par(mai = c(1,0.15,0,0), mar = c(4.5,2,1,2))
+  par(mai = c(1,0.15,0,0), mar = c(4.5,3,1,2))
   curx <- x[id.left:id.right]
   layout(mat  = matrix(c(2,4,1,3), ncol = 2), heights = c(10, 1), widths = c(1, 10))
   #layout(mat  = matrix(c(4,2,3, 1), ncol = 2), heights = c(2, 10), widths = c(1, 10))
-  if(is.null(xlim))
+  if(is.null(xlim)){
     xlim <- range(curx)
+  }
   max.y <- 4.0
   plot(x = curx,
        y = rep(.5,length(curx)),
@@ -481,6 +481,83 @@ plot_map <- function(x, left.lim = 0, right.lim = Inf,
            fill  = c(var.col, "white"),# title = "Nucleotides",
            box.lty = 0, bg = "transparent", ncol = 6)
   }
-
 }
 
+#' Physical versus genetic distance
+#'
+#' This function plots scatterplot(s) of physical distance (in Mbp) versus the genetic
+#' distance (in cM). Map(s) should be passed as a single object or a list of objects
+#' of class \code{mappoly.map}.
+#'
+#' @param  seq.list A list or a single object of class \code{mappoly.map}
+#'
+#' @param phase.config A vector containing which phase configuration should be
+#'  plotted. If \code{'best'} (default), plots the configuration
+#'  with the highest likelihood for all elements in \code{'seq.list'}
+#'
+#' @param same.ch.lg Logical. If \code{TRUE} displays only the scatterplots between the
+#'   chromosomes and linkage groups with the same number. Default is \code{FALSE}.
+#'
+#' @param alpha transparency factor for SNPs points
+#'
+#' @param size size of the SNP points
+#'
+#' @examples
+#'   plot_genome_vs_map(solcap.mds.map, same.ch.lg = TRUE)
+#'   plot_genome_vs_map(solcap.mds.map, same.ch.lg = FALSE,
+#'                      alpha = 1, size = 1/2)
+#'
+#' @author Marcelo Mollinari, \email{mmollin@ncsu.edu}
+#'
+#' @references
+#'     Mollinari, M., and Garcia, A.  A. F. (2019) Linkage
+#'     analysis and haplotype phasing in experimental autopolyploid
+#'     populations with high ploidy level using hidden Markov
+#'     models, _G3: Genes, Genomes, Genetics_.
+#'     \doi{10.1534/g3.119.400378}
+#'
+#' @export plot_genome_vs_map
+plot_genome_vs_map <- function(seq.list,
+                               same.ch.lg = FALSE,
+                               alpha = 1/5,
+                               size = 3){
+  if(mappoly2:::is.mappoly2.sequence(seq.list)){
+    assert_that(mappoly2:::is.mapped.sequence(seq.list))
+    seq.list <- list(seq.list)
+  }
+  assert_that(is.list(seq.list))
+  if (any(!sapply(seq.list, mappoly2:::is.mapped.sequence)))
+    stop("All elemnts in 'seq.list' should be mapped sequences.")
+  if(any(sapply(seq.list, function(x) is.null(x$data$genome.pos))))
+    stop("All elemnts in 'seq.list' should have the genomic position of the markers")
+  geno.vs.map <- NULL
+  for(i in 1:length(seq.list)){
+    LG <- genomic.pos <- map.pos <- NULL
+    mrk.names <- rownames(seq.list[[i]]$phases[[1]]$p1)
+    geno.vs.map <- rbind(geno.vs.map,
+                         data.frame(mrk.names = mrk.names,
+                                    map.pos = cumsum(imf_h(c(0, seq.list[[i]]$phases[[1]]$rf))),
+                                    genomic.pos = seq.list[[i]]$data$genome.pos[mrk.names]/1e6,
+                                    LG = as.factor(i),
+                                    chr = as.factor(seq.list[[i]]$data$chrom[mrk.names])))
+  }
+  geno.vs.map$chr <- factor(geno.vs.map$chr, levels = sort(levels(geno.vs.map$chr)))
+  if(same.ch.lg){
+    p <- ggplot2::ggplot(geno.vs.map, ggplot2::aes(genomic.pos, map.pos)) +
+      ggplot2::geom_point(alpha = alpha, ggplot2::aes(colour = LG), size = size) +
+      ggplot2::facet_wrap(~LG, nrow = floor(sqrt(length(seq.list)))) +
+      ggplot2::labs(subtitle = "Linkage group", x = "Genome position (Mbp)", y = "Map position (cM)") +
+      ggplot2::theme_bw() +
+      ggplot2::theme(axis.text.x = ggplot2::element_text(angle = 45, hjust = 1),
+                     legend.position = "none", plot.subtitle = ggplot2::element_text(hjust = 0.5))
+
+  } else {
+    p <- ggplot2::ggplot(geno.vs.map, ggplot2::aes(genomic.pos, map.pos)) +
+      ggplot2::geom_point(alpha = alpha, ggplot2::aes(colour = LG), size = size) +
+      ggplot2::facet_grid(LG~chr) +
+      ggplot2::labs(x = "Genome position (Mbp)", y = "Map position (cM)") +
+      ggplot2::theme_bw() +
+      ggplot2::theme(axis.text.x = ggplot2::element_text(angle = 45, hjust = 1), legend.position = "none")
+  }
+  p
+}

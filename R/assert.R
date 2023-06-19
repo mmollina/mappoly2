@@ -24,7 +24,7 @@ is.phased.sequence <- function(x){
 }
 is.mapped.sequence <- function(x){
   is.mappoly2.sequence(x) &&
-  !is.null(x$phases[[1]]$loglike)
+  !is.null(x$phases[[1]]$rf)
 }
 is.haplotype.sequence <- function(x){
   is.mappoly2.sequence(x) &&
