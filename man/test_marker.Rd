@@ -2,7 +2,7 @@
 % Please edit documentation in R/sequence_edits.R
 \name{test_marker}
 \alias{test_marker}
-\title{Function description}
+\title{For a given marker, test all possible phases.}
 \usage{
 test_marker(input.seq, mrk, input.mat = NULL, tol = 0.001, verbose = TRUE)
 }
@@ -10,7 +10,7 @@ test_marker(input.seq, mrk, input.mat = NULL, tol = 0.001, verbose = TRUE)
 \item{void}{internal function}
 }
 \description{
-Function description
+For a given marker, test all possible phases.
 }
 \author{
 Marcelo Mollinari, \email{mmollin@ncsu.edu}

@@ -32,8 +32,7 @@ m <- rf_list_to_matrix(tpt)
 plot(m)
 
 #### Grouping ####
-lg <- group(m, expected.groups = 5, comp.mat = TRUE)
-
+lg <- group(m, expected.groups = 5, comp.mat = TRUE, inter = F)
 
 #### CH1 ####
 s.ch1.all <- make_sequence(lg, 1, genomic.info = 1)

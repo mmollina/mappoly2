@@ -325,7 +325,7 @@ prepare_map <- function(input.seq){
 #' @export
 plot_map <- function(x, left.lim = 0, right.lim = Inf,
                      phase = TRUE, mrk.names = FALSE,
-                     plot.dose = TRUE,
+                     plot.dose = TRUE, homolog.names.adj = 3,
                      cex = 1, xlim = NULL, main = "",...) {
   old.p1ar <- par(no.readonly = TRUE)
   on.exit(par(old.p1ar))
@@ -339,8 +339,8 @@ plot_map <- function(x, left.lim = 0, right.lim = Inf,
   x <- map.info$map
   lab <- names(x)
   zy <- seq(0, 0.6, by = 0.12)
-  zy.p1 <- zy[1:ploidy.p1] +1.8 + (0.3 * ((ploidy.p2/2)-1))
-  zy.p2 <- zy[1:ploidy.p2] + 1.1
+  zy.p1 <- zy[1:map.info$ploidy.p1] +1.8 + (0.3 * ((map.info$ploidy.p2/2)-1))
+  zy.p2 <- zy[1:map.info$ploidy.p2] + 1.1
   pp <- map.info$ph.p1
   pq <- map.info$ph.p2
   d.p1 <- map.info$d.p1
@@ -349,7 +349,7 @@ plot_map <- function(x, left.lim = 0, right.lim = Inf,
   x2 <- abs(right.lim - x)
   id.left <- which(x1 == min(x1))[1]
   id.right <- rev(which(x2 == min(x2)))[1]
-  par(mai = c(1,0.15,0,0), mar = c(4.5,3,1,2))
+  par(mai = c(1,0.15,0,0), mar = c(4.5,homolog.names.adj,1,2))
   curx <- x[id.left:id.right]
   layout(mat  = matrix(c(2,4,1,3), ncol = 2), heights = c(10, 1), widths = c(1, 10))
   #layout(mat  = matrix(c(4,2,3, 1), ncol = 2), heights = c(2, 10), widths = c(1, 10))
@@ -385,7 +385,7 @@ plot_map <- function(x, left.lim = 0, right.lim = Inf,
     x.control <- x.control * .8
   if(length(x1) < 25)
     x.control <- x.control * .8
-  for(i in 1:ploidy.p2)
+  for(i in 1:map.info$ploidy.p2)
   {
     lines(range(x1), c(zy.p2[i], zy.p2[i]), lwd = 12, col = "gray")
     y1 <- rep(zy.p2[i], length(curx))
@@ -402,8 +402,8 @@ plot_map <- function(x, left.lim = 0, right.lim = Inf,
     lines(c(curx[i], x1[i]), c(0.575, zy.p2[1]-.05), lwd = 0.2)
   ####
   if(plot.dose){
-    y <- zy.p2[ploidy.p2]+0.1 - ((ploidy.p2/2 - 1)*0.005)+d.p2[id.left:id.right]/20
-    y.l <- zy.p2[ploidy.p2]+0.1 - ((ploidy.p2/2 - 1)*0.005)+ c(0:ploidy.p2)[id.left:id.right]/20
+    y <- zy.p2[map.info$ploidy.p2]+0.1 - ((map.info$ploidy.p2/2 - 1)*0.005)+d.p2[id.left:id.right]/20
+    y.l <- zy.p2[map.info$ploidy.p2]+0.1 - ((map.info$ploidy.p2/2 - 1)*0.005)+ c(0:map.info$ploidy.p2)[id.left:id.right]/20
     #text(x = min(x1) - 1, y = mean(y.l), "doses", srt = 90)
     for(i in 1:length(y.l)){
       text(x = min(x1)-1,y=y.l[i],i-1, cex = .7)
@@ -417,7 +417,7 @@ plot_map <- function(x, left.lim = 0, right.lim = Inf,
            pch = 19, cex = .7)
   }
   ####Parent 1#####
-  for(i in 1:ploidy.p1)
+  for(i in 1:map.info$ploidy.p1)
   {
     lines(range(x1), c(zy.p1[i], zy.p1[i]), lwd = 12, col = "gray")
     y1 <- rep(zy.p1[i], length(curx))
@@ -431,8 +431,8 @@ plot_map <- function(x, left.lim = 0, right.lim = Inf,
   }
   ####
   if(plot.dose){
-    y <- zy.p1[ploidy.p1]+0.1 -((ploidy.p1/2 - 1)*0.005)+d.p1[id.left:id.right]/20
-    y.l <- zy.p1[ploidy.p1]+0.1 -((ploidy.p1/2 - 1)*0.005)+c(0:ploidy.p1)[id.left:id.right]/20
+    y <- zy.p1[map.info$ploidy.p1]+0.1 -((map.info$ploidy.p1/2 - 1)*0.005)+d.p1[id.left:id.right]/20
+    y.l <- zy.p1[map.info$ploidy.p1]+0.1 -((map.info$ploidy.p1/2 - 1)*0.005)+c(0:map.info$ploidy.p1)[id.left:id.right]/20
     #text(x = min(x1) - 1, y = mean(y.l), "doses", srt = 90)
     for(i in 1:length(y.l)){
       text(x = min(x1)-1,y=y.l[i],i-1, cex = .7)
@@ -460,10 +460,10 @@ plot_map <- function(x, left.lim = 0, right.lim = Inf,
 
   mtext(text = main, side = 2, at = mean(c(zy.p2, zy.p2)), line = -1, font = 4, cex = cex , adj = c(0,0))
   mtext(text = map.info$name.p2, side = 4, at = mean(zy.p2), line = -1, font = 4)
-  for(i in 1:ploidy.p2)
+  for(i in 1:map.info$ploidy.p2)
     mtext(colnames(map.info$ph.p2)[i], line = 1, at = zy.p2[i], side = 4, las = 2, cex = 0.7 * cex)
   mtext(text = map.info$name.p1, side = 4, at = mean(zy.p1), line = -1, font = 4)
-  for(i in 1:ploidy.p1)
+  for(i in 1:map.info$ploidy.p1)
     mtext(colnames(map.info$ph.p1)[i],  line = 1, at = zy.p1[i], side = 4, las = 2, cex = 0.7 * cex)
   par(mar = c(0,0,0,0), xpd = FALSE)
   plot(x = curx,

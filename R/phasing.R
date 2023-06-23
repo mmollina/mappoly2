@@ -11,7 +11,7 @@ pairwise_phasing <- function(input.seq,
                              max.conf.btnk.p1 = 1,
                              max.conf.btnk.p2 = max.conf.btnk.p1,
                              verbose = TRUE){
-  m <- rf_list_to_matrix(tpt,
+  m <- rf_list_to_matrix(input.twopt,
                          thresh.LOD.ph = thresh.LOD.ph,
                          thresh.LOD.rf = thresh.LOD.rf,
                          thresh.rf = thresh.rf,
