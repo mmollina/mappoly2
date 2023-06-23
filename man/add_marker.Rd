@@ -2,7 +2,7 @@
 % Please edit documentation in R/sequence_edits.R
 \name{add_marker}
 \alias{add_marker}
-\title{Function description}
+\title{Add a marker to a pre-mapped sequence}
 \usage{
 add_marker(
   input.seq,
@@ -18,7 +18,7 @@ add_marker(
 \item{void}{internal function}
 }
 \description{
-Function description
+Add a marker to a pre-mapped sequence
 }
 \author{
 Marcelo Mollinari, \email{mmollin@ncsu.edu}
