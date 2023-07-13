@@ -1,12 +1,12 @@
 rm(list = ls())
 require(mappoly2)
-source("~/repos/official_repos/misc/simulation.R")
+source("misc/simulation.R")
 ploidy.p1 = 4
 ploidy.p2 = 4
-n.mrk <- 100
+n.mrk <- 600
 ph<-test_simulate(ploidy.p1 = ploidy.p1,
                   ploidy.p2 = ploidy.p2,
-                  fpath = "~/repos/official_repos/misc/fake_triploid.csv",
+                  fpath = "misc/fake_triploid.csv",
                   n.mrk = n.mrk,
                   n.ind = 200,
                   map.length =100,
@@ -14,14 +14,24 @@ ph<-test_simulate(ploidy.p1 = ploidy.p1,
                   n.chrom = 5,
                   random = FALSE,
                   seed = 43598)
-####Read ####
-dat <- read_geno_csv(file.in = "~/repos/official_repos/misc/fake_triploid.csv",
-                     ploidy.p1 = ploidy.p1, ploidy.p2 = ploidy.p2)
-dat
+dat <- read_geno_csv(file.in = "misc/fake_triploid.csv",
+                     ploidy.p1 = ploidy.p1,
+                     ploidy.p2 = ploidy.p2,
+                     name.p1 = "parent_1",
+                     name.p2 = "parent_2")
+x <- subset(dat)
+plot(x)
+x <- subset(dat, type = "marker", n = 10)
+plot(x)
+x <- subset(x, type = "individual", n = 10)
+plot(x)
+x <- subset(dat)
+
 plot(dat)
 dat <- filter_missing(dat, type = "marker", filter.thres = 0.15, inter = FALSE)
 dat <- filter_missing(dat, type = "individual", filter.thres = 0.11, inter = FALSE)
-#dat <- filter_individuals(dat)
+dat <- filter_individuals(dat)
+
 s <- filter_segregation(dat, inter = FALSE)
 print(s, detailed = TRUE)
 plot(s)

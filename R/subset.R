@@ -1,12 +1,52 @@
-#' Subsetting mappoly2 data set
+#' Subsets mappoly2.data Object
 #'
-#' @param x an object  of class \code{mappoly.data}
-#' @param selected.ind a vector containing the name of the individuals to select.
-#' @param selected.mrk a vector containing the name of the markers to select.
+#' This function selects a subset of either individuals or markers from an object of the `mappoly2.data` class.
 #'
-#' @return an object  of class \code{mappoly.data}
-#' @keywords internal
+#' @param x A `mappoly2.data` object from which the subset is to be selected.
+#' @param n An integer specifying the number of individuals or markers to be sampled. If NULL, `percentage` must be specified.
+#' @param percentage A numeric value between 0 and 1 indicating the proportion of individuals or markers to be sampled.
+#' This parameter is considered only if `n` is set to NULL.
+#' @param type A character string, either "marker" or "individual", indicating whether markers or individuals should be subset.
+#' @param selected.ind A character vector containing the names of the individuals to select.
+#' This parameter takes effect only if `type = "individual"`, and both `n` and `percentage` are NULL.
+#' @param selected.mrk A character vector containing the names of the markers to select.
+#' This parameter takes effect only if `type = "marker"`, and both `n` and `percentage` are NULL.
+#'
+#' @return A `mappoly2.data` object that contains the selected subset of individuals or markers.
 #' @export
+subset.mappoly2.data <- function(x, type = c("marker", "individual"),
+                                 perc = 0.1, n = NULL,
+                                 select.mrk = NULL, select.ind = NULL,
+                                 seed = NULL){
+  assert_that(is.mappoly2.data(x))
+  if(!is.null(select.ind))
+    type <- "individual"
+  else type <- match.arg(type)
+  if(type  ==  "marker"){
+    if(is.null(select.mrk)){
+      if (!is.null(seed)) set.seed(seed)
+      if(is.null(n)) n <- length(x$mrk.names) * perc
+      if(n > length(x$mrk.names)){
+        message("number of selected markers is larger\nthan number of markers in the original\ndataset. Returning original dataset")
+        return(x)
+      }
+      select.mrk = sample(x$mrk.names, ceiling(n))
+    }
+    return(subset_data(x, select.mrk = select.mrk))
+  } else if(type == "individual"){
+    if(is.null(select.ind)){
+      if (!is.null(seed)) set.seed(seed)
+      if(is.null(n)) n <- length(x$ind.names) * perc
+      if(n > length(x$ind.names)){
+        message("number of selected individuals is larger\nthan number of individuals in the original\ndataset. Returning original dataset")
+        return(x)
+      }
+      select.ind = sample(x$ind.names, ceiling(n))
+    }
+    return(subset_data(x, select.ind = select.ind))
+  }
+}
+
 subset_data <- function(input.data,
                         select.ind = NULL,
                         select.mrk = NULL){
