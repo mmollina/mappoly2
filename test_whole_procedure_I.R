@@ -3,15 +3,15 @@ require(mappoly2)
 source("misc/simulation.R")
 ploidy.p1 = 4
 ploidy.p2 = 4
-n.mrk <- 600
+n.mrk <- 100
 ph<-test_simulate(ploidy.p1 = ploidy.p1,
                   ploidy.p2 = ploidy.p2,
                   fpath = "misc/fake_triploid.csv",
                   n.mrk = n.mrk,
                   n.ind = 200,
                   map.length =100,
-                  miss.perc = 10,
-                  n.chrom = 5,
+                  miss.perc = 0,
+                  n.chrom = 3,
                   random = FALSE,
                   seed = 43598)
 dat <- read_geno_csv(file.in = "misc/fake_triploid.csv",
@@ -21,9 +21,31 @@ dat <- read_geno_csv(file.in = "misc/fake_triploid.csv",
                      name.p2 = "parent_2")
 x <- subset(dat)
 plot(x)
-x <- subset(dat, type = "marker", n = 10)
-plot(x)
-x <- subset(x, type = "individual", n = 10)
+x1 <- subset(B2721, type = "marker", n = 200)
+x1 <- subset(x1, type = "individual", n = 80)
+x2 <- subset(B2721, type = "marker", n = 300)
+x2 <- subset(x2, type = "individual", n = 100)
+x3 <- subset(B2721, type = "marker", n = 400)
+x3 <- subset(x3, type = "individual", n = 100)
+
+
+plot(x1)
+plot(x2)
+
+x1$ploidy.p1 == x2$ploidy.p1
+x1$ploidy.p2 == x2$ploidy.p2
+x1$name.p1 == x2$name.p1
+x1$name.p2 == x2$name.p2
+intersect.mrk <- intersect(x1$mrk.names, x2$mrk.names)
+which(x1$dosage.p1[intersect.mrk] == x2$dosage.p1[intersect.mrk] &
+      x1$dosage.p2[intersect.mrk] == x2$dosage.p2[intersect.mrk])
+
+
+
+
+
+
+
 plot(x)
 x <- subset(dat)
 
