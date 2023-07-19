@@ -48,3 +48,4 @@ Genetic Linkage Maps in Autopolyploids v 2.0
     - C
     - etc
 13. [ ] TODO Tutorial on how to use MAPpoly2.0 to build maps in diploid families derived from inbred lines (BC, F2, RILs, etc)
+14. [ ] TODO Functions to update parent names and other attributes in several objects through the analysis.
