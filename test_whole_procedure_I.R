@@ -3,7 +3,7 @@ require(mappoly2)
 setwd("/Users/mmollin/repos/official_repos/mappoly2")
 source("misc/simulation.R")
 ploidy.p1 = 4
-ploidy.p2 = 2
+ploidy.p2 = 4
 n.mrk <- 100
 ph<-test_simulate(ploidy.p1 = ploidy.p1,
                   ploidy.p2 = ploidy.p2,
@@ -48,8 +48,15 @@ s <- pairwise_rf(s, ncpus = 1)
 plot(s, type = "rf", fact = 2)
 #### Grouping ####
 s <- group(s, expected.groups = 3, comp.mat = TRUE, inter = T)
+s
 plot(s)
 
+
+max(c(nchar(colnames(mat)), nchar(mat)))
+
+
+
+print_matrix(mat, 10)
 
 
 

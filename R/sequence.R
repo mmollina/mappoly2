@@ -186,7 +186,7 @@ print.mappoly2.sequence <- function(x, detailed = FALSE,  ...) {
   cat("\n", txt[[6]], ifelse(is.null(x$pairwise), "Not estimated", "Estimated"))
   cat("\n", txt[[7]])
   if(is.null(x$linkage.groups))
-    cat("Not allocated")
+    cat(" Not allocated")
   else
     print_mappoly2_group (x$linkage.groups)
   cat("\n", txt[[8]])
@@ -238,12 +238,13 @@ plot.mappoly2.sequence <- function(x,
     on.exit(par(oldpar))
     if(!is.null(x$pairwise))
       plot_mappoly2_rf_matrix(x$pairwise, type = type.rf,
-                            ord = ord,
-                            rem = rem,
-                            main.text = main.text,
-                            index = index,
-                            fact = fact)
-    plot_mappoly2_group(x$linkage.groups)
+                              ord = ord,
+                              rem = rem,
+                              main.text = main.text,
+                              index = index,
+                              fact = fact)
+    if(!is.null(x$linkage.groups))
+      plot_mappoly2_group(x$linkage.groups)
   }
   else if(type == "seq")
     plot_sequence(x, thresh.line = NULL)

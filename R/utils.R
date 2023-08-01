@@ -58,3 +58,27 @@ find_flanking_markers <- function(A, B1, B2) {
   flanking_letters
 }
 
+print_matrix <- function(mat, spaces = 5, zero.print = "."){
+  mat[mat==0]<-zero.print
+  txt1 <- c(colnames(mat), mat)
+  n1 <- c(nchar(colnames(mat)), nchar(mat))
+  for (i in 1:length(txt1))
+    txt1[i] <- paste(txt1[i], paste0(rep(" ", max(n1) - n1[i]), collapse = ""))
+  dim(txt1) <- c(nrow(mat), ncol(mat)+1)
+  txt1<-t(txt1)
+  txt2 <- rownames(mat)
+  n2 <- nchar(txt2)
+  for (i in 1:length(txt2))
+    txt2[i] <- paste(txt2[i], paste0(rep(" ", max(n2) - n2[i]), collapse = ""))
+  txt2 <- c(paste0(rep(" ", (nchar(max(n2))+1)), collapse = ""), txt2)
+  for (i in 1:length(txt2))
+    txt2[i] <- paste0(paste0(rep(" ", spaces), collapse = ""), txt2[i])
+  cat(txt2[1], txt1[1,], "\n")
+  cat(paste0(paste0(rep(" ", spaces), collapse = ""),
+             paste0(rep("-", sum(nchar(c(txt2[1], txt1[1,])))+ncol(mat)-spaces), collapse = "")), "\n")
+  for(i in 2:nrow(txt1))
+    cat(txt2[i], txt1[i,], "\n")
+  cat(paste0(paste0(rep(" ", spaces), collapse = ""),
+             paste0(rep("-", sum(nchar(c(txt2[1], txt1[1,])))+ncol(mat)-spaces), collapse = "")), "\n")
+}
+

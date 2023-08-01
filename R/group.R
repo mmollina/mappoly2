@@ -120,16 +120,15 @@ group <- function(input.seq = NULL,
 #' @export
 print_mappoly2_group <- function(x, detailed = TRUE, ...) {
   ## criteria
-  cat("    - Number of linkage groups:  ", length(unique(x$groups.snp)), "\n")
-  cat("    - Number of markers per linkage groups: \n")
+  cat("\n       - Number of linkage groups:  ", length(unique(x$groups.snp)), "\n")
+  cat("       - Number of markers per linkage groups: \n")
   w <- data.frame(table(x$groups.snp, useNA = "ifany"))
   colnames(w) = c("   group", "n.mrk")
   print (w, row.names = FALSE)
-  cat("  ------------------------------------------\n")
+  cat("\n")
   ## printing summary
   if(!is.null(x$seq.vs.grouped.snp)){
-    print(x$seq.vs.grouped.snp)
-    cat("  ------------------------------------------\n")
+    print_matrix(x$seq.vs.grouped.snp, 8)
   }
 }
 
