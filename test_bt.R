@@ -1,8 +1,10 @@
 rm(list = ls())
 require(mappoly2)
 ####Read ####
-dat <- read_geno_csv(file.in = "~/repos/official_repos/misc/BT_trifida.csv",
-                     ploidy.p1 = 6, ploidy.p2 = 6)
+dat <- read_geno_csv(file.in = "misc/BT_trifida.csv",
+                     ploidy.p1 = 6, ploidy.p2 = 6,
+                     name.p1 = "Beauregard",
+                     name.p2 = "Tanzania")
 dat
 plot(dat)
 dat <- filter_missing(dat,
@@ -41,8 +43,8 @@ tpt2 <- est_pairwise_rf(s.ch1.p2, ncpus = 7)
 # Phasing #
 s.ch1.p2 <- pairwise_phasing(input.seq = s.ch1.p2,
                              input.twopt = tpt2,
-                             thresh.LOD.ph = 10,
-                             max.conf.btnk.p1 = 40)
+                             thresh.LOD.ph = 5,
+                             max.conf.btnk.p2 = 5)
 # Mapping #
 s.ch1.p2 <- mapping(input.seq = s.ch1.p2,
                     verbose = TRUE,

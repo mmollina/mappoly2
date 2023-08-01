@@ -210,17 +210,9 @@ filter_segregation <- function(input.obj, chisq.pval.thres = NULL, inter = TRUE)
   op <- par(pty="s")
   on.exit(par(op))
 
-  # Extract chi-square p-values and number of markers
-  if(is.mappoly2.data(input.obj)){
-    chisq.val <- input.obj$chisq.pval
-    n.mrk <- input.obj$n.mrk
-  } else if (is.mappoly2.sequence(input.obj)){
-    chisq.val <- input.obj$data$chisq.pval[input.obj$mrk.names]
-    n.mrk <- length(input.obj$mrk.names)
-  } else {
-    stop(deparse(substitute(input.obj)),
-         " is not an object of class 'mappoly2.data' or 'mappoly2.sequence'")
-  }
+  assert_that(is.mappoly2.sequence(input.obj))
+  chisq.val <- input.obj$data$chisq.pval[input.obj$mrk.names]
+  n.mrk <- length(input.obj$mrk.names)
 
   # Set threshold for chi-square p-values using Bonferroni approximation if not specified
   if(is.null(chisq.pval.thres))

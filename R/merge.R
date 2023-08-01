@@ -40,7 +40,7 @@
 #' }
 #'
 #' @export
-merge_multiple_datasets <- function(..., filter.non.conforming = TRUE,
+merge_datasets <- function(..., filter.non.conforming = TRUE,
                                     filter.redundant = TRUE,
                                     verbose = TRUE){
 
@@ -54,13 +54,12 @@ merge_multiple_datasets <- function(..., filter.non.conforming = TRUE,
   }
 
   # Check that all datasets are of the correct class
-  if(any(sapply(datasets, function(x) class(x) != "mappoly2.data"))){
-    stop("All datasets need to be of class 'mappoly2.data'")
-  }
+  assert_that(all(sapply(datasets, is.mappoly2.data)))
+
   if (verbose) cat(" -->  Merging datasets.\n     ")
 
   # Use Reduce function to iteratively merge all datasets
-  merged_res <- Reduce(function(x, y) merge_datasets(x, y), datasets)
+  merged_res <- Reduce(function(x, y) merge(x, y), datasets)
 
   # Computing chi-square p.values
   res <- suppressWarnings(mappoly_chisq_test(merged_res))
@@ -85,23 +84,16 @@ merge_multiple_datasets <- function(..., filter.non.conforming = TRUE,
 }
 
 # Function to merge two datasets
-merge_data <- function(res1, res2){
-
-  #FIXME: check for null elements
-
-  # Ensure the class of both objects is 'mappoly2.data'
-  if(class(res1) != "mappoly2.data" | class(res2) != "mappoly2.data"){
-    stop("Both datasets need to be of class 'mappoly2.data'")
-  }
+merge.mappoly2.data <- function(x, y){
 
   # Identify union of markers and individuals
-  union_markers <- union(names(res1$dosage.p1), names(res2$dosage.p1))
-  union_individuals <- union(res1$ind.names, res2$ind.names)
+  union_markers <- union(names(x$dosage.p1), names(y$dosage.p1))
+  union_individuals <- union(x$ind.names, y$ind.names)
 
   # Check if intersecting markers have same dosage in both parents
-  intersect_markers <- intersect(names(res1$dosage.p1), names(res2$dosage.p1))
-  equal_dosage_p1 <- res1$dosage.p1[intersect_markers] == res2$dosage.p1[intersect_markers]
-  equal_dosage_p2 <- res1$dosage.p2[intersect_markers] == res2$dosage.p2[intersect_markers]
+  intersect_markers <- intersect(names(x$dosage.p1), names(y$dosage.p1))
+  equal_dosage_p1 <- x$dosage.p1[intersect_markers] == y$dosage.p1[intersect_markers]
+  equal_dosage_p2 <- x$dosage.p2[intersect_markers] == y$dosage.p2[intersect_markers]
 
   # Discard markers with different dosages & issue warning
   markers_to_discard <- intersect_markers[!equal_dosage_p1 | !equal_dosage_p2]
@@ -117,21 +109,21 @@ merge_data <- function(res1, res2){
   combined_dosage_p1 <- combined_dosage_p2 <- setNames(rep(NA, length(union_markers)), union_markers)
   combined_chrom <- combined_genome_pos <- combined_ref <- combined_alt <- combined_dosage_p1
 
-  # Fill in data from res1 and res2 where available
-  combined_geno_dose[res1$mrk.names, res1$ind.names] <- res1$geno.dose
-  combined_geno_dose[res2$mrk.names, res2$ind.names] <- res2$geno.dose
-  combined_dosage_p1[names(res1$dosage.p1)] <- res1$dosage.p1
-  combined_dosage_p1[names(res2$dosage.p1)] <- res2$dosage.p1
-  combined_dosage_p2[names(res1$dosage.p2)] <- res1$dosage.p2
-  combined_dosage_p2[names(res2$dosage.p2)] <- res2$dosage.p2
-  combined_chrom[names(res1$chrom)] <- res1$chrom
-  combined_chrom[names(res2$chrom)] <- res2$chrom
-  combined_genome_pos[names(res1$genome.pos)] <- res1$genome.pos
-  combined_genome_pos[names(res2$genome.pos)] <- res2$genome.pos
-  combined_ref[names(res1$ref)] <- res1$ref
-  combined_ref[names(res2$ref)] <- res2$ref
-  combined_alt[names(res1$alt)] <- res1$alt
-  combined_alt[names(res2$alt)] <- res2$alt
+  # Fill in data from x and y where available
+  combined_geno_dose[x$mrk.names, x$ind.names] <- x$geno.dose
+  combined_geno_dose[y$mrk.names, y$ind.names] <- y$geno.dose
+  combined_dosage_p1[names(x$dosage.p1)] <- x$dosage.p1
+  combined_dosage_p1[names(y$dosage.p1)] <- y$dosage.p1
+  combined_dosage_p2[names(x$dosage.p2)] <- x$dosage.p2
+  combined_dosage_p2[names(y$dosage.p2)] <- y$dosage.p2
+  combined_chrom[names(x$chrom)] <- x$chrom
+  combined_chrom[names(y$chrom)] <- y$chrom
+  combined_genome_pos[names(x$genome.pos)] <- x$genome.pos
+  combined_genome_pos[names(y$genome.pos)] <- y$genome.pos
+  combined_ref[names(x$ref)] <- x$ref
+  combined_ref[names(y$ref)] <- y$ref
+  combined_alt[names(x$alt)] <- x$alt
+  combined_alt[names(y$alt)] <- y$alt
 
   # Function to extract numeric portion from chromosome names
   extract_numeric <- function(chrom) {
@@ -152,21 +144,21 @@ merge_data <- function(res1, res2){
 
   # Create new merged dataset
   merged_res <- list(
-    ploidy.p1 = res1$ploidy.p1,
-    ploidy.p2 = res1$ploidy.p2,
+    ploidy.p1 = x$ploidy.p1,
+    ploidy.p2 = x$ploidy.p2,
     n.ind = length(union_individuals),
     n.mrk = length(union_markers),
     ind.names = union_individuals,
     mrk.names = union_markers[ordered_index], # apply ordering to marker names
-    name.p1 = res1$name.p1,
-    name.p2 = res1$name.p2,
+    name.p1 = x$name.p1,
+    name.p2 = x$name.p2,
     dosage.p1 = combined_dosage_p1,
     dosage.p2 = combined_dosage_p2,
     chrom = combined_chrom,
     genome.pos = combined_genome_pos,
     ref = combined_ref,
     alt = combined_alt,
-    all.mrk.depth = c(res1$all.mrk.depth, res2$all.mrk.depth),
+    all.mrk.depth = c(x$all.mrk.depth, y$all.mrk.depth),
     geno.dose = combined_geno_dose,
     redundant = NULL
   )

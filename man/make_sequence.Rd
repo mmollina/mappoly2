@@ -4,6 +4,7 @@
 \alias{make_sequence}
 \alias{print.mappoly2.sequence}
 \alias{plot.mappoly2.sequence}
+\alias{plot_sequence}
 \title{Create a sequence of markers}
 \usage{
 make_sequence(
@@ -11,12 +12,26 @@ make_sequence(
   arg = NULL,
   info.parent = c("both", "p1", "p2"),
   genomic.info = NULL,
-  phase = NULL
+  phase = NULL,
+  pairwise = NULL
 )
 
 \method{print}{mappoly2.sequence}(x, detailed = FALSE, ...)
 
-\method{plot}{mappoly2.sequence}(x, thresh.line = NULL, ...)
+\method{plot}{mappoly2.sequence}(
+  x,
+  type = c("all", "sequence", "rf", "group", "mds"),
+  type.rf = c("rf", "lod"),
+  ord = NULL,
+  rem = NULL,
+  main.text = NULL,
+  index = FALSE,
+  fact = 1,
+  thresh.line = NULL,
+  ...
+)
+
+plot_sequence(x, thresh.line = NULL, ...)
 }
 \arguments{
 \item{input.obj}{an object of one of the following classes:

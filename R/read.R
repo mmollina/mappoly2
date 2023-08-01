@@ -76,8 +76,7 @@
 #' print(SolCAP.dose, detailed = TRUE)
 #' plot(SolCAP.dose)
 #'}
-#' @author Marcelo Mollinari, \email{mmollin@ncsu.edu} and
-#' Gabriel Gesteira, \email{gdesiqu@ncsu.edu}
+#' @author Marcelo Mollinari, \email{mmollin@ncsu.edu}
 #' @importFrom grDevices rgb
 #' @importFrom stats na.omit
 #' @importFrom utils read.csv

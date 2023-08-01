@@ -63,10 +63,11 @@
 #' @export
 #' @importFrom assertthat assert_that
 make_sequence <- function(input.obj,
-                     arg = NULL,
-                     info.parent = c("both", "p1", "p2"),
-                     genomic.info = NULL,
-                     phase = NULL) {
+                          arg = NULL,
+                          info.parent = c("both", "p1", "p2"),
+                          genomic.info = NULL,
+                          phase = NULL,
+                          pairwise = NULL) {
   info.parent <- match.arg(info.parent)
   if (is.mappoly2.data(input.obj))
   {
@@ -117,7 +118,7 @@ make_sequence <- function(input.obj,
     lgs.idx <- names(input.obj$groups.snp[input.obj$groups.snp  %in%  arg])
     if(is.null(genomic.info)){
       return(make_sequence(input.obj = input.obj$input.seq,
-                      arg = lgs.idx))
+                           arg = lgs.idx))
     } else {
       assert_that(is.numeric(genomic.info))
       chrom <- input.obj$input.seq$data$chrom[lgs.idx]
@@ -150,6 +151,7 @@ make_sequence <- function(input.obj,
   }
   structure(list(mrk.names = mrk.names,
                  phases = phase,
+                 pairwise = pairwise,
                  redundant = NULL,
                  data = out.dat),
             class = "mappoly2.sequence")
@@ -164,6 +166,7 @@ print.mappoly2.sequence <- function(x, detailed = FALSE,  ...) {
     paste0("    No. individuals:"),
     paste0("    No. markers:"),
     paste0("    Percentage of missing:"),
+    paste0("    Pairwise:"),
     paste0("    Phases:"),
     paste0("      '--> Number of configurations:"),
     paste0("      '--> Percentage phased:"))
@@ -177,13 +180,14 @@ print.mappoly2.sequence <- function(x, detailed = FALSE,  ...) {
   cat("\n", txt[[3]], x$data$n.ind)
   cat("\n", txt[[4]], length(x$mrk.names))
   cat("\n ", txt[[5]], " ",   round(100*sum(id)/length(id),1), "%", sep = "")
-  cat("\n", txt[[6]])
+  cat("\n", txt[[6]], ifelse(is.null(x$pairwise), "Not estimated", "Estimated"))
+  cat("\n", txt[[7]])
   if(is.null(x$phases)){
-    cat("\n ", txt[[7]], " 0", sep = "")
-    cat("\n ", txt[[8]], " 0%", sep = "")
+    cat("\n ", txt[[8]], " 0", sep = "")
+    cat("\n ", txt[[9]], " 0%", sep = "")
   } else {
-    cat("\n ", txt[[7]], " ", length(x$phases), sep = "")
-    cat("\n ", txt[[8]], " ", nrow(x$phases[[1]]$p1), " (",   round(100*nrow(x$phases[[1]]$p1)/length(x$mrk.names),1), "%)", sep = "")
+    cat("\n ", txt[[8]], " ", length(x$phases), sep = "")
+    cat("\n ", txt[[9]], " ", nrow(x$phases[[1]]$p1), " (",   round(100*nrow(x$phases[[1]]$p1)/length(x$mrk.names),1), "%)", sep = "")
   }
   w <- table(x$data$chrom[x$mrk.names], useNA = "always")
   w <- w[order(as.integer(gsub("[^0-9]", "", names(w))))]
@@ -213,8 +217,41 @@ print.mappoly2.sequence <- function(x, detailed = FALSE,  ...) {
 #' @importFrom graphics barplot layout mtext image legend
 #' @importFrom grDevices colorRampPalette
 #' @importFrom grDevices blues9
-plot.mappoly2.sequence <- function(x, thresh.line = NULL, ...)
+plot.mappoly2.sequence <- function(x,
+                                   type = c("all", "sequence", "rf", "group", "mds"),
+                                   type.rf = c("rf", "lod"), ord = NULL, rem = NULL,
+                                   main.text = NULL, index = FALSE, fact = 1,
+                                   thresh.line = NULL, ...)
 {
+  type <- match.arg(type)
+  if(type == "all"){
+    oldpar <- par(ask = TRUE)
+    on.exit(par(oldpar))
+    plot_sequence(x, thresh.line = NULL)
+    if(!is.null(x$pairwise))
+    plot.mappoly2.rf.matrix(x$pairwise, type = type.rf,
+                            ord = ord,
+                            rem = rem,
+                            main.text = main.text,
+                            index = index,
+                            fact = fact)
+  }
+  else if(type == "sequence")
+    plot_sequence(x, thresh.line = NULL)
+  else if(type == "rf")
+    plot.mappoly2.rf.matrix(x$pairwise, type = type.rf,
+                            ord = ord,
+                            rem = rem,
+                            main.text = main.text,
+                            index = index,
+                            fact = fact)
+}
+
+#' @rdname make_sequence
+#' @importFrom graphics barplot layout mtext image legend
+#' @importFrom grDevices colorRampPalette
+#' @importFrom grDevices blues9
+plot_sequence <- function(x, thresh.line = NULL, ...){
   oldpar <- par(mar = c(5,4,1,2))
   on.exit(par(oldpar))
   if(is.null(thresh.line))

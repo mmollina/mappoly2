@@ -103,6 +103,5 @@ plot(SolCAP.dose)
 }
 }
 \author{
-Marcelo Mollinari, \email{mmollin@ncsu.edu} and
-Gabriel Gesteira, \email{gdesiqu@ncsu.edu}
+Marcelo Mollinari, \email{mmollin@ncsu.edu}
 }

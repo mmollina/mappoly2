@@ -33,6 +33,10 @@ est_hmm_map_biallelic_single <- function(PH, G, rf, err, verbose, detailed_verbo
     .Call('_mappoly2_est_hmm_map_biallelic_single', PACKAGE = 'mappoly2', PH, G, rf, err, verbose, detailed_verbose, tol, ret_H0)
 }
 
+pairwise_rf_estimation_disc_rcpp <- function(mrk_pairs_R, ploidy_p1_R, ploidy_p2_R, geno_R, dose_p1_R, dose_p2_R, count_vector_R, count_matrix_phases_R, count_matrix_rownames_R, count_matrix_number_R, count_matrix_pos_R, count_matrix_length_R, tol_R, threads_R) {
+    .Call('_mappoly2_pairwise_rf_estimation_disc_rcpp', PACKAGE = 'mappoly2', mrk_pairs_R, ploidy_p1_R, ploidy_p2_R, geno_R, dose_p1_R, dose_p2_R, count_vector_R, count_matrix_phases_R, count_matrix_rownames_R, count_matrix_number_R, count_matrix_pos_R, count_matrix_length_R, tol_R, threads_R)
+}
+
 twopt_phasing_cpp <- function(mrk_id, ploidy, dose_vec, S, max_conf_number, verbose) {
     .Call('_mappoly2_twopt_phasing_cpp', PACKAGE = 'mappoly2', mrk_id, ploidy, dose_vec, S, max_conf_number, verbose)
 }

@@ -64,13 +64,13 @@ double twopt_likelihood(double rf,
 {
   int count, count2=0;
   double temp=0.0;
-  Rcpp::NumericMatrix Tr(ploidy_p1+2, ploidy_p2+2);
+  int offspring_ploidy = (ploidy_p1 + ploidy_p2)/2;
+  Rcpp::NumericMatrix Tr(offspring_ploidy+2, offspring_ploidy+2);
   std::fill(Tr.begin(), Tr.end(), 1);
   for(int i = 0; i < dk.size(); i++){
     count=0;
     Tr(dk(i),dk1(i))=0;
     for(int l_p1 = 0; l_p1 <= ploidy_p1/2; l_p1++){
-    //for(int l_p2 = l_p1; l_p2 <= ploidy_p2/2; l_p2++) {
       for(int l_p2 = 0; l_p2 <= ploidy_p2/2; l_p2++) {
         Tr(dk(i),dk1(i))=Tr(dk(i),dk1(i)) +
           count_mat(count2, count) *

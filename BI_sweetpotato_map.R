@@ -1,99 +1,105 @@
 rm(list = ls())
 require(mappoly2)
-setwd("/Users/mmollin/repos/official_repos/mappoly2")
-source("misc/simulation.R")
-ploidy.p1 = 4
-ploidy.p2 = 2
-n.mrk <- 100
-ph<-test_simulate(ploidy.p1 = ploidy.p1,
-                  ploidy.p2 = ploidy.p2,
-                  fpath = "misc/fake_triploid.csv",
-                  n.mrk = n.mrk,
-                  n.ind = 200,
-                  map.length = 100,
-                  miss.perc = 0,
-                  n.chrom = 3,
-                  random = FALSE,
-                  seed = 43598)
-dat <- read_geno_csv(file.in = "misc/fake_triploid.csv",
-                     ploidy.p1 = ploidy.p1,
-                     ploidy.p2 = ploidy.p2,
-                     name.p1 = "parent_1",
-                     name.p2 = "parent_2")
-x <- subset(dat)
-plot(x)
-x1 <- subset(B2721, type = "marker", n = 700)
-x1 <- subset(x1, type = "individual", n = 80)
-x2 <- subset(B2721, type = "marker", n = 500)
-x2 <- subset(x2, type = "individual", n = 100)
-x3 <- subset(B2721, type = "marker", n = 400)
-x3 <- subset(x3, type = "individual", n = 100)
-x <- merge_datasets(x1, x2, x3)
-x
-plot(x)
-
+require(tidyverse)
+dat <- read_geno_csv(file.in = "~/repos/BI_sweetpotato.csv",
+                     ploidy.p1 = 6,
+                     ploidy.p2 = 6,
+                     name.p1 = "Beauregard",
+                     name.p2 = "Regal")
+dat
 plot(dat)
-dat <- filter_missing(dat, type = "marker", filter.thres = 0.15, inter = FALSE)
-dat <- filter_missing(dat, type = "individual", filter.thres = 0.11, inter = FALSE)
+dat <- filter_missing(dat, type = "marker", filter.thres = 0.10, inter = F)
+dat <- filter_missing(dat, type = "individual", filter.thres = 0.10, inter = F)
 dat <- filter_individuals(dat)
-s <- make_sequence(dat, "all")
+
+
+s <- filter_segregation(dat, inter = FALSE)
 print(s, detailed = TRUE)
 plot(s)
-s <- filter_segregation(s, inter = FALSE)
-print(s, detailed = TRUE)
-plot(s)
-s <- pairwise_rf(s, ncpus = 7)
-s
-plos(s)
-
-
-
-
-
-
-
 
 #### Two-points ####
-s <- est_pairwise_rf(s, ncpus = 1)
+tpt <- est_pairwise_rf(s, ncpus = 7)
+m <- rf_list_to_matrix(tpt, thresh.LOD.ph = 1, thresh.LOD.rf = 1)
+plot(m)
 
-
-m <- rf_list_to_matrix(tpt)
-plot(m, type = "lod")
-dev.off()
-image(m$rec.mat, main = "old", col = rev(fields::tim.colors(64)))
-
-
-
-tpt2 <- pairwise_rf(s)
-tpt2$rec.mat[tpt2$lod.ph.mat < 3] <- NA
-
-s$data$ploidy.p1
-s$data$ploidy.p2
-image(tpt2$Sh.p1)
-range(tpt2$Sh.p1, na.rm = TRUE)
-image(tpt2$Sh.p2)
-range(tpt2$Sh.p2, na.rm = TRUE)
-image(tpt2$rec.mat, main = "new", col = rev(fields::tim.colors(64)))
-
-
+so <- get_genome_order(s)
+plot(so)
+so <- make_sequence(so)
+plot(m, ord = so, fact = 5)
 
 #### Grouping ####
-lg <- group(m, expected.groups = 3, comp.mat = TRUE, inter = F)
-plot(lg)
+gr <- group(m, expected.groups = 20, inter = FALSE, comp.mat = TRUE)
+plot(gr)
+gr
+heatmap(gr$seq.vs.grouped.snp, Colv = NA, xlab = "Chrom",  ylab = "LG")
+## convert to tibble, add row identifier, and shape "long"
+dat2 <-
+  gr$seq.vs.grouped.snp %>%
+  as_tibble() %>%
+  rownames_to_column("Var1") %>%
+  pivot_longer(-Var1, names_to = "Var2", values_to = "value") %>%
+  rename(Linkage_group = Var1) %>% rename(Chrom = Var2)
+
+ggplot(dat2, aes(Linkage_group, Chrom)) +
+  geom_tile(aes(fill = value)) +
+  geom_text(aes(label = round(value, 1))) +
+  scale_fill_gradient(low = "white", high = "red")
+
 #### CH1 ####
-s.ch1.all <- make_sequence(lg, 1, genomic.info = 1)
+dat.sim <- read_geno_csv(file.in = "misc/fake_triploid.csv",
+                         ploidy.p1 = ploidy.p1,
+                         ploidy.p2 = ploidy.p2,
+                         name.p1 = "parent_1",
+                         name.p2 = "parent_2")
+s <- make_sequence(dat.sim, arg = "ch1")
+tpt <- est_pairwise_rf(s) ## Will remove
+y1<-numeric(100)
+x1<- seq(0, 20, length.out = 100)
+for(i in 1:100){
+  m <- rf_list_to_matrix(tpt, thresh.LOD.ph =x1[i])
+  y1[i] <- sum(!is.na(m$lod.mat))/length(m$lod.mat)
+}
+#plot(y1 ~ x1, xlab = "LOD", ylab = "percetange filled", xlim = c(-1, max(x1)), ylim = c(0,1), type = "l")
+points(y1 ~ x1, col = 7, type = "l", lwd = 2)
+
+
+
+
+
+s.ch1.all <- make_sequence(dat, arg = "ch1", genomic.info = 1)
 s.ch1.all
 tpt.ch1 <- est_pairwise_rf(s.ch1.all) ## Will remove
-s.ch1.filt <- rf_snp_filter(tpt.ch1)
+y2<-numeric(100)
+x2<- seq(0, 20, length.out = 100)
+for(i in 1:100){
+  m.ch1 <- rf_list_to_matrix(tpt.ch1, thresh.LOD.ph = x2[i])
+  y2[i] <- sum(!is.na(m.ch1$lod.mat))/length(m.ch1$lod.mat)
+}
+points(y2 ~ x2, col = 2, type = "l")
+for(i in 1:length(x1))
+lines(c(x1[i],x2[i]), c(y1[i], y2[i]), col = 3)
+
+
+
+
+
+
+
+s.ch1 <- pairwise_phasing(input.seq = s.ch1.all,
+                          input.twopt = tpt.ch1,
+                          thresh.LOD.ph = 1,
+                          max.conf.btnk.p1 = 20)
+
+
 
 #### Select parent 1####
-s.ch1.p1 <- make_sequence(s.ch1.filt, info.parent = "p1")
+s.ch1.p1 <- make_sequence(s.ch1.all, info.parent = "p1")
 s.ch1.p1
 # Phasing #
 s.ch1.p1 <- pairwise_phasing(input.seq = s.ch1.p1,
-                             input.twopt = tpt,
-                             thresh.LOD.ph = 3,
-                             max.conf.btnk.p1 = 10)
+                             input.twopt = tpt.ch1,
+                             thresh.LOD.ph = .5,
+                             max.conf.btnk.p1 = 200)
 # Mapping #
 s.ch1.p1 <- mapping(input.seq = s.ch1.p1,
                     verbose = TRUE,
@@ -106,8 +112,8 @@ s.ch1.p2
 # Phasing #
 s.ch1.p2 <- pairwise_phasing(input.seq = s.ch1.p2,
                              input.twopt = tpt,
-                             thresh.LOD.ph = 3,
-                             max.conf.btnk.p1 = 10)
+                             thresh.LOD.ph = .5,
+                             max.conf.btnk.p1 = 200)
 # Mapping #
 s.ch1.p2 <- mapping(input.seq = s.ch1.p2,
                     verbose = TRUE,
@@ -160,6 +166,8 @@ drop.seq <- drop_marker(input.seq = s.ch1.all, mrk, reestimate.map = T)
 plot_map(drop.seq, 60, 80, mrk.names = T, xlim = c(58, 81), cex = 1.5)
 drop.seq<-calc_haplotypes(drop.seq)
 drop.seq <- add_marker(drop.seq, mrk)
+plot_map(s.ch1.all, 60, 80, mrk.names = T, xlim = c(58, 81), cex = 1.5)
+x11()
 plot_map(drop.seq, 60, 80, mrk.names = T, xlim = c(58, 81), cex = 1.5)
 drop.seq <- mapping(drop.seq, verbose = T)
 plot_map(drop.seq, 60, 80, mrk.names = T, xlim = c(58, 81), cex = 1.5)
