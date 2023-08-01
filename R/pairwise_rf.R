@@ -302,30 +302,7 @@ rf_list_to_matrix <- function(input.twopt,
 
 #' @rdname rf_list_to_matrix
 #' @export
-print.mappoly2.rf.matrix <- function(x, ...) {
-  cat("  This is an object of class 'mappoly.rf.matrix'\n\n")
-  ## criteria
-  cat("  Criteria used to filter markers:\n\n")
-  cat(
-    "      Configuration phase LOD:           ",
-    x$thresh.LOD.ph,
-    "\n      Recombination fraction LOD:        ",
-    x$thresh.LOD.rf,
-    "\n      Maximum recombination fraction:    ",
-    x$thresh.rf,
-    "\n"
-  )
-  n.mrk <- ncol(x$rec.mat)
-  per.fill  <-
-    round(100 * sum(!is.na(x$rec.mat)) / (length(x$rec.mat)-ncol(x$rec.mat)), 1)
-  ## printing summary
-  cat("\n  No. markers:             ", n.mrk, "\n")
-  cat("  Percentage filled:       ", per.fill, "%\n")
-}
-
-#' @rdname rf_list_to_matrix
-#' @export
-plot.mappoly2.rf.matrix <- function(x, type = c("rf", "lod"), ord = NULL, rem = NULL,
+plot_mappoly2_rf_matrix <- function(x, type = c("rf", "lod"), ord = NULL, rem = NULL,
                                     main.text = NULL, index = FALSE, fact = 1, ...){
   type <- match.arg(type)
   if(is.mappoly2.sequence(ord))

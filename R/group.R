@@ -37,29 +37,22 @@
 #' @importFrom dendextend color_branches
 #' @export group
 
-group <- function(input.mat,
-                  input.seq = NULL,
+group <- function(input.seq = NULL,
                   expected.groups = NULL,
                   inter = TRUE,
                   comp.mat = FALSE,
                   LODweight = FALSE)
 {
   ## checking for correct object
-  assert_that(is.mappoly2.rf.matrix(input.mat))
-  if(is.null(input.seq))
-    input.seq <- input.mat$input.seq
-  assert_that(is.mappoly2.sequence(input.seq))
-  if(!setequal(intersect(input.seq$mrk.names,colnames(input.mat$rec.mat)), input.seq$mrk.names)){
-    stop("'input.mat' does not contain all markers present in 'input.seq'")
-  }
-  MSNP <- input.mat$rec.mat[input.seq$mrk.names, input.seq$mrk.names]
+  assert_that(is.pairwise.sequence(input.seq))
+  MSNP <- input.seq$pairwise$rec.mat[input.seq$mrk.names, input.seq$mrk.names]
   mn <- input.seq$data$chrom[input.seq$mrk.names]
   mn[is.na(mn)] <- "NoChr"
   dimnames(MSNP) <- list(mn, mn)
   diag(MSNP) <- 0
   MSNP[is.na(MSNP)] <- .5
   if(LODweight){
-    Mlod <- input.mat$lod.mat^2
+    Mlod <- input.seq$pairwise$lod.mat^2
     Mlod[is.na(Mlod)] <- 10e-5
     hc.snp <- hclust(as.dist(MSNP), method="ward.D2", members=apply(Mlod, 1, mean, na.rm = TRUE))
   } else {
@@ -117,27 +110,22 @@ group <- function(input.mat,
     seq.vs.grouped.snp <- NULL
   }
   names(groups.snp) <- input.seq$mrk.names
-  structure(list(hc.snp = hc.snp,
-                 expected.groups = expected.groups,
-                 groups.snp = groups.snp,
-                 seq.vs.grouped.snp = seq.vs.grouped.snp,
-                 input.seq = input.seq),
-            class = "mappoly2.group")
+  input.seq$linkage.groups <- list(hc.snp = hc.snp,
+                                   expected.groups = expected.groups,
+                                   groups.snp = groups.snp,
+                                   seq.vs.grouped.snp = seq.vs.grouped.snp)
+  return(input.seq)
 }
 
 #' @export
-print.mappoly2.group <- function(x, detailed = TRUE, ...) {
-  cat("  This is an object of class 'mappoly2.group'\n  ------------------------------------------\n")
+print_mappoly2_group <- function(x, detailed = TRUE, ...) {
   ## criteria
-  cat("  Criteria used to assign markers to groups:\n\n")
-  cat("    - Number of markers:         ", length(x$groups.snp), "\n")
   cat("    - Number of linkage groups:  ", length(unique(x$groups.snp)), "\n")
   cat("    - Number of markers per linkage groups: \n")
   w <- data.frame(table(x$groups.snp, useNA = "ifany"))
   colnames(w) = c("   group", "n.mrk")
   print (w, row.names = FALSE)
   cat("  ------------------------------------------\n")
-
   ## printing summary
   if(!is.null(x$seq.vs.grouped.snp)){
     print(x$seq.vs.grouped.snp)
@@ -146,7 +134,7 @@ print.mappoly2.group <- function(x, detailed = TRUE, ...) {
 }
 
 #' @export
-plot.mappoly2.group <- function(x, ...) {
+plot_mappoly2_group <- function(x, ...) {
   dend <- as.dendrogram(x$hc.snp)
   dend1 <- dendextend::color_branches(dend, k = x$expected.groups)
   plot(dend1, leaflab = "none")

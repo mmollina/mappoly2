@@ -2,8 +2,7 @@
 % Please edit documentation in R/pairwise_rf.R
 \name{rf_list_to_matrix}
 \alias{rf_list_to_matrix}
-\alias{print.mappoly2.rf.matrix}
-\alias{plot.mappoly2.rf.matrix}
+\alias{plot_mappoly2_rf_matrix}
 \title{Recombination fraction list to matrix}
 \usage{
 rf_list_to_matrix(
@@ -16,9 +15,7 @@ rf_list_to_matrix(
   verbose = TRUE
 )
 
-\method{print}{mappoly2.rf.matrix}(x, ...)
-
-\method{plot}{mappoly2.rf.matrix}(
+plot_mappoly2_rf_matrix(
   x,
   type = c("rf", "lod"),
   ord = NULL,
@@ -48,8 +45,6 @@ the number of homologues that share alleles (default = FALSE)}
 
 \item{x}{an object of class \code{mappoly.rf.matrix}}
 
-\item{...}{currently ignored}
-
 \item{type}{type of matrix that should be printed. Can be one of the
 following: \code{"rf"}, for recombination fraction or \code{"lod"}
 for LOD Score}
@@ -65,6 +60,8 @@ diagonal of the heatmap? (default = FALSE)}
 
 \item{fact}{positive integer. factor expressed as number of cells to be aggregated
 (default = 1, no aggregation)}
+
+\item{...}{currently ignored}
 }
 \value{
 A list containing two matrices. The first one contains the

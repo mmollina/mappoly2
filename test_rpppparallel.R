@@ -21,5 +21,5 @@ dat <- read_geno_csv(file.in = "misc/fake_triploid.csv",
                      name.p1 = "parent_1",
                      name.p2 = "parent_2")
 s <- make_sequence(dat, "all")
-s <- pairwise_rf(input.seq = s, ncpus = 1)
+s <- pairwise_rf(input.seq = s, ncpus = 2)
 plot(s, "rf")

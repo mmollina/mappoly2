@@ -5,7 +5,6 @@
 \title{Assign Markers to Linkage Groups}
 \usage{
 group(
-  input.mat,
   input.seq = NULL,
   expected.groups = NULL,
   inter = TRUE,
@@ -14,9 +13,6 @@ group(
 )
 }
 \arguments{
-\item{input.mat}{A \code{mappoly2.rf.matrix} object containing the
-recombination fraction and LOD score matrices.}
-
 \item{input.seq}{A \code{mappoly2.sequence} object containing the markers
 to be grouped. If \code{NULL} (default), all markers in \code{input.mat} are used.}
 
@@ -32,6 +28,9 @@ Default is \code{FALSE}.}
 
 \item{LODweight}{A logical indicating whether the clustering should be weighted by
 the square of the LOD score. Default is \code{FALSE}.}
+
+\item{input.mat}{A \code{mappoly2.rf.matrix} object containing the
+recombination fraction and LOD score matrices.}
 }
 \value{
 An object of class \code{mappoly2.group}, which is a list containing:

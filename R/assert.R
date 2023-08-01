@@ -18,6 +18,11 @@ is.mappoly2.geno.ord <- function (x)
   inherits(x, "mappoly2.geno.ord")
 is.mappoly2.rf.matrix <- function (x)
   inherits(x, "mappoly2.rf.matrix")
+is.pairwise.sequence <- function(x){
+  is.mappoly2.sequence(x) &&
+    !is.null(x$pairwise) &&
+    all(colnames(x$pairwise$rec.mat) == x$mrk.names)
+}
 is.phased.sequence <- function(x){
   is.mappoly2.sequence(x) &&
   !is.null(x$phases[[1]]$p1) && !is.null(x$phases[[1]]$p2)
