@@ -82,6 +82,8 @@ struct rf_two_point_parallel : public Worker {
   const int ploidy_p2;
   const double tol;
   const int n_ind;
+  // Initialize transition matrix
+  // const RMatrix<double> Tr2;
   // output matrix to write to
   RMatrix<double> out;
 
@@ -101,6 +103,7 @@ struct rf_two_point_parallel : public Worker {
                         const int ploidy_p2,
                         const double tol,
                         const int n_ind,
+                        // const NumericMatrix Tr2,
                         NumericMatrix out)
   : mrk_pairs(mrk_pairs), geno(geno), dose_p1(dose_p1), dose_p2(dose_p2),
     count_vector(count_vector), count_matrix_phases(count_matrix_phases),
@@ -124,7 +127,7 @@ struct rf_two_point_parallel : public Worker {
         1;
       double min_lod = 1000000.0;
       double res2 = 0.0;
-
+      
       if(count_matrix_number[(id-1)] > 1) //MODIFIED
         {
           RMatrix<double>::Row gen_1 = geno.row(mrk_pairs(0,k));
@@ -180,11 +183,11 @@ struct rf_two_point_parallel : public Worker {
           // Getting length of actual submatrices
           int len_ac = count_matrix_length[(id-1)] / count_matrix_number[(id-1)];
 
-          for(int i=0; i < count_matrix_number[(id-1)]; i++) //MODIFIED
+          for(int auau=0; auau < count_matrix_number[(id-1)]; auau++) //MODIFIED
             {
               std::vector<double> count_mat = s(count_vector,
-                                                ((count_matrix_pos[(id-1)]-1) + (i*(len_ac))),
-                                                ((count_matrix_pos[(id-1)]-1) + ((i+1)*len_ac - 1)));
+                                                ((count_matrix_pos[(id-1)]-1) + (auau*(len_ac))),
+                                                ((count_matrix_pos[(id-1)]-1) + ((auau+1)*len_ac - 1)));
               std::vector<int> dk(z.size()), dk1(z.size());
               std::string delimiter = " ";
               for(int j=0; j < z.size(); j++)
@@ -225,14 +228,18 @@ struct rf_two_point_parallel : public Worker {
               int count, count2=0;
               double temp=0.0;
               int offspring_ploidy = (ploidy_p1 + ploidy_p2)/2;
-              Rcpp::NumericMatrix Tr(offspring_ploidy+2, offspring_ploidy+2);
+              std::vector<double> Tr((offspring_ploidy+2) * (offspring_ploidy+2));
+              // Rcpp::NumericMatrix Tr(offspring_ploidy+2, offspring_ploidy+2);
+              // RMatrix<double> Tr(Tr2);
               std::fill(Tr.begin(), Tr.end(), 1);
               for(int i = 0; i < dk.size(); i++){
                 count=0;
-                Tr(dk[i],dk1[i])=0;
+                Tr[dk[i] + (dk1[i] * (offspring_ploidy+2))]=0.0;
+                // Tr(dk[i],dk1[i])=0.0;
                 for(int l_p1 = 0; l_p1 <= ploidy_p1/2; l_p1++){
                   for(int l_p2 = 0; l_p2 <= ploidy_p2/2; l_p2++) {
-                    Tr(dk[i],dk1[i])=Tr(dk[i],dk1[i]) +
+                    Tr[dk[i] + (dk1[i] * (offspring_ploidy+2))]=Tr[dk[i] + (dk1[i] * (offspring_ploidy+2))] +
+                    // Tr(dk[i],dk1[i])=Tr(dk[i],dk1[i]) +
                       count_mat[count2 + (count * z.size())] *
                       (pow((1-x), (ploidy_p1/2)-l_p1) * pow(x, l_p1))/(nChoosek(ploidy_p1/2,l_p1)) *
                       (pow((1-x), (ploidy_p2/2)-l_p2) * pow(x, l_p2))/(nChoosek(ploidy_p2/2,l_p2));
@@ -305,13 +312,15 @@ struct rf_two_point_parallel : public Worker {
                 count2=0;
                 temp=0.0;
                 std::fill(Tr.begin(), Tr.end(), 1);
-
+                
                 for(int i = 0; i < dk.size(); i++){
                   count=0;
-                  Tr(dk[i],dk1[i])=0;
+                  Tr[dk[i] + (dk1[i] * (offspring_ploidy+2))]=0;
+                  // Tr(dk[i],dk1[i])=0;
                   for(int l_p1 = 0; l_p1 <= ploidy_p1/2; l_p1++){
                     for(int l_p2 = 0; l_p2 <= ploidy_p2/2; l_p2++) {
-                      Tr(dk[i],dk1[i])=Tr(dk[i],dk1[i]) +
+                      Tr[dk[i] + (dk1[i] * (offspring_ploidy+2))]=Tr[dk[i] + (dk1[i] * (offspring_ploidy+2))] +
+                      // Tr(dk[i],dk1[i])=Tr(dk[i],dk1[i]) +
                         count_mat[count2 + (count * z.size())] *
                         (pow((1-u), (ploidy_p1/2)-l_p1) * pow(u, l_p1))/(nChoosek(ploidy_p1/2,l_p1)) *
                         (pow((1-u), (ploidy_p2/2)-l_p2) * pow(u, l_p2))/(nChoosek(ploidy_p2/2,l_p2));
@@ -346,12 +355,15 @@ struct rf_two_point_parallel : public Worker {
               count2=0;
               temp=0.0;
               std::fill(Tr.begin(), Tr.end(), 1);
+
               for(int i = 0; i < dk.size(); i++){
                 count=0;
-                Tr(dk[i],dk1[i])=0;
+                Tr[dk[i] + (dk1[i] * (offspring_ploidy+2))]=0;
+                // Tr(dk[i],dk1[i])=0;
                 for(int l_p1 = 0; l_p1 <= ploidy_p1/2; l_p1++){
                   for(int l_p2 = 0; l_p2 <= ploidy_p2/2; l_p2++) {
-                    Tr(dk[i],dk1[i])=Tr(dk[i],dk1[i]) +
+                    Tr[dk[i] + (dk1[i] * (offspring_ploidy+2))]=Tr[dk[i] + (dk1[i] * (offspring_ploidy+2))] +
+                    // Tr(dk[i],dk1[i])=Tr(dk[i],dk1[i]) +
                       count_mat[count2 + (count * z.size())] *
                       (pow((1-x), (ploidy_p1/2)-l_p1) * pow(x, l_p1))/(nChoosek(ploidy_p1/2,l_p1)) *
                       (pow((1-x), (ploidy_p2/2)-l_p2) * pow(x, l_p2))/(nChoosek(ploidy_p2/2,l_p2));
@@ -365,20 +377,23 @@ struct rf_two_point_parallel : public Worker {
               res2 = -temp;
 
               if (min_lod > res2){         // Checking if current phase has LOD higher than previous highest phase
-                out(k,0) = phase1[i];     // Saving best phase P1
-                out(k,1) = phase2[i];     // Saving best phase P2
+                out(k,0) = phase1[auau];     // Saving best phase P1
+                out(k,1) = phase2[auau];     // Saving best phase P2
                 out(k,2) = x;              // Store rf
                 // Account for LOD-rf associated to the best phase
                 count=0;
                 count2=0;
                 temp=0.0;
                 std::fill(Tr.begin(), Tr.end(), 1);
+                
                 for(int i = 0; i < dk.size(); i++){
                   count=0;
-                  Tr(dk[i],dk1[i])=0;
+                  Tr[dk[i] + (dk1[i] * (offspring_ploidy+2))]=0;
+                  // Tr(dk[i],dk1[i])=0;
                   for(int l_p1 = 0; l_p1 <= ploidy_p1/2; l_p1++){
                     for(int l_p2 = 0; l_p2 <= ploidy_p2/2; l_p2++) {
-                      Tr(dk[i],dk1[i])=Tr(dk[i],dk1[i]) +
+                      Tr[dk[i] + (dk1[i] * (offspring_ploidy+2))]=Tr[dk[i] + (dk1[i] * (offspring_ploidy+2))] +
+                      // Tr(dk[i],dk1[i])=Tr(dk[i],dk1[i]) +
                         count_mat[count2 + (count * z.size())] *
                         (pow((1-0.5), (ploidy_p1/2)-l_p1) * pow(0.5, l_p1))/(nChoosek(ploidy_p1/2,l_p1)) *
                         (pow((1-0.5), (ploidy_p2/2)-l_p2) * pow(0.5, l_p2))/(nChoosek(ploidy_p2/2,l_p2));
@@ -433,12 +448,14 @@ RcppExport SEXP pairwise_rf_estimation_disc_rcpp(SEXP mrk_pairs_R,
   std::vector<int> count_matrix_number = as<std::vector<int>>(count_matrix_number_R);
   std::vector<int> count_matrix_pos = as<std::vector<int>>(count_matrix_pos_R);
   std::vector<int> count_matrix_length = as<std::vector<int>>(count_matrix_length_R);
+  // NumericMatrix Tr2(((as<int>(ploidy_p1_R) + as<int>(ploidy_p2_R))/2)+2,((as<int>(ploidy_p1_R) + as<int>(ploidy_p2_R))/2)+2);
   NumericMatrix out(mrk_pairs.ncol(), 5);
   int ploidy_p1 = as<int>(ploidy_p1_R);
   int ploidy_p2 = as<int>(ploidy_p2_R);
   double tol = as<double>(tol_R);
   int threads = as<int>(threads_R);
   int n_ind = geno.ncol();
+  // std::fill(Tr2.begin(), Tr2.end(), 1);
 
   rf_two_point_parallel RF_two_point_parallel(mrk_pairs, geno, dose_p1, dose_p2, count_vector,
                                               count_matrix_phases, count_matrix_rownames,
