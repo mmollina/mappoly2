@@ -1,6 +1,6 @@
 /*
- MAPpoly: a package to construct genetic maps in autopolyploids
- Copyright (C) 2014-2020 Marcelo Mollinari
+ MAPpoly2: a package to construct genetic maps in autopolyploids
+ Copyright (C) 2014-2023 Marcelo Mollinari
 
  This file is part of MAPpoly.
 
@@ -19,9 +19,7 @@
  */
 
 /*
- File: two_pts_est.cpp
-
- Functions Written partially by Marcelo Mollinari.
+ Functions Written by Marcelo Mollinari and Gabriel Gesteira.
 
  Part of this function was adapted from Brent_fmin function,
  which can be found in R/src/library/stats/src/optimize.c
@@ -34,7 +32,7 @@
  North Carolina State University
  Contact: mmollin@ncsu.edu
  First version: Dec 19, 2013
- Last update: Jul 31, 2014
+ Last update: Aug 01, 2023
  */
 
 // [[Rcpp::depends(RcppParallel)]]

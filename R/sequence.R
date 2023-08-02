@@ -67,7 +67,8 @@ make_sequence <- function(input.obj,
                           info.parent = c("both", "p1", "p2"),
                           genomic.info = NULL,
                           phase = NULL,
-                          pairwise = NULL) {
+                          pairwise = NULL,
+                          linkage.gropus = NULL) {
   info.parent <- match.arg(info.parent)
   if (is.mappoly2.data(input.obj))
   {
@@ -152,6 +153,7 @@ make_sequence <- function(input.obj,
   structure(list(mrk.names = mrk.names,
                  phases = phase,
                  pairwise = pairwise,
+                 linkage.gropus = linkage.gropus,
                  redundant = NULL,
                  data = out.dat),
             class = "mappoly2.sequence")
@@ -167,6 +169,7 @@ print.mappoly2.sequence <- function(x, detailed = FALSE,  ...) {
     paste0("    No. markers:"),
     paste0("    Percentage of missing:"),
     paste0("    Pairwise:"),
+    paste0("    Linkage Groups:"),
     paste0("    Phases:"),
     paste0("      '--> Number of configurations:"),
     paste0("      '--> Percentage phased:"))
@@ -182,12 +185,17 @@ print.mappoly2.sequence <- function(x, detailed = FALSE,  ...) {
   cat("\n ", txt[[5]], " ",   round(100*sum(id)/length(id),1), "%", sep = "")
   cat("\n", txt[[6]], ifelse(is.null(x$pairwise), "Not estimated", "Estimated"))
   cat("\n", txt[[7]])
+  if(is.null(x$linkage.groups))
+    cat(" Not allocated")
+  else
+    print_mappoly2_group (x$linkage.groups)
+  cat("\n", txt[[8]])
   if(is.null(x$phases)){
-    cat("\n ", txt[[8]], " 0", sep = "")
-    cat("\n ", txt[[9]], " 0%", sep = "")
+    cat("\n ", txt[[9]], " 0", sep = "")
+    cat("\n ", txt[[10]], " 0%", sep = "")
   } else {
-    cat("\n ", txt[[8]], " ", length(x$phases), sep = "")
-    cat("\n ", txt[[9]], " ", nrow(x$phases[[1]]$p1), " (",   round(100*nrow(x$phases[[1]]$p1)/length(x$mrk.names),1), "%)", sep = "")
+    cat("\n ", txt[[9]], " ", length(x$phases), sep = "")
+    cat("\n ", txt[[10]], " ", nrow(x$phases[[1]]$p1), " (",   round(100*nrow(x$phases[[1]]$p1)/length(x$mrk.names),1), "%)", sep = "")
   }
   w <- table(x$data$chrom[x$mrk.names], useNA = "always")
   w <- w[order(as.integer(gsub("[^0-9]", "", names(w))))]
@@ -218,33 +226,37 @@ print.mappoly2.sequence <- function(x, detailed = FALSE,  ...) {
 #' @importFrom grDevices colorRampPalette
 #' @importFrom grDevices blues9
 plot.mappoly2.sequence <- function(x,
-                                   type = c("all", "sequence", "rf", "group", "mds"),
+                                   type = c("all", "seq", "rf", "lg", "mds"),
                                    type.rf = c("rf", "lod"), ord = NULL, rem = NULL,
                                    main.text = NULL, index = FALSE, fact = 1,
                                    thresh.line = NULL, ...)
 {
   type <- match.arg(type)
   if(type == "all"){
+    plot_sequence(x, thresh.line = NULL)
     oldpar <- par(ask = TRUE)
     on.exit(par(oldpar))
-    plot_sequence(x, thresh.line = NULL)
     if(!is.null(x$pairwise))
-    plot.mappoly2.rf.matrix(x$pairwise, type = type.rf,
-                            ord = ord,
-                            rem = rem,
-                            main.text = main.text,
-                            index = index,
-                            fact = fact)
+      plot_mappoly2_rf_matrix(x$pairwise, type = type.rf,
+                              ord = ord,
+                              rem = rem,
+                              main.text = main.text,
+                              index = index,
+                              fact = fact)
+    if(!is.null(x$linkage.groups))
+      plot_mappoly2_group(x$linkage.groups)
   }
-  else if(type == "sequence")
+  else if(type == "seq")
     plot_sequence(x, thresh.line = NULL)
   else if(type == "rf")
-    plot.mappoly2.rf.matrix(x$pairwise, type = type.rf,
+    plot_mappoly2_rf_matrix(x$pairwise, type = type.rf,
                             ord = ord,
                             rem = rem,
                             main.text = main.text,
                             index = index,
                             fact = fact)
+  else if("lg")
+    plot_mappoly2_group(x$linkage.groups)
 }
 
 #' @rdname make_sequence

@@ -13,14 +13,15 @@ make_sequence(
   info.parent = c("both", "p1", "p2"),
   genomic.info = NULL,
   phase = NULL,
-  pairwise = NULL
+  pairwise = NULL,
+  linkage.gropus = NULL
 )
 
 \method{print}{mappoly2.sequence}(x, detailed = FALSE, ...)
 
 \method{plot}{mappoly2.sequence}(
   x,
-  type = c("all", "sequence", "rf", "group", "mds"),
+  type = c("all", "seq", "rf", "lg", "mds"),
   type.rf = c("rf", "lod"),
   ord = NULL,
   rem = NULL,

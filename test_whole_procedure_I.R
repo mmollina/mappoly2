@@ -3,7 +3,7 @@ require(mappoly2)
 setwd("/Users/mmollin/repos/official_repos/mappoly2")
 source("misc/simulation.R")
 ploidy.p1 = 4
-ploidy.p2 = 2
+ploidy.p2 = 4
 n.mrk <- 100
 ph<-test_simulate(ploidy.p1 = ploidy.p1,
                   ploidy.p2 = ploidy.p2,
@@ -20,6 +20,9 @@ dat <- read_geno_csv(file.in = "misc/fake_triploid.csv",
                      ploidy.p2 = ploidy.p2,
                      name.p1 = "parent_1",
                      name.p2 = "parent_2")
+plot(dat)
+print(dat, detailed = TRUE)
+###Subset test ####
 x <- subset(dat)
 plot(x)
 x1 <- subset(B2721, type = "marker", n = 700)
@@ -32,54 +35,35 @@ x <- merge_datasets(x1, x2, x3)
 x
 plot(x)
 
-plot(dat)
+####Filter test####
 dat <- filter_missing(dat, type = "marker", filter.thres = 0.15, inter = FALSE)
 dat <- filter_missing(dat, type = "individual", filter.thres = 0.11, inter = FALSE)
 dat <- filter_individuals(dat)
+s <- filter_segregation(s, inter = FALSE)
+####Two point####
 s <- make_sequence(dat, "all")
 print(s, detailed = TRUE)
 plot(s)
-s <- filter_segregation(s, inter = FALSE)
-print(s, detailed = TRUE)
-plot(s)
-s <- pairwise_rf(s, ncpus = 7)
-s
-plos(s)
-
-
-
-
-
-
-
-
-#### Two-points ####
-s <- est_pairwise_rf(s, ncpus = 1)
-
-
-m <- rf_list_to_matrix(tpt)
-plot(m, type = "lod")
-dev.off()
-image(m$rec.mat, main = "old", col = rev(fields::tim.colors(64)))
-
-
-
-tpt2 <- pairwise_rf(s)
-tpt2$rec.mat[tpt2$lod.ph.mat < 3] <- NA
-
-s$data$ploidy.p1
-s$data$ploidy.p2
-image(tpt2$Sh.p1)
-range(tpt2$Sh.p1, na.rm = TRUE)
-image(tpt2$Sh.p2)
-range(tpt2$Sh.p2, na.rm = TRUE)
-image(tpt2$rec.mat, main = "new", col = rev(fields::tim.colors(64)))
-
-
-
+s <- pairwise_rf(s, ncpus = 1)
+plot(s, type = "rf", fact = 2)
 #### Grouping ####
-lg <- group(m, expected.groups = 3, comp.mat = TRUE, inter = F)
-plot(lg)
+s <- group(s, expected.groups = 3, comp.mat = TRUE, inter = T)
+s
+plot(s)
+
+
+max(c(nchar(colnames(mat)), nchar(mat)))
+
+
+
+print_matrix(mat, 10)
+
+
+
+
+
+
+
 #### CH1 ####
 s.ch1.all <- make_sequence(lg, 1, genomic.info = 1)
 s.ch1.all
