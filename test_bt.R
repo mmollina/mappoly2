@@ -1,6 +1,6 @@
 rm(list = ls())
 require(mappoly2)
-####Read ####
+#### Read ####
 dat <- read_geno_csv(file.in = "misc/BT_trifida.csv",
                      ploidy.p1 = 6, ploidy.p2 = 6,
                      name.p1 = "Beauregard",
@@ -14,9 +14,17 @@ dat <- filter_missing(dat,
                       type = "individual",
                       filter.thres = 0.19)
 dat <- filter_individuals(dat)
-s <- filter_segregation(dat, inter = FALSE)
+s <- make_sequence(dat, "all")
+s <- filter_segregation(s, inter = FALSE)
 print(s, detailed = TRUE)
 plot(s)
+#### Two points ####
+s <- pairwise_rf(s, ncpus = 8)
+s
+plot(s, type = "rf", fact = 2)
+
+
+
 #### Select parent 1####
 s.ch1.p1 <- make_sequence(dat, arg = "ch1", info.parent = "p1")
 s.ch1.p1

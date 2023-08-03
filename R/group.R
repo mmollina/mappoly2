@@ -121,14 +121,14 @@ group <- function(input.seq = NULL,
 print_mappoly2_group <- function(x, detailed = TRUE, ...) {
   ## criteria
   cat("\n       - Number of linkage groups:  ", length(unique(x$groups.snp)), "\n")
-  cat("       - Number of markers per linkage groups: \n")
-  w <- data.frame(table(x$groups.snp, useNA = "ifany"))
-  colnames(w) = c("   group", "n.mrk")
-  print (w, row.names = FALSE)
+  cat("       - Markers per linkage groups: \n")
+  w <- table(x$groups.snp, useNA = "ifany")
+  w <- data.frame(group = names(w), n_mrk = as.numeric(w), row.names = NULL)
+  mappoly2:::print_matrix(mat = w, 8, row.names = FALSE)
   cat("\n")
   ## printing summary
   if(!is.null(x$seq.vs.grouped.snp)){
-    print_matrix(x$seq.vs.grouped.snp, 8)
+    mappoly2:::print_matrix(mat = x$seq.vs.grouped.snp, 8)
   }
 }
 

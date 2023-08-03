@@ -7,7 +7,9 @@
 \title{Estimates loci position using Multidimensional Scaling}
 \usage{
 mds(
-  input.mat,
+  input.seq,
+  lg,
+  ch = NULL,
   p = NULL,
   n = NULL,
   ndim = 2,
@@ -20,8 +22,6 @@ mds(
 \method{print}{mappoly2.pcmap3d}(x, ...)
 }
 \arguments{
-\item{input.mat}{an object of class \code{mappoly.input.matrix}.}
-
 \item{p}{integer. The smoothing parameter for the principal curve.
 If \code{NULL} (default), this will be determined using leave-one-out cross validation.}
 
@@ -37,6 +37,8 @@ MDS procedure (default = 2).}
 \item{x}{an object of class \code{mappoly.mds}.}
 
 \item{...}{currently ignored.}
+
+\item{input.seq$pairwise}{an object of class \code{mappoly.input.seq$pairwiserix}.}
 }
 \value{
 A list containing:

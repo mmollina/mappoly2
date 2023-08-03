@@ -5,7 +5,7 @@
 #' the package \code{MDSmap}, available under the GNU General Public License,
 #' Version 3, at \url{https://CRAN.R-project.org/package=MDSMap}.
 #'
-#' @param input.mat an object of class \code{mappoly.input.matrix}.
+#' @param input.seq$pairwise an object of class \code{mappoly.input.seq$pairwiserix}.
 #'
 #' @param p integer. The smoothing parameter for the principal curve.
 #'   If \code{NULL} (default), this will be determined using leave-one-out cross validation.
@@ -53,21 +53,27 @@
 #' @importFrom stats runif
 #' @importFrom utils read.csv write.csv
 #' @export mds
-mds <- function(input.mat,
-                      p = NULL,
-                      n = NULL,
-                      ndim = 2,
-                      weight.exponent = 2,
-                      verbose = TRUE)
+mds <- function(input.seq,
+                lg,
+                ch = NULL,
+                p = NULL,
+                n = NULL,
+                ndim = 2,
+                weight.exponent = 2,
+                verbose = TRUE)
 {
-  o <- is.na(input.mat$rec.mat)
-  input.mat$rec.mat[o] <- 1e-07
-  input.mat$lod.mat[o] <- 1e-07
+  assert_that(is.pairwise.sequence(input.seq))
+  mrk.id <- get_markers_from_grouped_and_chromosome(input.seq, lg, ch)
+  rf.mat <- input.seq$pairwise$rec.mat[mrk.id, mrk.id]
+  lod.mat <- input.seq$pairwise$lod.mat[mrk.id, mrk.id]
+  o <- is.na(rf.mat)
+  rf.mat[o] <- 1e-07
+  lod.mat[o] <- 1e-07
   if(weight.exponent != 1)
-    input.mat$lod.mat <- input.mat$lod.mat^weight.exponent
-  diag(input.mat$lod.mat) <- diag(input.mat$rec.mat) <- NA
-  locinames <- rownames(input.mat$rec.mat)
-  lodrf <- list(rf = input.mat$rec.mat, lod = input.mat$lod.mat, nloci = ncol(input.mat$rec.mat), locinames = locinames)
+    lod.mat <- lod.mat^weight.exponent
+  diag(lod.mat) <- diag(rf.mat) <- NA
+  locinames <- rownames(rf.mat)
+  lodrf <- list(rf = rf.mat, lod = lod.mat, nloci = ncol(rf.mat), locinames = locinames)
   confplotno <- 1:lodrf$nloci
   if(!is.null(n)){
     if(!is.numeric(n))n <- which(lodrf$locinames%in%n)
@@ -105,19 +111,11 @@ mds <- function(input.mat,
   } else {
     removedloci <- n
   }
-  map <- list(smacofsym = smacofsym,pc = pc1,distmap = distmap,lodmap = lodmap,locimap = locimap,length = max(estpos),removed = n,locikey = locikey,meannnfit = nnfit$meanfit)
-  if(verbose)
-  {
-    cat(paste('Stress:', round(map$smacofsym$stress,5)))
-    cat(paste('\nMean Nearest Neighbour Fit:', round(map$meannnfit,5)))
-  }
-  map$mds.seq <- make_sequence(input.mat$input.seq, as.character(map$locimap$locus))
-  if(ndim  ==  2) {
-    return(structure(map, class = "mappoly2.pcmap"))
-  } else {
-    return(structure(map, class = "mappoly2.pcmap3d"))
-  }
+  input.seq$order$mds <- list(smacofsym = smacofsym,pc = pc1,distmap = distmap,lodmap = lodmap,locimap = locimap,length = max(estpos),removed = n,locikey = locikey,meannnfit = nnfit$meanfit)
+  input.seq
 }
+
+
 
 #' @rdname mds
 #' @export

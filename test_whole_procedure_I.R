@@ -1,6 +1,5 @@
 rm(list = ls())
 require(mappoly2)
-setwd("/Users/mmollin/repos/official_repos/mappoly2")
 source("misc/simulation.R")
 ploidy.p1 = 4
 ploidy.p2 = 4
@@ -12,7 +11,7 @@ ph<-test_simulate(ploidy.p1 = ploidy.p1,
                   n.ind = 200,
                   map.length = 100,
                   miss.perc = 0,
-                  n.chrom = 3,
+                  n.chrom = 12,
                   random = FALSE,
                   seed = 43598)
 dat <- read_geno_csv(file.in = "misc/fake_triploid.csv",
@@ -45,30 +44,27 @@ s <- make_sequence(dat, "all")
 print(s, detailed = TRUE)
 plot(s)
 s <- pairwise_rf(s, ncpus = 1)
+s
 plot(s, type = "rf", fact = 2)
 #### Grouping ####
-s <- group(s, expected.groups = 3, comp.mat = TRUE, inter = T)
+s <- group(s, expected.groups = 12, comp.mat = TRUE, inter = F)
 s
 plot(s)
-
-
-max(c(nchar(colnames(mat)), nchar(mat)))
-
-
-
-print_matrix(mat, 10)
-
-
+#### Ordering ####
 
 
 
 
 
 #### CH1 ####
-s.ch1.all <- make_sequence(lg, 1, genomic.info = 1)
-s.ch1.all
-tpt.ch1 <- est_pairwise_rf(s.ch1.all) ## Will remove
-s.ch1.filt <- rf_snp_filter(tpt.ch1)
+s.ch1.p1 <- pairwise_phasing(input.seq = s,
+                             lg = 1,
+                             info.parent = c("both", "p1", "p2"),
+                             thresh.LOD.ph = 3,
+                             max.conf.btnk.p1 = 10)
+
+
+
 
 #### Select parent 1####
 s.ch1.p1 <- make_sequence(s.ch1.filt, info.parent = "p1")

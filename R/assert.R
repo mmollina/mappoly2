@@ -27,6 +27,13 @@ is.phased.sequence <- function(x){
   is.mappoly2.sequence(x) &&
   !is.null(x$phases[[1]]$p1) && !is.null(x$phases[[1]]$p2)
 }
+has.chromosome.info <- function(x){
+  !all(is.na(x$data$chrom)) & !is.null(x$data$chrom)
+}
+is.grouped.sequence <- function(x){
+  is.mappoly2.sequence(x) &&
+    !is.null(x$linkage.groups)
+}
 is.mapped.sequence <- function(x){
   is.mappoly2.sequence(x) &&
   !is.null(x$phases[[1]]$rf)

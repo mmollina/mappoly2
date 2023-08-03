@@ -14,7 +14,7 @@ make_sequence(
   genomic.info = NULL,
   phase = NULL,
   pairwise = NULL,
-  linkage.gropus = NULL
+  linkage.groups = NULL
 )
 
 \method{print}{mappoly2.sequence}(x, detailed = FALSE, ...)
@@ -27,7 +27,7 @@ make_sequence(
   rem = NULL,
   main.text = NULL,
   index = FALSE,
-  fact = 1,
+  fact = 5,
   thresh.line = NULL,
   ...
 )

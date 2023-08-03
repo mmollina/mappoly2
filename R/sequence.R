@@ -68,7 +68,7 @@ make_sequence <- function(input.obj,
                           genomic.info = NULL,
                           phase = NULL,
                           pairwise = NULL,
-                          linkage.gropus = NULL) {
+                          linkage.groups = NULL) {
   info.parent <- match.arg(info.parent)
   if (is.mappoly2.data(input.obj))
   {
@@ -153,7 +153,8 @@ make_sequence <- function(input.obj,
   structure(list(mrk.names = mrk.names,
                  phases = phase,
                  pairwise = pairwise,
-                 linkage.gropus = linkage.gropus,
+                 linkage.groups = linkage.groups,
+                 order = list(mds = NA, genome = NA),
                  redundant = NULL,
                  data = out.dat),
             class = "mappoly2.sequence")
@@ -228,7 +229,7 @@ print.mappoly2.sequence <- function(x, detailed = FALSE,  ...) {
 plot.mappoly2.sequence <- function(x,
                                    type = c("all", "seq", "rf", "lg", "mds"),
                                    type.rf = c("rf", "lod"), ord = NULL, rem = NULL,
-                                   main.text = NULL, index = FALSE, fact = 1,
+                                   main.text = NULL, index = FALSE, fact = 5,
                                    thresh.line = NULL, ...)
 {
   type <- match.arg(type)
