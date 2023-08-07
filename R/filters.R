@@ -1,261 +1,161 @@
-#' Filter out redundant markers
-#'
-#' Filter out markers with identical dosage information for all individuals.
-#'
-#' @param input.seq an object of class \code{mappoly.sequence}
-#' @return An object of class \code{mappoly2.seq}
-#'
-#' @export filter_redundant
-#' @import graphics
-filter_redundant <- function(input.seq)
+.setScreeningClass <- function(id.mrk, id.ind,
+                               miss.mrk = NA,
+                               miss.ind = rep(NA, length(id.ind)),
+                               chisq.pval){
+  list(markers = data.frame(miss = miss.mrk,
+                            chisq.pval = chisq.pval,
+                            read.depth = NA,
+                            row.names = id.mrk),
+       individuals = data.frame(miss = miss.ind,
+                                full.sib = NA,
+                                row.names = id.ind))
+}
+
+.get_mrk_ind_from_Screening <- function(x,
+                                        miss.mrk.thresh = +Inf,
+                                        miss.ind.thresh = +Inf,
+                                        chisq.pval.thresh = -Inf,
+                                        read.depth.thresh = c(0, +Inf)){
+
+  if(any(is.na(x$markers[,"read.depth"]))){
+    id.mrk <- x$markers[,"miss"] < miss.mrk.thresh &
+      x$markers[,"chisq.pval"] > chisq.pval.thresh
+  } else{
+    id.mrk <- x$markers[,"miss"] < miss.mrk.thresh &
+      x$markers[,"chisq.pval"] > chisq.pval.thresh &
+      x$markers[,"read.depth"] > read.depth.thresh[1] &
+      x$markers[,"read.depth"] < read.depth.thresh[2]
+  }
+  if(any(is.na(x$individuals[,"full.sib"])))
+    id.ind <- x$individuals[,"miss"] < miss.ind.thresh
+  else
+    id.ind <- x$individuals[,"miss"] < miss.ind.thresh &
+      x$individuals[,"full.sib"]
+  return(list(thresholds = list(miss.mrk = miss.mrk.thresh,
+                                miss.ind = miss.ind.thresh,
+                                chisq.pval = chisq.pval.thresh,
+                                read.depth = read.depth.thresh),
+              mrk.names = rownames(x$markers)[id.mrk],
+              ind.names = rownames(x$individuals)[id.ind]))
+}
+
+#' Filter out markers with redundant information
+filter_redundant <- function(x)
 {
-  x<-input.seq$data$geno.dose[input.seq$mrk.names, ]
-  dim(x)
-  id <- duplicated(x, dimnames = TRUE)
-  dat.unique <- input.seq$data$geno.dose[!id, ]
-  if(nrow(x) == nrow(dat.unique))
-    return(input.seq)
-  dat.duplicated <- input.seq$data$geno.dose[id, , drop = FALSE]
+  id <- duplicated(x$data$geno.dose, dimnames = TRUE)
+  dat.unique <- x$data$geno.dose[!id, ]
+  if(nrow(x$data$geno.dose) == nrow(dat.unique))
+    return(NA)
+  dat.duplicated <- x$data$geno.dose[id, , drop = FALSE]
   n1 <- apply(dat.unique, 1, paste, collapse = "")
   n2 <- apply(dat.duplicated, 1, paste, collapse = "")
-  structure(list(mrk.names = rownames(dat.unique),
-                 redundant = data.frame(kept = rownames(dat.unique)[match(n2,n1)],
-                                        removed = rownames(dat.duplicated)),
-                 data = input.seq$data),
-            class = "mappoly2.sequence")
+  return(data.frame(kept = rownames(dat.unique)[match(n2,n1)],
+                    removed = rownames(dat.duplicated)))
 }
 
-#' Filter missing genotypes
-#'
-#' Excludes markers or individuals based on their proportion of missing data
-#'
-#' @param input.data an object of class \code{mappoly.data}
-#'
-#' @param type one of the following options:
-#' \itemize{
-#'   \item \code{'marker'}{filter out markers based on their percentage of missing data (default)}
-#'   \item \code{'individual'}{filter out individuals based on their percentage of missing data}
-#' }
-#' Please notice that removing individuals with certain amount of data can change some marker parameters
-#' (such as depth), and can also change the estimated genotypes for other individuals.
-#' So be careful when removing individuals.
-#'
-#' @param filter.thres maximum percentage of missing data (default = 0.2)
-#'
-#' @param inter if \code{TRUE}, expects user-input to proceed with filtering
-#'
-#' @author Marcelo Mollinari, \email{mmollin@ncsu.edu}
 #' @export
 #' @importFrom graphics axis
-filter_missing <- function(input.data,
-                           type = c("marker", "individual"),
-                           filter.thres = 0.2,
-                           inter = TRUE) {
-  assert_that(is.mappoly2.data(input.data))
-  type <- match.arg(type)
-  switch(type,
-         marker = filter_missing_mrk(input.data,
-                                     filter.thres = filter.thres,
-                                     inter = inter),
-         individual = filter_missing_ind(input.data,
-                                         filter.thres = filter.thres,
-                                         inter = inter)
-  )
-}
-
-#' Filter markers based on missing genotypes
-#'
-#' @param input.data an object of class \code{"mappoly.data"}
-#' @param filter.thres maximum percentage of missing data
-#' @param inter if \code{TRUE}, expects user-input to proceed with filtering
-#' @keywords internal
-filter_missing_mrk <- function(input.data, filter.thres = 0.2, inter = TRUE) {
-  op <- par(pty = "s")
+filter_data <- function(x,
+                        mrk.thresh = 0.10,
+                        ind.thresh = 0.10,
+                        chisq.pval.thresh = NULL,
+                        read.depth.thresh = c(5,1000),
+                        plot.screening = TRUE) {
+  assert_that(inherits(x, "data"))
+  assert_that(all(class(x)%in%c("mappoly2", "data", "screened")))
+  op <- par(pty = "s", mfrow = c(2,2), mar = c(3,2,2,1))
   on.exit(par(op))
-
-  process_filter <- function(filter.thres) {
-    na.num <- apply(input.data$geno.dose, 1, function(x) sum(is.na(x)))
-    perc.na <- na.num / input.data$n.ind
-    mrks.id <- which(perc.na <= filter.thres)
-
-    if (length(mrks.id) == input.data$n.mrk) {
-      return(input.data)
-    }
-
-    out.dat <- subset_data(input.data, select.mrk = names(mrks.id))
-    return(out.dat)
-  }
-
-  if (interactive() && inter) {
-    ANSWER <- "flag"
-
-    while (!grepl("^(y|yes)?$", ANSWER, ignore.case = TRUE)) {
-      na.num <- apply(input.data$geno.dose, 1, function(x) sum(is.na(x)))
-      perc.na <- na.num / input.data$n.ind
-      x <- sort(perc.na)
-
-      plot(x,
-           xlab = "markers",
-           ylab = "frequency of missing data",
-           col = ifelse(x <= filter.thres, 4, 2),
-           pch = ifelse(x <= filter.thres, 1, 4))
-      abline(h = filter.thres, lty = 2)
-
-      legend("topleft",
-             c(paste0("Filtered out: ", sum(perc.na > filter.thres)),
-               paste0("Included: ", sum(perc.na <= filter.thres))),
-             col = c(2, 4),
-             pch = c(4, 1))
-
-      ANSWER <- readline("Enter 'Y/n' to proceed or update the filter threshold: ")
-
-      if (grepl("^(n|no)$", ANSWER, ignore.case = TRUE)) {
-        stop("Stop function.")
-      } else if (!grepl("^(y|yes)?$", ANSWER, ignore.case = TRUE)) {
-        filter.thres <- as.numeric(ANSWER)
-      }
-    }
-  }
-  par(pty="m")
-  return(process_filter(filter.thres))
-}
-
-
-#' Filter individuals based on missing genotypes
-#'
-#' @param input.data an object of class \code{"mappoly.data"}
-#' @param filter.thres maximum percentage of missing data
-#' @param inter if \code{TRUE}, expects user-input to proceed with filtering
-#' @keywords internal
-#' @importFrom graphics axis
-filter_missing_ind <- function(input.data, filter.thres = 0.2, inter = TRUE) {
-  op <- par(pty = "s")
-  on.exit(par(op))
-
-  process_filter <- function(filter.thres) {
-    na.num <- apply(input.data$geno.dose, 2, function(x) sum(is.na(x)))
-    perc.na <- na.num / input.data$n.mrk
-    ind.id <- which(perc.na <= filter.thres)
-
-    if (length(ind.id) == input.data$n.ind) {
-      return(input.data)
-    }
-
-    out.dat <- subset_data(input.data, select.ind = names(ind.id))
-    return(out.dat)
-  }
-
-  if (interactive() && inter) {
-    ANSWER <- "flag"
-
-    while (!grepl("^(y|yes)?$", ANSWER, ignore.case = TRUE)) {
-      na.num <- apply(input.data$geno.dose, 2, function(x) sum(is.na(x)))
-      perc.na <- na.num / input.data$n.mrk
-      x <- sort(perc.na)
-
-      plot(x,
-           xlab = "offspring",
-           ylab = "frequency of missing data",
-           col = ifelse(x <= filter.thres, 4, 2),
-           pch = ifelse(x <= filter.thres, 1, 4))
-      abline(h = filter.thres, lty = 2)
-
-      legend("topleft",
-             c(paste0("Filtered out: ", sum(perc.na > filter.thres)),
-               paste0("Included: ", sum(perc.na <= filter.thres))),
-             col = c(2, 4),
-             pch = c(4, 1))
-
-      ANSWER <- readline("Enter 'Y/n' to proceed or update the filter threshold: ")
-
-      if (grepl("^(n|no)$", ANSWER, ignore.case = TRUE)) {
-        stop("You decided to stop the function.")
-      } else if (!grepl("^(y|yes)?$", ANSWER, ignore.case = TRUE)) {
-        filter.thres <- as.numeric(ANSWER)
-      }
-    }
-  }
-  par(pty="m")
-  return(process_filter(filter.thres))
-}
-
-
-#' Filter Markers Based on Chi-Square Test
-#'
-#' This function filters markers based on the p-values obtained from a chi-square test.
-#' The chi-square test assumes that the markers follow the expected segregation patterns under
-#' Mendelian inheritance, random chromosome bivalent pairing, and no double reduction.
-#'
-#' @param input.obj The name of the input object of class \code{mappoly.data}.
-#'
-#' @param chisq.pval.thres The p-value threshold used for the chi-square tests. By default,
-#' this is the Bonferroni approximation with a global alpha of 0.05, i.e., 0.05/n.mrk.
-#'
-#' @param inter If set to TRUE (default), this function will plot the distorted and
-#' non-distorted markers.
-#'
-#' @return An object of class \code{mappoly.chitest.seq} that includes the following components:
-#' \item{keep}{markers that follow Mendelian segregation pattern}
-#' \item{exclude}{markers with distorted segregation}
-#' \item{chisq.pval.thres}{threshold p-value used for chi-square tests}
-#' \item{data.name}{name of the input dataset used to perform the chi-square tests}
-#'
-#' @author Marcelo Mollinari
-#' \email{mmollin@ncsu.edu}
-#'
-#' @importFrom graphics axis
-#' @export
-filter_segregation <- function(input.obj, chisq.pval.thres = NULL, inter = TRUE){
-  # Set plot options
-  op <- par(pty="s")
-  on.exit(par(op))
-
-  assert_that(is.mappoly2.sequence(input.obj))
-  chisq.val <- input.obj$data$chisq.pval[input.obj$mrk.names]
-  n.mrk <- length(input.obj$mrk.names)
-
+  chisq.val <- x$data$screening$markers$chisq.pval
   # Set threshold for chi-square p-values using Bonferroni approximation if not specified
-  if(is.null(chisq.pval.thres))
-    chisq.pval.thres <- 0.05/n.mrk
-
-  # Prompt user for input if interactive and inter = TRUE
-  ANSWER <- "flag"
-  if(interactive() && inter) {
-    while(substr(ANSWER, 1, 1) != "y" && substr(ANSWER, 1, 1) != "yes" && substr(ANSWER, 1, 1) != "Y" && ANSWER  != "") {
-      x <- log10(sort(chisq.val, decreasing = TRUE))
-      th <- log10(chisq.pval.thres)
-      plot(x,
-           xlab = "markers",
-           ylab = bquote(log[10](P)),
-           col = ifelse(x <= th, 2, 4),
-           pch =ifelse(x <= th, 4, 1))
-      abline(h = th, lty = 2)
-      f <- paste0("Filtered out: ", sum(x < th))
-      i <- paste0("Included: ", sum(x >= th))
-      legend("bottomleft",  c(f, i) , col = c(2,4), pch = c(4,1))
-      ANSWER <- readline("Enter 'Y/n' to proceed or update the p value threshold: ")
-      if(substr(ANSWER, 1, 1)  ==  "n" | substr(ANSWER, 1, 1)  ==  "no" | substr(ANSWER, 1, 1)  ==  "N") {
-        stop("You decided to stop the function.")
+  if(is.null(chisq.pval.thresh))
+    chisq.pval.thresh <- 0.05/length(chisq.val)
+  id <- mappoly2:::.get_mrk_ind_from_Screening(x$data$screening,
+                                               miss.mrk.thresh = mrk.thresh,
+                                               miss.ind.thresh = ind.thresh,
+                                               chisq.pval.thresh = chisq.pval.thresh,
+                                               read.depth.thresh = read.depth.thresh)
+  x$screened.data <- id
+  class(x) <- c(class(x), "screened")
+  pal <- c("#56B4E9","#E69F00")
+  if (plot.screening) {
+    ####Missing markers ####
+    z <- sort(x$data$screening$markers$miss)
+    plot(z,
+         xlab = "markers",
+         ylab = "frequency of missing data",
+         col = ifelse(z <= mrk.thresh, pal[1], pal[2]),
+         pch = ifelse(z <= mrk.thresh, 1, 4),
+         main = "Markers", xlim = c(ceiling(-length(z)*.05) , ceiling(length(z)*1.05)))
+    abline(h = mrk.thresh, lty = 2)
+    legend("topleft",
+           c(paste0("Filtered out: ", sum(z > mrk.thresh)),
+             paste0("Included: ", sum(z <= mrk.thresh))),
+           col = rev(pal),
+           pch = c(4, 1))
+    ####Missing individuals ####
+    z <- sort(x$data$screening$individuals$miss)
+    plot(z,
+         xlab = "individuals",
+         ylab = "frequency of missing data",
+         col = ifelse(z <= ind.thresh, pal[1], pal[2]),
+         pch = ifelse(z <= ind.thresh, 1, 4),
+         main = "Individuals", xlim = c(ceiling(-length(z)*.05) , ceiling(length(z)*1.05)))
+    abline(h = ind.thresh, lty = 2)
+    legend("topleft",
+           c(paste0("Filtered out: ", sum(z > ind.thresh)),
+             paste0("Included: ", sum(z <= ind.thresh))),
+           col = rev(pal),
+           pch = c(4, 1))
+    #### Chi-square test ####
+    w <- log10(sort(x$data$screening$markers$chisq.pval, decreasing = TRUE))
+    th <- log10(chisq.pval.thresh)
+    plot(w,
+         xlab = "markers",
+         ylab = bquote(log[10](P)),
+         col = ifelse(w <= th, pal[2], pal[1]),
+         pch =ifelse(w <= th, 4, 1), main = "Segregation", xlim = c(ceiling(-length(w)*.05) , ceiling(length(w)*1.05)))
+    abline(h = th, lty = 2)
+    f <- paste0("Filtered out: ", sum(w < th))
+    i <- paste0("Included: ", sum(w >= th))
+    legend("bottomleft",  c(f, i) , col = rev(pal), pch = c(4,1))
+    #### Read Depth ####
+    if(all(!is.na(x$data$screening$markers$read.depth))){
+      hist_info <- hist(x$data$screening$markers$read.depth,
+                        main = "Read depth", xlab = "number of reads", col = pal[1])
+      lower_tail <- read.depth.thresh[1]
+      upper_tail <- read.depth.thresh[2]
+      if(hist_info$breaks[2] <  lower_tail)
+        {
+        # Add colored rectangles for the tails
+        rect(hist_info$breaks[hist_info$breaks < lower_tail],
+             0,
+             hist_info$breaks[which(hist_info$breaks < lower_tail) + 1],
+             hist_info$counts[hist_info$breaks < lower_tail],
+             col=pal[2])
       }
-      if(substr(ANSWER, 1, 1) != "y" && substr(ANSWER, 1, 1) != "yes" && substr(ANSWER, 1, 1) != "Y" && ANSWER  != "") {
-        chisq.pval.thres  <- as.numeric(ANSWER)
+      if(rev(hist_info$breaks)[2] >  upper_tail)
+        {
+        rect(hist_info$breaks[hist_info$breaks >= upper_tail],
+             0,
+             hist_info$breaks[which(hist_info$breaks >= upper_tail) + 1],
+             hist_info$counts[hist_info$breaks >= upper_tail],
+             col=pal[2])
       }
-    }
+      abline(v = read.depth.thresh, lty = 2)
+    } else {
+    plot(0, type = "n", axes = FALSE, xlab = "", ylab = "")
   }
-
-  # Identify markers that meet threshold for chi-square p-value and return filtered object
-  keep <- names(which(chisq.val >= chisq.pval.thres))
   par(pty="m")
-  return(make_sequence(input.obj, keep))
+ }
+return(x)
 }
-
 
 #' Filter out individuals
 #'
 #' This function removes individuals from the input dataset, either by specifying
 #' them manually or by using interactive kinship analysis.
 #'
-#' @param input.data The name of the input object (class \code{mappoly.data}).
+#' @param x The name of the input object (class \code{mappoly.data}).
 #'
 #' @param ind.to.remove A character vector containing the names of the individuals
 #' to be removed. If \code{NULL}, the function opens an interactive graphic to
@@ -270,37 +170,54 @@ filter_segregation <- function(input.obj, chisq.pval.thres = NULL, inter = TRUE)
 #' @author Marcelo Mollinari, \email{mmollin@ncsu.edu}
 #'
 #' @export
-filter_individuals <- function(input.data,
+filter_individuals <- function(x,
                                ind.to.remove = NULL,
                                inter = TRUE,
                                verbose = TRUE){
-  assert_that(is.mappoly2.data(input.data))
-  if(input.data$ploidy.p1 != input.data$ploidy.p2)
+  assert_that(inherits(x, "data"))
+  assert_that(all(class(x)%in%c("mappoly2", "data", "screened")))
+  if(x$data$ploidy.p1 != x$data$ploidy.p2)
     stop("'filter_individuals' cannot be executed\n  on progenies with odd ploidy levels.")
   op <- par(pty="s")
   on.exit(par(op))
-  D <- t(input.data$geno.dose)
-  D <- rbind(input.data$dosage.p1, input.data$dosage.p2, D)
-  rownames(D)[1:2] <- c("P1", "P2")
-  G  <- AGHmatrix::Gmatrix(D, method = "VanRaden",ploidy = input.data$ploidy.p1/2 + input.data$ploidy.p2/2)
-  x <- G[1,]
-  y <- G[2,]
-  df <- data.frame(x = x, y = y, type = c(2, 2, rep(4, length(x)-2)))
+  D <- t(x$data$geno.dose)
+  if(inherits(x, "screened")){
+   D <- D[x$screened.data$ind.names, x$screened.data$mrk.names]
+   D <- rbind(x$data$dosage.p1[x$screened.data$mrk.names],
+              x$data$dosage.p2[x$screened.data$mrk.names],
+              D)
+  } else {
+    D <- rbind(x$data$dosage.p1,
+               x$data$dosage.p2,
+               D)
+  }
+  rownames(D)[1:2] <- c(x$data$name.p1, x$data$name.p2)
+  G  <- AGHmatrix::Gmatrix(D, method = "VanRaden",ploidy = x$data$ploidy.p1/2 + x$data$ploidy.p2/2)
+  y1 <- G[1,]
+  y2 <- G[2,]
+  df <- data.frame(x = y1, y = y2, type = c(2, 2, rep(4, length(y1)-2)))
   plot(df[,1:2], col = df$type, pch = 19,
-       xlab = paste0("relationships between the offspring and ",input.data$name.p1),
-       ylab = paste0("relationships between the offspring and ",input.data$name.p2))
+       xlab = paste0("relationships between the offspring and ",x$data$name.p1),
+       ylab = paste0("relationships between the offspring and ",x$data$name.p2))
   abline(c(0,1), lty = 2)
   abline(c(-0.4,1), lty = 2, col = "gray")
   abline(c(0.4,1), lty = 2, col = "gray")
   legend("topright",  c("Parents", "Offspring") , col = c(2,4), pch = 19)
   if(!is.null(ind.to.remove)){
-    out.dat <- subset_data(input.data,  select.ind = setdiff(input.data$ind.names, ind.to.remove))
-    return(out.dat)
+    full.sib <- !x$data$ind.names%in%ind.to.remove
+    x$data$screening$individuals[,"full.sib"] <- !rownames(x$data$screening$individuals)%in%ind.to.remove
+    if(inherits(x, "screened")){
+    id <- mappoly2:::.get_mrk_ind_from_Screening(x$data$screening,
+                                                 miss.mrk.thresh = x$screened.data$thresholds$miss.mrk,
+                                                 miss.ind.thresh = x$screened.data$thresholds$miss.ind,
+                                                 chisq.pval.thresh = x$screened.data$thresholds$chisq.pval,
+                                                 read.depth.thresh = x$screened.data$thresholds$read.depth)
+    }
+    x$screened.data <- id
+    return(x)
   }
   if(interactive() && inter)
   {
- #   if (!require(gatepoints))
- #     stop("Please install package 'gatepoints' to proceed")
     ANSWER <- readline("Enter 'Y/n' to proceed with interactive filtering or quit: ")
     if(substr(ANSWER, 1, 1)  ==  "y" | substr(ANSWER, 1, 1)  ==  "yes" | substr(ANSWER, 1, 1)  ==  "Y" | ANSWER  == "")
     {
@@ -314,14 +231,23 @@ filter_individuals <- function(input.data,
       }
       if(length(ind.to.remove) == 0){
         warning("No individuals removed. Returning original data set.")
-        return(input.data)
+        return(x)
       }
-      out.dat <- subset_data(input.data,  select.ind = ind.to.include)
-      return(out.dat)
+      full.sib <- !x$data$ind.names%in%ind.to.remove
+      x$data$screening$individuals[,"full.sib"] <- !rownames(x$data$screening$individuals)%in%ind.to.remove
+      if(inherits(x, "screened")){
+        id <- mappoly2:::.get_mrk_ind_from_Screening(x$data$screening,
+                                                     miss.mrk.thresh = x$screened.data$thresholds$miss.mrk,
+                                                     miss.ind.thresh = x$screened.data$thresholds$miss.ind,
+                                                     chisq.pval.thresh = x$screened.data$thresholds$chisq.pval,
+                                                     read.depth.thresh = x$screened.data$thresholds$read.depth)
+      }
+      x$screened.data <- id
+      return(x)
     } else{
       warning("No individuals removed. Returning original data set.")
       par(pty="m")
-      return(input.data)
+      return(x)
     }
   }
   par(pty="m")
@@ -414,6 +340,6 @@ rf_snp_filter <- function(input.twopt,
   }
   ## Returning sequence object
   ch_filt <- make_sequence(input.obj = input.twopt$input.seq$data,
-                              arg = ids)
+                           arg = ids)
   return(ch_filt)
 }

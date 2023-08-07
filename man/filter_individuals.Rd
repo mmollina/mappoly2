@@ -4,15 +4,10 @@
 \alias{filter_individuals}
 \title{Filter out individuals}
 \usage{
-filter_individuals(
-  input.data,
-  ind.to.remove = NULL,
-  inter = TRUE,
-  verbose = TRUE
-)
+filter_individuals(x, ind.to.remove = NULL, inter = TRUE, verbose = TRUE)
 }
 \arguments{
-\item{input.data}{The name of the input object (class \code{mappoly.data}).}
+\item{x}{The name of the input object (class \code{mappoly.data}).}
 
 \item{ind.to.remove}{A character vector containing the names of the individuals
 to be removed. If \code{NULL}, the function opens an interactive graphic to

@@ -53,7 +53,6 @@ subset_data <- function(input.data,
   assert_that(!is.null(select.ind) | !is.null(select.mrk))
   assert_that(all(select.mrk%in%input.data$mrk.names))
   assert_that(all(select.ind%in%input.data$ind.names))
-  flg <- is.null(select.ind)
   if(is.null(select.ind))
     select.ind <- input.data$ind.names
   if(is.null(select.mrk))
@@ -70,8 +69,5 @@ subset_data <- function(input.data,
   input.data$alt <- input.data$alt[select.mrk]
   input.data$all.mrk.depth <- input.data$all.mrk.depth[select.mrk]
   input.data$geno.dose <- input.data$geno.dose[select.mrk,select.ind]
-  input.data$chisq.pval <- input.data$chisq.pval[select.mrk]
-  if(flg)
-    return(structure(suppressWarnings(mappoly_chisq_test(input.data)), class = class(input.data)))
   return(input.data)
 }

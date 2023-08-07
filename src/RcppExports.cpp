@@ -229,7 +229,7 @@ BEGIN_RCPP
 END_RCPP
 }
 // mappoly_chisq_test
-List mappoly_chisq_test(List input_data);
+NumericVector mappoly_chisq_test(List input_data);
 RcppExport SEXP _mappoly2_mappoly_chisq_test(SEXP input_dataSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;

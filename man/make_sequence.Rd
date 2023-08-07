@@ -2,7 +2,6 @@
 % Please edit documentation in R/sequence.R
 \name{make_sequence}
 \alias{make_sequence}
-\alias{print.mappoly2.sequence}
 \alias{plot.mappoly2.sequence}
 \alias{plot_sequence}
 \title{Create a sequence of markers}
@@ -16,8 +15,6 @@ make_sequence(
   pairwise = NULL,
   linkage.groups = NULL
 )
-
-\method{print}{mappoly2.sequence}(x, detailed = FALSE, ...)
 
 \method{plot}{mappoly2.sequence}(
   x,
@@ -80,9 +77,9 @@ and so on.
 
 \item{x}{an object of the class \code{mappoly.sequence}}
 
-\item{...}{currently ignored}
-
 \item{thresh.line}{position of a threshold line for p values of the segregation test (default = \code{0.05/n.mrk})}
+
+\item{...}{currently ignored}
 }
 \value{
 An object of class \code{mappoly2.sequence}, which is a

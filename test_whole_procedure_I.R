@@ -1,45 +1,25 @@
 rm(list = ls())
 require(mappoly2)
-source("misc/simulation.R")
-ploidy.p1 = 4
-ploidy.p2 = 4
-n.mrk <- 100
-ph<-test_simulate(ploidy.p1 = ploidy.p1,
-                  ploidy.p2 = ploidy.p2,
-                  fpath = "misc/fake_triploid.csv",
-                  n.mrk = n.mrk,
-                  n.ind = 200,
-                  map.length = 100,
-                  miss.perc = 0,
-                  n.chrom = 12,
-                  random = FALSE,
-                  seed = 43598)
-dat <- read_geno_csv(file.in = "misc/fake_triploid.csv",
-                     ploidy.p1 = ploidy.p1,
-                     ploidy.p2 = ploidy.p2,
-                     name.p1 = "parent_1",
-                     name.p2 = "parent_2")
-plot(dat)
-print(dat, detailed = TRUE)
-###Subset test ####
-x <- subset(dat)
-plot(x)
-x1 <- subset(B2721, type = "marker", n = 700)
-x1 <- subset(x1, type = "individual", n = 80)
-x2 <- subset(B2721, type = "marker", n = 500)
-x2 <- subset(x2, type = "individual", n = 100)
-x3 <- subset(B2721, type = "marker", n = 400)
-x3 <- subset(x3, type = "individual", n = 100)
-x <- merge_datasets(x1, x2, x3)
-x
+source("misc/simulation/simulation_PS.R")
+setwd("misc/simulation/")
+x <- sim_map(ploidy = 4, map.length = 100, n.ind = 200, perc.random.missing = 5,
+             n.mrk = 150, n.chr = 3, prob.dose = c(0.225,0.225,0.1,0.225,0.225),
+             seed.for.config = 3489, seed.for.pop = 2745)
+setwd("~/repos/official_repos/mappoly2/")
+dev.off()
 plot(x)
 
-####Filter test####
-dat <- filter_missing(dat, type = "marker", filter.thres = 0.15, inter = FALSE)
-dat <- filter_missing(dat, type = "individual", filter.thres = 0.11, inter = FALSE)
-dat <- filter_individuals(dat)
-s <- filter_segregation(s, inter = FALSE)
+####QA/QC####
+x <- filter_data(x, mrk.thresh = .08, ind.thresh = .07)
+plot(x, type = "filtered")
+x <- filter_individuals(x)
+plot(x, type = "original")
+plot(x, type = "filtered")
+
 ####Two point####
+
+
+
 s <- make_sequence(dat, "all")
 print(s, detailed = TRUE)
 plot(s)

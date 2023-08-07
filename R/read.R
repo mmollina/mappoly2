@@ -1,13 +1,14 @@
 #'Data Input in CSV format
 #'
 #'Reads a comma-separated values (CSV) data file containing genetic marker data.
-#'This function returns an object of class \code{mappoly.data}.
+#'This function returns an object of class \code{mappoly2}.
 #'
 #' The CSV file should have rows representing markers, with the first row used
 #' as a header. The first seven columns should contain the marker names, the
 #' dosage in parents 1 and 2, the chromosome information (i.e. chromosome,
 #' scaffold, contig, etc), the position of the marker within the sequence, the
-#' alternate and reference alleles, if available.
+#' alternate and reference alleles, if available. If not available, the values
+#' should be filled by NA.
 #' The remaining columns should contain the dosage of the full-sib population.
 #' For a tetraploid example of such a file, see the \code{Examples} section.
 #'
@@ -40,7 +41,7 @@
 #'
 #' @param ... currently ignored
 #'
-#' @return An object of class \code{mappoly.data} which contains a list with
+#' @return An object of class \code{mappoly2} which contains a list with
 #' the following components:
 #'
 #' \item{ploidy.p1}{ploidy level of the first parent}
@@ -115,21 +116,6 @@ table_to_mappoly <- function(dat,
                              filter.non.conforming = TRUE,
                              filter.redundant = TRUE,
                              verbose = TRUE) {
-  # swap.parents <- FALSE
-  # if(ploidy.p1 > ploidy.p2){
-  #   swap.parents <- TRUE
-  #   ## swap ploidy levels if p1 > p2
-  #   temp <- ploidy.p2
-  #   ploidy.p2 <- ploidy.p1
-  #   ploidy.p1 <- temp
-  #   ## swap names if p1 > p2
-  #   temp <- name.p2
-  #   name.p2 <- name.p1
-  #   name.p1 <- temp
-  #   ## swap dosages
-  #   dat[,2:3] <- dat[,3:2]
-  #   names(dat)[2:3] <- names(dat)[3:2]
-  # }
 
   # Removing markers with missing data points for parents
   dat <- dat[apply(dat[, 2:3], 1, function(x) !any(is.na(x))), ]
@@ -141,7 +127,7 @@ table_to_mappoly <- function(dat,
   n.mrk <- nrow(dat)
 
   # Get marker names
-  mrk.names <- as.character(dat[, 1, drop = TRUE])
+  mrk.names.raw <- mrk.names <- as.character(dat[, 1, drop = TRUE])
 
   # Get individual's names
   ind.names <- colnames(dat)[-c(1:7)]
@@ -216,7 +202,7 @@ table_to_mappoly <- function(dat,
 
   geno.dose <- geno.dose[id, , drop = FALSE]
   res <- structure(
-    list(
+    list(data = list(
       ploidy.p1 = ploidy.p1,
       ploidy.p2 = ploidy.p2,
       n.ind = n.ind,
@@ -232,140 +218,31 @@ table_to_mappoly <- function(dat,
       ref = ref,
       alt = alt,
       all.mrk.depth = NULL,
-      prob.thres = NULL,
       geno.dose = geno.dose,
-      chisq.pval = NULL,
-      redundant = NULL#,
-      #swap.parents = swap.parents
-    ),
-    class = "mappoly2.data"
+      redundant = NULL)),
+    class = c("mappoly2", "data")
   )
-  # Computing chi-square p.values
-  res <- suppressWarnings(mappoly_chisq_test(res))
 
   # Screening non-conforming markers
   if (filter.non.conforming) {
     if (verbose) cat(" -->  Filtering non-conforming markers.\n     ")
-    res <- filter_non_conforming_classes(res)
+    res$data <- mappoly2:::filter_non_conforming_classes(res$data)
   }
   # Screening redundant markers
   if(filter.redundant){
-    if (verbose) cat(" -->  Filtering redundant markers.\n     ")
-    s <- make_sequence(res, arg = "all")
-    sf <- filter_redundant(s)
-    res$redundant <- sf$redundant
-    res <- subset_data(res, select.mrk = setdiff(res$mrk.names, sf$redundant$removed))
+    if (verbose) cat(" -->  Filtering markers with redundant information.\n     ")
+    redundant <- mappoly2:::filter_redundant(res)
+    if(all(is.na(redundant))) res$data$redundant <- NA
+    else{
+      res$data <- mappoly2:::subset_data(res$data, select.mrk = setdiff(res$data$mrk.names, redundant$removed))
+    }
+    res$data$redundant <- redundant
   }
+  res$data$screening <- .setScreeningClass(id.mrk = res$data$mrk.names,
+                                           id.ind = res$data$ind.names,
+                                           miss.mrk = apply(res$data$geno.dose, 1, function(x) sum(is.na(x)))/res$data$n.ind,
+                                           miss.ind = apply(res$data$geno.dose, 2, function(x) sum(is.na(x)))/res$data$n.mrk,
+                                           chisq.pval = suppressWarnings(mappoly2:::mappoly_chisq_test(res$data)))
   if(verbose) cat("----------------------------------\n")
   return(res)
-}
-#' @rdname read_geno_csv
-#' @export
-print.mappoly2.data <- function(x, ...) {
-  txt <- list(
-    paste0("    Ploidy level of ", x$name.p1, ":"),
-    paste0("    Ploidy level of ", x$name.p2, ":"),
-    paste0("    No. individuals:"),
-    paste0("    No. markers:"),
-    paste0("    Percentage of missing:"),
-    paste0("    Percentage of redundant:")
-  )
-  n <- sapply(txt, nchar)
-  for (i in 1:length(txt)) {
-    txt[[i]] <- paste(txt[[i]], paste0(rep(" ", max(n) - n[i]), collapse = ""))
-  }
-  id <- is.na(x$geno.dose)
-  cat("\n", txt[[1]], x$ploidy.p1)
-  cat("\n", txt[[2]], x$ploidy.p2)
-  cat("\n", txt[[3]], x$n.ind)
-  cat("\n", txt[[4]], x$n.mrk)
-  cat("\n ", txt[[5]], " (",   round(100*sum(id)/length(id),1), "%)", sep = "")
-  if(!is.null(x$redundant))
-    cat("\n ", txt[[6]], " (",   round(100*nrow(x$redundant)/sum(x$n.mrk, nrow(x$redundant)),1), "%)", sep = "")
-  w <- table(x$chrom)
-  w <- w[order(as.integer(gsub("[^0-9]", "", names(w))))]
-  if (all(is.null(x$chrom)) || all(is.na(x$chrom)))
-    cat("\n     No. markers per sequence: not available")
-  else {
-    cat("\n     ----------\n     No. markers per sequence:\n")
-    print(data.frame(chrom = paste0("       ", names(w)), No.mrk = as.numeric(w)), row.names = FALSE)
-  }
-  cat("     ----------\n     No. of markers per dosage in both parents:\n")
-  freq <- table(paste(x$dosage.p1,
-                      x$dosage.p2, sep = "-"))
-  d.temp <- matrix(unlist(strsplit(names(freq), "-")), ncol = 2, byrow = TRUE)
-  d.temp <- data.frame(paste0("    ", d.temp[, 1]),
-                       d.temp[, 2],
-                       as.numeric(freq))
-  colnames(d.temp) <- c(x$name.p1, x$name.p2, "freq")
-  print(d.temp, row.names = FALSE)
-}
-
-#' @rdname read_geno_csv
-#' @export
-#' @importFrom graphics barplot layout mtext image legend
-#' @importFrom grDevices colorRampPalette
-plot.mappoly2.data <- function(x, thresh.line = NULL, ...)
-{
-  oldpar <- par(mar = c(5,4,1,2))
-  on.exit(par(oldpar))
-  if(is.null(thresh.line))
-    thresh.line <- 0.05/length(x$mrk.names)
-  freq <- table(paste(x$dosage.p1, x$dosage.p2, sep = "-"))
-  d.temp <- matrix(unlist(strsplit(names(freq), "-")), ncol = 2, byrow = TRUE)
-  type <- apply(d.temp, 1, function(x,ploidy.p1, ploidy.p2) paste0(sort(abs(abs(as.numeric(x)-(ploidy.p1/2))-(ploidy.p2/2))), collapse = ""),
-                ploidy.p1 = x$ploidy.p1, ploidy.p2 = x$ploidy.p2)
-  type.names <- names(table(type))
-  mrk.dist <- as.numeric(freq)
-  names(mrk.dist) <- apply(d.temp, 1 , paste, collapse = "-")
-  layout(matrix(c(1,1,1,2,3,3,6,4,5), 3, 3), widths = c(1.2,3,.5), heights = c(1.5,2,3))
-  barplot(mrk.dist, las = 2, #col = pal[match(type, type.names)],
-          xlab = "Number of markers",
-          ylab = "Dosage combination", horiz = TRUE)
-  pval <- x$chisq.pval
-  if(is.null(x$chisq.pval))
-  {
-    plot(0, 0, axes = FALSE, xlab = "", ylab = "", type = "n")
-    text(x = 0, y = 0, labels = "No segregation test", cex = 2)
-  } else{
-    par(mar = c(1,1,1,2))
-    par(xaxs = "i")
-    plot(log10(pval), axes = FALSE, xlab = "", ylab = "", pch = 16,
-         col = rgb(red = 0.25, green = 0.64, blue = 0.86, alpha = 0.3))
-    axis(4, line = 1)
-    mtext(text = bquote(log[10](P)), side = 4, line = 4, cex = .7)
-    lines(x = c(0, length(x$mrk.names)), y = rep(log10(thresh.line),2), col = 2, lty = 2)
-  }
-  par(mar = c(5,1,0,2))
-  pal <- c("black", colorRampPalette(c("#D73027", "#F46D43", "#FDAE61", "#FEE090",
-                                       "#FFFFBF", "#E0F3F8", "#ABD9E9", "#74ADD1",
-                                       "#4575B4"))(x$ploidy.p1/2 + x$ploidy.p2/2 + 1))
-  names(pal) <- c(-1:(x$ploidy.p1/2 + x$ploidy.p2/2))
-  M <- as.matrix(x$geno.dose[x$mrk.names,])
-  M[is.na(M)] <- -1
-  image(x = 1:nrow(M), z = M, axes = FALSE, xlab = "",
-        col = pal[as.character(sort(unique(as.vector(M))))], useRaster = TRUE)
-  mtext(text = "Markers", side = 1, line = .4)
-  mtext(text = "Individuals", side = 2, line = .2)
-  par(mar = c(0,0,0,0))
-  plot(0:10,0:10, type = "n", axes = FALSE, xlab = "", ylab = "")
-  legend(0,10,
-         horiz = FALSE,
-         legend = c("missing", 0:(x$ploidy.p1/2 + x$ploidy.p2/2)),
-         pch = 22,
-         pt.cex = 3,
-         pt.bg = pal, pt.lwd = 0,
-         bty = "n", xpd = TRUE)
-  if(!is.null(x$redundant)){
-    par(mar = c(5,0,2,2))
-    red = round(100*nrow(x$redundant)/(length(x$mrk.names)),1)
-    mat = matrix(c(100-red, red), ncol = 1)
-    w = barplot(mat, main = "",
-                xlab = "", col = c(blues9[3],blues9[6]),
-                axes = F, width = .5, border = NA, xlim = c(0,1))
-
-    text(w, c((100-red)/2,   100 - red/2),  c(paste0(100 - red, " %"), paste0(red, " %")))
-    mtext(text = "Unique vs. Redundant", line = -1, side = 4, cex = .8)
-  }
-  par(mfrow = c(1,1))
 }

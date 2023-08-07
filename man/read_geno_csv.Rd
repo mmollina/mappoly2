@@ -2,8 +2,6 @@
 % Please edit documentation in R/read.R
 \name{read_geno_csv}
 \alias{read_geno_csv}
-\alias{print.mappoly2.data}
-\alias{plot.mappoly2.data}
 \title{Data Input in CSV format}
 \usage{
 read_geno_csv(
@@ -16,10 +14,6 @@ read_geno_csv(
   filter.redundant = TRUE,
   verbose = TRUE
 )
-
-\method{print}{mappoly2.data}(x, ...)
-
-\method{plot}{mappoly2.data}(x, thresh.line = NULL, ...)
 }
 \arguments{
 \item{file.in}{a character string with the name of (or full path to)
@@ -47,12 +41,12 @@ final map.}
 
 \item{x}{an object of the class \code{mappoly.sequence}}
 
-\item{...}{currently ignored}
-
 \item{thresh.line}{position of a threshold line for p values of the segregation test (default = \code{0.05/n.mrk})}
+
+\item{...}{currently ignored}
 }
 \value{
-An object of class \code{mappoly.data} which contains a list with
+An object of class \code{mappoly2} which contains a list with
 the following components:
 
 \item{ploidy.p1}{ploidy level of the first parent}
@@ -79,14 +73,15 @@ to the redundant ones if \code{filter.redundant = TRUE}}
 }
 \description{
 Reads a comma-separated values (CSV) data file containing genetic marker data.
-This function returns an object of class \code{mappoly.data}.
+This function returns an object of class \code{mappoly2}.
 }
 \details{
 The CSV file should have rows representing markers, with the first row used
 as a header. The first seven columns should contain the marker names, the
 dosage in parents 1 and 2, the chromosome information (i.e. chromosome,
 scaffold, contig, etc), the position of the marker within the sequence, the
-alternate and reference alleles, if available.
+alternate and reference alleles, if available. If not available, the values
+should be filled by NA.
 The remaining columns should contain the dosage of the full-sib population.
 For a tetraploid example of such a file, see the \code{Examples} section.
 }

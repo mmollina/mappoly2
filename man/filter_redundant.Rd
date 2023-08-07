@@ -2,16 +2,10 @@
 % Please edit documentation in R/filters.R
 \name{filter_redundant}
 \alias{filter_redundant}
-\title{Filter out redundant markers}
+\title{Filter out markers with redundant information}
 \usage{
-filter_redundant(input.seq)
-}
-\arguments{
-\item{input.seq}{an object of class \code{mappoly.sequence}}
-}
-\value{
-An object of class \code{mappoly2.seq}
+filter_redundant(x)
 }
 \description{
-Filter out markers with identical dosage information for all individuals.
+Filter out markers with redundant information
 }
