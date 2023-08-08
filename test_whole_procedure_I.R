@@ -3,22 +3,28 @@ require(mappoly2)
 source("misc/simulation/simulation_PS.R")
 setwd("misc/simulation/")
 x <- sim_map(ploidy = 4, map.length = 100, n.ind = 200, perc.random.missing = 5,
-             n.mrk = 150, n.chr = 3, prob.dose = c(0.225,0.225,0.1,0.225,0.225),
-             seed.for.config = 3489, seed.for.pop = 2745)
+              n.mrk = 1000, n.chr = 3, prob.dose = c(0.225,0.225,0.1,0.225,0.225),
+              seed.for.config = 3489, seed.for.pop = 2745)
 setwd("~/repos/official_repos/mappoly2/")
 dev.off()
-plot(x)
 
+plot(x)
 ####QA/QC####
-x <- filter_data(x, mrk.thresh = .08, ind.thresh = .07)
+x <- filter_data(x, mrk.thresh = .08, ind.thresh = .7)
 plot(x, type = "filtered")
 x <- filter_individuals(x)
 plot(x, type = "original")
 plot(x, type = "filtered")
 
 ####Two point####
+system.time(x <- pairwise_rf(x, ncpus = 8))
+plot_mappoly2_rf_matrix(x$pairwise, fact = 3)
 
-
+#############################################
+#############################################
+#############################################
+#############################################
+#############################################
 
 s <- make_sequence(dat, "all")
 print(s, detailed = TRUE)

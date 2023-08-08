@@ -1,3 +1,88 @@
+#' @export pairwise_rf
+#' @importFrom Rcpp sourceCpp
+#' @importFrom RcppParallel RcppParallelLibs
+pairwise_rf <- function(x,
+                        ncpus = 1L,
+                        mrk.pairs = NULL,
+                        verbose = TRUE,
+                        tol = .Machine$double.eps^0.25)
+{
+ assert_that(inherits(x, "screened"),
+             msg = "Error: The input object has not been screened.")
+  if (is.null(mrk.pairs)) {
+    seq.num <- seq_along(x$screened.data$mrk.names)
+    mrk.pairs <- combn(sort(seq.num), 2) - 1
+  } else {
+    mrk.pairs <- mrk.pairs - 1
+  }
+  count.cache <- mappoly2:::full_counts[[paste(sort(unlist(x$data[1:2])), collapse = "x")]]
+  RcppParallel::setThreadOptions(numThreads = ncpus)
+  count.vector = unlist(count.cache)
+  count.phases = unlist(lapply(count.cache, function(x) paste0(names(x), collapse = '/')))
+  count.matrix.rownames = unlist(lapply(count.cache, function(x) paste0(rownames(x[[1]]), collapse = '/')))
+  count.matrix.number = unlist(lapply(count.cache, length))
+  count.matrix.length = unlist(lapply(count.cache, function(x) length(c(unlist(x)) )))
+  count.matrix.pos = cumsum(c(1, count.matrix.length[-length(count.matrix.length)]))
+  ploidy.p1 <- x$data$ploidy.p1
+  ploidy.p2 <- x$data$ploidy.p2
+  if(ploidy.p1 <= ploidy.p2){
+    dose.p1 <- x$data$dosage.p1[x$screened.data$mrk.names]
+    dose.p2 <- x$data$dosage.p2[x$screened.data$mrk.names]
+    swap.parents <- FALSE
+  } else {
+    ploidy.p1 <- x$data$ploidy.p2
+    ploidy.p2 <- x$data$ploidy.p1
+    dose.p1 <- x$data$dosage.p2[x$screened.data$mrk.names]
+    dose.p2 <- x$data$dosage.p1[x$screened.data$mrk.names]
+    swap.parents <- TRUE
+  }
+  geno <- as.matrix(x$data$geno.dose[x$screened.data$mrk.names, x$screened.data$ind.names])
+  geno[is.na(geno)] <- 1 + (ploidy.p1 + ploidy.p2)/2
+  res <- mappoly2:::pairwise_rf_estimation_disc_rcpp(mrk_pairs_R = as.matrix(mrk.pairs),
+                                          ploidy_p1_R = ploidy.p1,
+                                          ploidy_p2_R = ploidy.p2,
+                                          geno_R = geno,
+                                          dose_p1_R = as.vector(dose.p1),
+                                          dose_p2_R = as.vector(dose.p2),
+                                          count_vector_R = count.vector,
+                                          count_matrix_phases_R = count.phases,
+                                          count_matrix_rownames_R = count.matrix.rownames,
+                                          count_matrix_number_R = count.matrix.number,
+                                          count_matrix_pos_R = count.matrix.pos,
+                                          count_matrix_length_R = count.matrix.length,
+                                          tol_R = tol, threads_R = ncpus)
+  res[res == -1] = NA
+  colnames(res) = c("Sh_P1","Sh_P2","rf","LOD_rf","LOD_ph")
+  seq.mrk.names <- x$screened.data$mrk.names
+  v_2_m <- function(x, n){
+    y <- base::matrix(NA, n, n)
+    y[base::lower.tri(y)] <- as.numeric(x)
+    y[base::upper.tri(y)] <- t(y)[base::upper.tri(y)]
+    y
+  }
+  n <- length(seq.mrk.names)
+  if(swap.parents){
+    Sh_P2 = v_2_m(res[,1], n)
+    Sh_P1 = v_2_m(res[,2], n)
+  } else {
+    Sh_P1 = v_2_m(res[,1], n)
+    Sh_P2 = v_2_m(res[,2], n)
+  }
+  rf = v_2_m(res[,3], n)
+  LOD_rf = v_2_m(res[,4], n)
+  LOD_ph = v_2_m(res[,5], n)
+  dimnames(rf) <- dimnames(LOD_rf) <- dimnames(LOD_ph) <- dimnames(Sh_P1) <- dimnames(Sh_P2) <- list(seq.mrk.names, seq.mrk.names)
+  x$pairwise = list(rec.mat = rf,
+                            lod.mat = abs(LOD_rf),
+                            lod.ph.mat = abs(LOD_ph),
+                            Sh.p1 = Sh_P1,
+                            Sh.p2 = Sh_P2)
+  class(x) <- c(class(x), "pairwise")
+  return(x)
+}
+
+
+
 #' Pairwise Two-Point Analysis
 #'
 #' Performs a pairwise two-point analysis for all marker pairs in a given sequence.
