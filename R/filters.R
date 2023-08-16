@@ -1,7 +1,7 @@
-.setScreeningClass <- function(id.mrk, id.ind,
-                               miss.mrk = NA,
-                               miss.ind = rep(NA, length(id.ind)),
-                               chisq.pval){
+.setQAQC <- function(id.mrk, id.ind,
+                     miss.mrk = NA,
+                     miss.ind = rep(NA, length(id.ind)),
+                     chisq.pval){
   list(markers = data.frame(miss = miss.mrk,
                             chisq.pval = chisq.pval,
                             read.depth = NA,
@@ -11,11 +11,11 @@
                                 row.names = id.ind))
 }
 
-.get_mrk_ind_from_Screening <- function(x,
-                                        miss.mrk.thresh = +Inf,
-                                        miss.ind.thresh = +Inf,
-                                        chisq.pval.thresh = -Inf,
-                                        read.depth.thresh = c(0, +Inf)){
+.get_mrk_ind_from_QAQC <- function(x,
+                                   miss.mrk.thresh = +Inf,
+                                   miss.ind.thresh = +Inf,
+                                   chisq.pval.thresh = -Inf,
+                                   read.depth.thresh = c(0, +Inf)){
 
   if(any(is.na(x$markers[,"read.depth"]))){
     id.mrk <- x$markers[,"miss"] < miss.mrk.thresh &
@@ -63,29 +63,33 @@ filter_data <- function(x,
                         plot.screening = TRUE) {
   assert_that(inherits(x, "data"))
   assert_that(all(class(x)%in%c("mappoly2", "data", "screened")))
-  op <- par(pty = "s", mfrow = c(2,2), mar = c(3,2,2,1))
+  op <- par(pty = "s", mfrow = c(2,2), mar = c(4,3,3,2))
   on.exit(par(op))
-  chisq.val <- x$data$screening$markers$chisq.pval
+  chisq.val <- x$data$QAQC.values$markers$chisq.pval
   # Set threshold for chi-square p-values using Bonferroni approximation if not specified
   if(is.null(chisq.pval.thresh))
     chisq.pval.thresh <- 0.05/length(chisq.val)
-  id <- mappoly2:::.get_mrk_ind_from_Screening(x$data$screening,
-                                               miss.mrk.thresh = mrk.thresh,
-                                               miss.ind.thresh = ind.thresh,
-                                               chisq.pval.thresh = chisq.pval.thresh,
-                                               read.depth.thresh = read.depth.thresh)
+  id <- mappoly2:::.get_mrk_ind_from_QAQC(x$data$QAQC.values,
+                                          miss.mrk.thresh = mrk.thresh,
+                                          miss.ind.thresh = ind.thresh,
+                                          chisq.pval.thresh = chisq.pval.thresh,
+                                          read.depth.thresh = read.depth.thresh)
   x$screened.data <- id
   class(x) <- c(class(x), "screened")
   pal <- c("#56B4E9","#E69F00")
   if (plot.screening) {
     ####Missing markers ####
-    z <- sort(x$data$screening$markers$miss)
+    z <- sort(x$data$QAQC.values$markers$miss)
+    rg <- range(z)
+    if(rg[2] < .1) rg[2] <- .1
     plot(z,
          xlab = "markers",
-         ylab = "frequency of missing data",
+         ylab = "",
          col = ifelse(z <= mrk.thresh, pal[1], pal[2]),
          pch = ifelse(z <= mrk.thresh, 1, 4),
-         main = "Markers", xlim = c(ceiling(-length(z)*.05) , ceiling(length(z)*1.05)))
+         main = "Markers", xlim = c(ceiling(-length(z)*.05) , ceiling(length(z)*1.05)),
+         ylim = rg)
+    mtext("frequency of missing data", 2, line = 2, cex= .75)
     abline(h = mrk.thresh, lty = 2)
     legend("topleft",
            c(paste0("Filtered out: ", sum(z > mrk.thresh)),
@@ -93,13 +97,18 @@ filter_data <- function(x,
            col = rev(pal),
            pch = c(4, 1))
     ####Missing individuals ####
-    z <- sort(x$data$screening$individuals$miss)
+    z <- sort(x$data$QAQC.values$individuals$miss)
+    rg <- range(z)
+    if(rg[2] < .1) rg[2] <- .1
     plot(z,
          xlab = "individuals",
-         ylab = "frequency of missing data",
+         ylab = "",
          col = ifelse(z <= ind.thresh, pal[1], pal[2]),
          pch = ifelse(z <= ind.thresh, 1, 4),
-         main = "Individuals", xlim = c(ceiling(-length(z)*.05) , ceiling(length(z)*1.05)))
+         main = "Individuals",
+         xlim = c(ceiling(-length(z)*.05) , ceiling(length(z)*1.05)),
+         ylim = rg)
+    mtext("frequency of missing data", 2, line = 2, cex= .75)
     abline(h = ind.thresh, lty = 2)
     legend("topleft",
            c(paste0("Filtered out: ", sum(z > ind.thresh)),
@@ -107,25 +116,26 @@ filter_data <- function(x,
            col = rev(pal),
            pch = c(4, 1))
     #### Chi-square test ####
-    w <- log10(sort(x$data$screening$markers$chisq.pval, decreasing = TRUE))
+    w <- log10(sort(x$data$QAQC.values$markers$chisq.pval, decreasing = TRUE))
     th <- log10(chisq.pval.thresh)
     plot(w,
          xlab = "markers",
-         ylab = bquote(log[10](P)),
+         ylab = "",
          col = ifelse(w <= th, pal[2], pal[1]),
          pch =ifelse(w <= th, 4, 1), main = "Segregation", xlim = c(ceiling(-length(w)*.05) , ceiling(length(w)*1.05)))
     abline(h = th, lty = 2)
+    mtext(bquote(log[10](P)), 2, line = 2, cex= .75)
     f <- paste0("Filtered out: ", sum(w < th))
     i <- paste0("Included: ", sum(w >= th))
     legend("bottomleft",  c(f, i) , col = rev(pal), pch = c(4,1))
     #### Read Depth ####
-    if(all(!is.na(x$data$screening$markers$read.depth))){
-      hist_info <- hist(x$data$screening$markers$read.depth,
+    if(all(!is.na(x$data$QAQC.values$markers$read.depth))){
+      hist_info <- hist(x$data$QAQC.values$markers$read.depth,
                         main = "Read depth", xlab = "number of reads", col = pal[1])
       lower_tail <- read.depth.thresh[1]
       upper_tail <- read.depth.thresh[2]
       if(hist_info$breaks[2] <  lower_tail)
-        {
+      {
         # Add colored rectangles for the tails
         rect(hist_info$breaks[hist_info$breaks < lower_tail],
              0,
@@ -134,7 +144,7 @@ filter_data <- function(x,
              col=pal[2])
       }
       if(rev(hist_info$breaks)[2] >  upper_tail)
-        {
+      {
         rect(hist_info$breaks[hist_info$breaks >= upper_tail],
              0,
              hist_info$breaks[which(hist_info$breaks >= upper_tail) + 1],
@@ -143,11 +153,11 @@ filter_data <- function(x,
       }
       abline(v = read.depth.thresh, lty = 2)
     } else {
-    plot(0, type = "n", axes = FALSE, xlab = "", ylab = "")
+      plot(0, type = "n", axes = FALSE, xlab = "", ylab = "")
+    }
+    par(pty="m")
   }
-  par(pty="m")
- }
-return(x)
+  return(x)
 }
 
 #' Filter out individuals
@@ -182,10 +192,10 @@ filter_individuals <- function(x,
   on.exit(par(op))
   D <- t(x$data$geno.dose)
   if(inherits(x, "screened")){
-   D <- D[x$screened.data$ind.names, x$screened.data$mrk.names]
-   D <- rbind(x$data$dosage.p1[x$screened.data$mrk.names],
-              x$data$dosage.p2[x$screened.data$mrk.names],
-              D)
+    D <- D[x$screened.data$ind.names, x$screened.data$mrk.names]
+    D <- rbind(x$data$dosage.p1[x$screened.data$mrk.names],
+               x$data$dosage.p2[x$screened.data$mrk.names],
+               D)
   } else {
     D <- rbind(x$data$dosage.p1,
                x$data$dosage.p2,
@@ -205,13 +215,13 @@ filter_individuals <- function(x,
   legend("topright",  c("Parents", "Offspring") , col = c(2,4), pch = 19)
   if(!is.null(ind.to.remove)){
     full.sib <- !x$data$ind.names%in%ind.to.remove
-    x$data$screening$individuals[,"full.sib"] <- !rownames(x$data$screening$individuals)%in%ind.to.remove
+    x$data$QAQC.values$individuals[,"full.sib"] <- !rownames(x$data$QAQC.values$individuals)%in%ind.to.remove
     if(inherits(x, "screened")){
-    id <- mappoly2:::.get_mrk_ind_from_Screening(x$data$screening,
-                                                 miss.mrk.thresh = x$screened.data$thresholds$miss.mrk,
-                                                 miss.ind.thresh = x$screened.data$thresholds$miss.ind,
-                                                 chisq.pval.thresh = x$screened.data$thresholds$chisq.pval,
-                                                 read.depth.thresh = x$screened.data$thresholds$read.depth)
+      id <- mappoly2:::.get_mrk_ind_from_QAQC(x$data$QAQC.values,
+                                              miss.mrk.thresh = x$screened.data$thresholds$miss.mrk,
+                                              miss.ind.thresh = x$screened.data$thresholds$miss.ind,
+                                              chisq.pval.thresh = x$screened.data$thresholds$chisq.pval,
+                                              read.depth.thresh = x$screened.data$thresholds$read.depth)
     }
     x$screened.data <- id
     return(x)
@@ -234,13 +244,13 @@ filter_individuals <- function(x,
         return(x)
       }
       full.sib <- !x$data$ind.names%in%ind.to.remove
-      x$data$screening$individuals[,"full.sib"] <- !rownames(x$data$screening$individuals)%in%ind.to.remove
+      x$data$QAQC.values$individuals[,"full.sib"] <- !rownames(x$data$QAQC.values$individuals)%in%ind.to.remove
       if(inherits(x, "screened")){
-        id <- mappoly2:::.get_mrk_ind_from_Screening(x$data$screening,
-                                                     miss.mrk.thresh = x$screened.data$thresholds$miss.mrk,
-                                                     miss.ind.thresh = x$screened.data$thresholds$miss.ind,
-                                                     chisq.pval.thresh = x$screened.data$thresholds$chisq.pval,
-                                                     read.depth.thresh = x$screened.data$thresholds$read.depth)
+        id <- mappoly2:::.get_mrk_ind_from_QAQC(x$data$QAQC.values,
+                                                miss.mrk.thresh = x$screened.data$thresholds$miss.mrk,
+                                                miss.ind.thresh = x$screened.data$thresholds$miss.ind,
+                                                chisq.pval.thresh = x$screened.data$thresholds$chisq.pval,
+                                                read.depth.thresh = x$screened.data$thresholds$read.depth)
       }
       x$screened.data <- id
       return(x)
@@ -296,40 +306,40 @@ filter_individuals <- function(x,
 #'
 #' @author Marcelo Mollinari, \email{mmollin@ncsu.edu} with updates by Gabriel Gesteira, \email{gdesiqu@ncsu.edu}
 #'
-#' @export rf_snp_filter
+#' @export
 #' @importFrom ggplot2 ggplot geom_histogram aes scale_fill_manual xlab ggtitle
 #' @importFrom graphics hist
-rf_snp_filter <- function(input.twopt,
-                          thresh.LOD.ph = 5,
-                          thresh.LOD.rf = 5,
-                          thresh.rf = 0.15,
-                          probs = c(0.05, 1),
-                          diag.markers = NULL,
-                          mrk.order = NULL,
-                          ncpus = 1L,
-                          diagnostic.plot = TRUE,
-                          breaks = 100)
+rf_filter <- function(x,
+                      thresh.LOD.ph = 5,
+                      thresh.LOD.rf = 5,
+                      thresh.rf = 0.15,
+                      probs = c(0.05, 1),
+                      diag.markers = NULL,
+                      mrk.order = NULL,
+                      diagnostic.plot = TRUE,
+                      breaks = 100)
 {
-  assert_that(is.mappoly2.twopt(input.twopt))
+  assert_that(inherits(x, "pairwise"))
   probs <- range(probs)
   ## Getting filtered rf matrix
-  rf_mat <-  rf_list_to_matrix(input.twopt = input.twopt, thresh.LOD.ph = thresh.LOD.ph,
-                               thresh.LOD.rf = thresh.LOD.rf, thresh.rf = thresh.rf,
-                               ncpus = ncpus, verbose = FALSE)
-  M <- rf_mat$rec.mat
+  M <-mappoly2:::filter_rf_matrix(x,
+                                  type = "rf",
+                                  thresh.LOD.ph = thresh.LOD.ph,
+                                  thresh.LOD.rf = thresh.LOD.rf,
+                                  thresh.rf = thresh.rf)
   if(!is.null(mrk.order))
     M <- M[mrk.order, mrk.order]
   if(!is.null(diag.markers))
     M[abs(col(M) - row(M)) > diag.markers] <- NA
-  x <- apply(M, 1, function(x) sum(!is.na(x)))
-  w <- hist(x, breaks = breaks, plot = FALSE)
-  th <- quantile(x, probs = probs)
-  rem <- c(which(x < th[1]), which(x > th[2]))
-  ids <- names(which(x >= th[1] & x <= th[2]))
+  z <- apply(M, 1, function(x) sum(!is.na(x)))
+  w <- hist(z, breaks = breaks, plot = FALSE)
+  th <- quantile(z, probs = probs)
+  rem <- c(which(z < th[1]), which(z > th[2]))
+  ids <- names(which(z >= th[1] & z <= th[2]))
   value <- type <- NULL
   if(diagnostic.plot){
-    d <- rbind(data.frame(type = "original", value = x),
-               data.frame(type = "filtered", value = x[ids]))
+    d <- rbind(data.frame(type = "original", value = z),
+               data.frame(type = "filtered", value = z[ids]))
     p <- ggplot2::ggplot(d, ggplot2::aes(value)) +
       ggplot2::geom_histogram(ggplot2::aes(fill = type),
                               alpha = 0.4, position = "identity", binwidth = diff(w$mids)[1]) +
@@ -338,8 +348,41 @@ rf_snp_filter <- function(input.twopt,
       ggplot2::xlab(paste0("Non 'NA' values at LOD.ph = ", thresh.LOD.ph, ", LOD.rf = ", thresh.LOD.rf, ", and thresh.rf = ", thresh.rf))
     print(p)
   }
-  ## Returning sequence object
-  ch_filt <- make_sequence(input.obj = input.twopt$input.seq$data,
-                           arg = ids)
-  return(ch_filt)
+  x$screened.rf <- list(thresholds = c(thresh.LOD.ph = thresh.LOD.ph,
+                                       thresh.LOD.rf = thresh.LOD.rf,
+                                       thresh.rf = thresh.rf,
+                                       prob.lower = probs[1],
+                                       prob.upper = probs[2]),
+                        mrk.names = ids)
+  class(x) <- unique(c(class(x), "rf_filtered"))
+  x$working.sequence <- ids
+  return(x)
 }
+
+
+filter_rf_matrix <- function(x,
+                             type = c("rf", "sh"),
+                             thresh.LOD.ph = 0,
+                             thresh.LOD.rf = 0,
+                             thresh.rf = 0.5){
+  type <- match.arg(type)
+  id1 <- abs(x$pairwise$lod.ph.mat) < thresh.LOD.ph
+  id2 <- abs(x$pairwise$lod.mat) < thresh.LOD.rf
+  id3 <- x$pairwise$rec.mat > thresh.rf
+  if(type == "rf"){
+    rec.mat <- x$pairwise$rec.mat
+    if(thresh.LOD.ph > 0) rec.mat[id1] <- NA
+    if(thresh.LOD.rf > 0) rec.mat[id2] <- NA
+    if(thresh.rf < 0.5) rec.mat[id3] <- NA
+    return(rec.mat)
+  } else if(type == "sh"){
+    sh.p1 <- x$pairwise$Sh.p1
+    sh.p2 <- x$pairwise$Sh.p2
+    if(thresh.LOD.ph > 0) sh.p1[id1] <- sh.p1[id1] <- NA
+    if(thresh.LOD.rf > 0) sh.p1[id2] <- sh.p1[id2] <- NA
+    if(thresh.rf < 0.5)  sh.p1[id3] <- sh.p1[id3] <- NA
+    return(list(Sh.p1 = sh.p1,
+                Sh.p2 = sh.p2))
+  }
+}
+

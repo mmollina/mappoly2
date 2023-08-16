@@ -7,10 +7,11 @@ pairwise_rf <- function(x,
                         verbose = TRUE,
                         tol = .Machine$double.eps^0.25)
 {
- assert_that(inherits(x, "screened"),
-             msg = "Error: The input object has not been screened.")
+ assert_that(inherits(x, "initiated"),
+             msg = "Error: The input object has not been initiated")
+  mrk.names <- x$initial.sequence
   if (is.null(mrk.pairs)) {
-    seq.num <- seq_along(x$screened.data$mrk.names)
+    seq.num <- seq_along(mrk.names)
     mrk.pairs <- combn(sort(seq.num), 2) - 1
   } else {
     mrk.pairs <- mrk.pairs - 1
@@ -26,17 +27,17 @@ pairwise_rf <- function(x,
   ploidy.p1 <- x$data$ploidy.p1
   ploidy.p2 <- x$data$ploidy.p2
   if(ploidy.p1 <= ploidy.p2){
-    dose.p1 <- x$data$dosage.p1[x$screened.data$mrk.names]
-    dose.p2 <- x$data$dosage.p2[x$screened.data$mrk.names]
+    dose.p1 <- x$data$dosage.p1[mrk.names]
+    dose.p2 <- x$data$dosage.p2[mrk.names]
     swap.parents <- FALSE
   } else {
     ploidy.p1 <- x$data$ploidy.p2
     ploidy.p2 <- x$data$ploidy.p1
-    dose.p1 <- x$data$dosage.p2[x$screened.data$mrk.names]
-    dose.p2 <- x$data$dosage.p1[x$screened.data$mrk.names]
+    dose.p1 <- x$data$dosage.p2[mrk.names]
+    dose.p2 <- x$data$dosage.p1[mrk.names]
     swap.parents <- TRUE
   }
-  geno <- as.matrix(x$data$geno.dose[x$screened.data$mrk.names, x$screened.data$ind.names])
+  geno <- as.matrix(x$data$geno.dose[mrk.names, x$screened.data$ind.names])
   geno[is.na(geno)] <- 1 + (ploidy.p1 + ploidy.p2)/2
   res <- mappoly2:::pairwise_rf_estimation_disc_rcpp(mrk_pairs_R = as.matrix(mrk.pairs),
                                           ploidy_p1_R = ploidy.p1,
@@ -50,10 +51,10 @@ pairwise_rf <- function(x,
                                           count_matrix_number_R = count.matrix.number,
                                           count_matrix_pos_R = count.matrix.pos,
                                           count_matrix_length_R = count.matrix.length,
-                                          tol_R = tol, threads_R = ncpus)
+                                          tol_R = tol)
   res[res == -1] = NA
   colnames(res) = c("Sh_P1","Sh_P2","rf","LOD_rf","LOD_ph")
-  seq.mrk.names <- x$screened.data$mrk.names
+  seq.mrk.names <- mrk.names
   v_2_m <- function(x, n){
     y <- base::matrix(NA, n, n)
     y[base::lower.tri(y)] <- as.numeric(x)

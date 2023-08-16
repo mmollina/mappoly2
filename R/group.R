@@ -6,7 +6,7 @@
 #' @param input.mat A \code{mappoly2.rf.matrix} object containing the
 #' recombination fraction and LOD score matrices.
 #'
-#' @param input.seq A \code{mappoly2.sequence} object containing the markers
+#' @param x A \code{mappoly2.sequence} object containing the markers
 #' to be grouped. If \code{NULL} (default), all markers in \code{input.mat} are used.
 #'
 #' @param expected.groups The number of expected linkage groups (e.g. chromosomes)
@@ -37,22 +37,23 @@
 #' @importFrom dendextend color_branches
 #' @export group
 
-group <- function(input.seq = NULL,
+group <- function(x = NULL,
                   expected.groups = NULL,
                   inter = TRUE,
-                  comp.mat = FALSE,
+                  comp.mat = TRUE,
                   LODweight = FALSE)
 {
   ## checking for correct object
-  assert_that(is.pairwise.sequence(input.seq))
-  MSNP <- input.seq$pairwise$rec.mat[input.seq$mrk.names, input.seq$mrk.names]
-  mn <- input.seq$data$chrom[input.seq$mrk.names]
+  assert_that(inherits(x, "pairwise"))
+  assert_that(all(x$initial.sequence%in%colnames(x$pairwise$rec.mat)), msg = "The pairwise object should contain the initial sequence.")
+  MSNP <- x$pairwise$rec.mat[x$initial.sequence, x$initial.sequence]
+  mn <- x$data$chrom[x$initial.sequence]
   mn[is.na(mn)] <- "NoChr"
   dimnames(MSNP) <- list(mn, mn)
   diag(MSNP) <- 0
   MSNP[is.na(MSNP)] <- .5
   if(LODweight){
-    Mlod <- input.seq$pairwise$lod.mat^2
+    Mlod <- x$pairwise$lod.mat^2
     Mlod[is.na(Mlod)] <- 10e-5
     hc.snp <- hclust(as.dist(MSNP), method="ward.D2", members=apply(Mlod, 1, mean, na.rm = TRUE))
   } else {
@@ -98,8 +99,8 @@ group <- function(input.seq = NULL,
                                  dimnames = list(1:expected.groups, na.omit(unique(mn))))
     for(i in 1:expected.groups)
     {
-      x <- table(names(which(groups.snp == i)))
-      seq.vs.grouped.snp[i,names(x)] <- x
+      x1 <- table(names(which(groups.snp == i)))
+      seq.vs.grouped.snp[i,names(x1)] <- x1
     }
     idtemp2 <- unique(apply(seq.vs.grouped.snp, 1, which.max))
     idtemp2 <- c(idtemp2, setdiff(1:(ncol(seq.vs.grouped.snp)-1), idtemp2))
@@ -109,16 +110,16 @@ group <- function(input.seq = NULL,
   } else {
     seq.vs.grouped.snp <- NULL
   }
-  names(groups.snp) <- input.seq$mrk.names
-  input.seq$linkage.groups <- list(hc.snp = hc.snp,
+  names(groups.snp) <- x$initial.sequence
+  x$linkage.groups <- list(hc.snp = hc.snp,
                                    expected.groups = expected.groups,
                                    groups.snp = groups.snp,
                                    seq.vs.grouped.snp = seq.vs.grouped.snp)
-  return(input.seq)
+  class(x) <- unique(c(class(x), "grouped"))
+  return(x)
 }
 
-#' @export
-print_mappoly2_group <- function(x, detailed = TRUE, ...) {
+print_group <- function(x, detailed = TRUE, ...) {
   ## criteria
   cat("\n       - Number of linkage groups:  ", length(unique(x$groups.snp)), "\n")
   cat("       - Markers per linkage groups: \n")
@@ -130,17 +131,4 @@ print_mappoly2_group <- function(x, detailed = TRUE, ...) {
   if(!is.null(x$seq.vs.grouped.snp)){
     mappoly2:::print_matrix(mat = x$seq.vs.grouped.snp, 8)
   }
-}
-
-#' @export
-plot_mappoly2_group <- function(x, ...) {
-  dend <- as.dendrogram(x$hc.snp)
-  dend1 <- dendextend::color_branches(dend, k = x$expected.groups)
-  plot(dend1, leaflab = "none")
-  z <- rect.hclust(x$hc.snp, k = x$expected.groups, border = "red")
-  xy <- sapply(z, length)
-  xt <- as.numeric(cumsum(xy)-ceiling(xy/2))
-  yt <- .1
-  points(x = xt, y = rep(yt, length(xt)), cex = 6, pch = 20, col = "lightgray")
-  text(x = xt, y = yt, labels = pmatch(xy, table(x$groups.snp, useNA = "ifany")), adj = .5)
 }

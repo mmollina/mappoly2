@@ -5,15 +5,15 @@
 \title{Assign Markers to Linkage Groups}
 \usage{
 group(
-  input.seq = NULL,
+  x = NULL,
   expected.groups = NULL,
   inter = TRUE,
-  comp.mat = FALSE,
+  comp.mat = TRUE,
   LODweight = FALSE
 )
 }
 \arguments{
-\item{input.seq}{A \code{mappoly2.sequence} object containing the markers
+\item{x}{A \code{mappoly2.sequence} object containing the markers
 to be grouped. If \code{NULL} (default), all markers in \code{input.mat} are used.}
 
 \item{expected.groups}{The number of expected linkage groups (e.g. chromosomes)

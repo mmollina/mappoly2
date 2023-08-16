@@ -5,10 +5,6 @@ embedded_to_numeric <- function(x) {
   as.integer(gsub("[^0-9]", "", x))
 }
 
-#' Detects which parent is informative
-#'
-#' @param x an object of class \code{mappoly2.sequence}
-#'
 #' @export
 detect_info_par<-function(x){
   ## checking for correct object
@@ -93,31 +89,30 @@ get_markers_from_chromosome <- function(x, arg){
   else{
     assert_that(all(is.character(arg)))
     assert_that(sum(grepl(pattern, arg, ignore.case = TRUE))  ==  length(arg))
-    ch.n.arg <- embedded_to_numeric(arg)
+    ch.n.arg <- mappoly2:::embedded_to_numeric(arg)
   }
-  ch.n.dat <- embedded_to_numeric(x$data$chrom)
+  ch.n.dat <- mappoly2:::embedded_to_numeric(x$data$chrom)
   ch.id <- ch.n.dat%in%ch.n.arg
-  mrk.names <- x$mrk.names[ch.id]
+  mrk.names <- x$data$mrk.names[ch.id]
   chrom <- x$data$chrom[mrk.names]
   data.frame(chrom)
 }
 
 get_markers_from_grouped_sequence <- function(x, arg){
-  assert_that(is.grouped.sequence(x))
+  inherits(x, "grouped")
   assert_that(is.numeric(arg))
   names(x$linkage.groups$groups.snp)[x$linkage.groups$groups.snp  %in%  arg]
 }
 
-get_markers_from_grouped_and_chromosome <- function(x, lg, ch = NULL){
-  assert_that(is.pairwise.sequence(x))
-  mrk.id.ch <- x$mrk.names
+get_markers_from_grouped_and_chromosome <- function(x, lg = NULL, ch = NULL){
+  inherits(x, "grouped")
+  assert_that(!is.null(lg) | !is.null(ch), msg = "Please provide a value for either 'lg' or 'ch'. Both cannot be left blank.")
+  mrk.id.ch <- x$initial.sequence
   if(!is.null(ch))
     mrk.id.ch <- rownames(mappoly2:::get_markers_from_chromosome(x, ch))
   assert_that(length(mrk.id.ch) > 0)
-  mrk.id.lg <- mappoly2:::get_markers_from_grouped_sequence(x, lg)
+  if(!is.null(lg))
+    mrk.id.lg <- mappoly2:::get_markers_from_grouped_sequence(x, lg)
   return(intersect(mrk.id.ch, mrk.id.lg))
 }
-
-
-
 

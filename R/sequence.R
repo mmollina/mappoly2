@@ -2,7 +2,7 @@
 #'
 #' Makes a sequence of markers based on an object of another class.
 #'
-#' @param input.obj an object of one of the following classes:
+#' @param x an object of one of the following classes:
 #'     \code{mappoly.data}, \code{mappoly.map}, \code{mappoly.sequence},
 #'     \code{mappoly.group},
 #'     \code{mappoly.pcmap}, \code{mappoly.pcmap3d}, or \code{mappoly.geno.ord}
@@ -16,9 +16,9 @@
 #'       data set to be included in the sequence.
 #' \item A vector of strings: Indicates the names or identifiers of the genetic
 #'       markers
-#' \item An integer: Represents a linkage group when input.object is of class
+#' \item An integer: Represents a linkage group when xect is of class
 #'       \code{mappoly.group}.
-#' \item NULL: Applicable when \code{input.object} belongs to one of the following
+#' \item NULL: Applicable when \code{xect} belongs to one of the following
 #'       classes: \code{mappoly.pcmap}, \code{mappoly.pcmap3d},
 #'       \code{mappoly.unique.seq}, or \code{mappoly.geno.ord}.
 #' }
@@ -62,102 +62,102 @@
 #'         Gabriel Gesteira, (\email{gdesiqu@ncsu.edu})
 #' @export
 #' @importFrom assertthat assert_that
-make_sequence <- function(input.obj,
+set_working_sequence <- function(x,
                           arg = NULL,
+                          slot.name = NULL,
+                          cl = c("data", "screened", "group", "genome.order", "mds"),
                           info.parent = c("both", "p1", "p2"),
                           genomic.info = NULL,
                           phase = NULL,
                           pairwise = NULL,
                           linkage.groups = NULL) {
+
+  if(is.null(slot.name)){
+    slot.name <- paste0("Seq_", .funct_count)
+    .funct_count <- .funct_count + 1
+  }
   info.parent <- match.arg(info.parent)
-  if (is.mappoly2.data(input.obj))
+  cl <- match.arg(cl)
+  if (cl=="data")
   {
     pattern <- "(ch|chr|CH|Chr|CHR|chrom|Chrom|Chromsome)"
-    ## Sequence with all markers
-    if (all(arg  ==  "all"))
-    {
-      mrk.names <- input.obj$mrk.names
-      out.dat <- input.obj
-    } ## If chromosome informed
-    else if (all(is.character(arg)) &
+    if (all(is.character(arg)) &
              sum(grepl(pattern, arg, ignore.case = TRUE))  ==  length(arg) &
-             all(!arg%in%rownames(input.obj$geno.dose)))
+             all(!arg%in%rownames(x$data$geno.dose)))
     {
-      if (all(is.na(input.obj$chrom)))
+      if (all(is.na(x$data$chrom)))
         stop("There is no chromosome information.")
       ch.n.arg <- embedded_to_numeric(arg)
-      ch.n.dat <- embedded_to_numeric(input.obj$chrom)
+      ch.n.dat <- embedded_to_numeric(x$data$chrom)
       ch.id <- ch.n.dat%in%ch.n.arg
-      mrk.names <- input.obj$mrk.names[ch.id]
-      chrom <- input.obj$chrom[mrk.names]
-      if (any(!is.na(input.obj$genome.pos)))
-        genome.pos <- input.obj$genome.pos[mrk.names]
+      mrk.names <- x$data$mrk.names[ch.id]
+      chrom <- x$data$chrom[mrk.names]
+      if (any(!is.na(x$data$genome.pos)))
+        genome.pos <- x$data$genome.pos[mrk.names]
       ch_geno <- data.frame(chrom, genome.pos)
       sorted_ch_geno <- ch_geno[with(ch_geno, order(chrom, genome.pos)),]
       mrk.names <- rownames(sorted_ch_geno)
-      out.dat <- subset_data(input.obj, select.mrk = mrk.names)
     } ## sequence with specific markers
-    else if (all(is.character(arg)) & (length(arg)  ==  length(arg %in% input.obj$mrk.names)))
+    else if (all(is.character(arg)) & (length(arg)  ==  length(arg %in% x$data$mrk.names)))
     {
-      mrk.names <- intersect(arg, input.obj$mrk.names)
-      out.dat <- subset_data(input.obj, select.mrk = mrk.names)
+      mrk.names <- intersect(arg, x$data$mrk.names)
     }
     else if (is.vector(arg) && all(is.numeric(arg)))
     {
-      assert_that(max(arg) <= input.obj$n.mrk)
-      mrk.names <- input.obj$mrk.names[arg]
-      out.dat <- subset_data(input.obj, select.mrk = mrk.names)
+      assert_that(max(arg) <= x$data$n.mrk)
+      mrk.names <- x$data$mrk.names[arg]
     }
     else stop("Invalid argument to select markers")
   }
-  else if (is.mappoly2.sequence(input.obj))
+  else if ("screened")
   {
-    return(make_sequence(input.obj$data, arg, info.parent))
+    xtemp <- set_working_sequence(x,
+                                  arg = arg,
+                                  cl = "data",
+                                  info.parent = info.parent,
+                                  genomic.info = genomic.info,
+                                  phase = phase,
+                                  pairwise = pairwise,
+                                  linkage.groups = linkage.groups)
+
+    mrk.names <- intersect(x$screened.data$mrk.names, xtemp$working.sequence)
   }
-  else if (is.mappoly2.group(input.obj))
+  else if (is.mappoly2.group(x))
   {
-    lgs.idx <- names(input.obj$groups.snp[input.obj$groups.snp  %in%  arg])
+    lgs.idx <- names(x$groups.snp[x$groups.snp  %in%  arg])
     if(is.null(genomic.info)){
-      return(make_sequence(input.obj = input.obj$input.seq,
+      return(make_sequence(x = x$input.seq,
                            arg = lgs.idx))
     } else {
       assert_that(is.numeric(genomic.info))
-      chrom <- input.obj$input.seq$data$chrom[lgs.idx]
+      chrom <- x$input.seq$data$chrom[lgs.idx]
       chrom.table <- sort(table(chrom, useNA = "always"), decreasing = TRUE)
       seq.group <- names(chrom)[chrom %in% names(chrom.table[genomic.info])]
-      return(make_sequence(input.obj$input.seq$data, seq.group))
+      return(make_sequence(x$input.seq$data, seq.group))
     }
   }
-  else if (is.mappoly2.geno.ord(input.obj))
+  else if (is.mappoly2.geno.ord(x))
   {
     if(!is.null(arg))
       warning("Ignoring argument 'arg' and using the genome order instead.")
-    return(make_sequence(input.obj$data, rownames(input.obj$ord)))
+    return(make_sequence(x$data, rownames(x$ord)))
   }
-  if (is.mappoly2.pcmap(input.obj) | is.mappoly2.pcmap3d(input.obj))
+  if (is.mappoly2.pcmap(x) | is.mappoly2.pcmap3d(x))
   {
     if(!is.null(arg))
       warning("Ignoring argument 'arg' and using the MDS order instead.")
-    return(input.obj$mds.seq)
+    return(x$mds.seq)
   }
-  d.p1 <- input.obj$dosage.p1[mrk.names]
-  d.p2 <- input.obj$dosage.p2[mrk.names]
+  d.p1 <- x$data$dosage.p1[mrk.names]
+  d.p2 <- x$data$dosage.p2[mrk.names]
   if(info.parent == "p1"){
-    mrk.names <- mrk.names[d.p2 == 0 | d.p2 == input.obj$ploidy.p2]
-    out.dat <- subset_data(input.obj, select.mrk = mrk.names)
+    mrk.names <- mrk.names[d.p2 == 0 | d.p2 == x$data$ploidy.p2]
   }
   else if(info.parent == "p2"){
-    mrk.names <- mrk.names[d.p1 == 0 | d.p1 == input.obj$ploidy.p1]
-    out.dat <- subset_data(input.obj, select.mrk = mrk.names)
+    mrk.names <- mrk.names[d.p1 == 0 | d.p1 == x$data$ploidy.p1]
   }
-  structure(list(mrk.names = mrk.names,
-                 phases = phase,
-                 pairwise = pairwise,
-                 linkage.groups = linkage.groups,
-                 order = list(mds = NA, genome = NA),
-                 redundant = NULL,
-                 data = out.dat),
-            class = "mappoly2.sequence")
+  x$working.sequence <- mrk.names
+  return(x)
 }
 
 
@@ -267,6 +267,47 @@ plot_sequence <- function(x, thresh.line = NULL, ...){
   }
   par(mfrow = c(1,1))
 }
+
+#' @export
+set_initial_sequence <- function(x, arg){
+  assert_that(inherits(x, "screened"))
+  pattern <- "(ch|chr|CH|Chr|CHR|chrom|Chrom|Chromsome)"
+  if(all(arg == "all"))
+  {
+    mrk.names <- x$screened.data$mrk.names
+
+  } else if (all(is.character(arg)) &
+      sum(grepl(pattern, arg, ignore.case = TRUE))  ==  length(arg) &
+      all(!arg%in%rownames(x$data$geno.dose)))
+  {
+    if (all(is.na(x$data$chrom)))
+      stop("There is no chromosome information.")
+    ch.n.arg <- embedded_to_numeric(arg)
+    ch.n.dat <- embedded_to_numeric(x$data$chrom)
+    ch.id <- ch.n.dat%in%ch.n.arg
+    mrk.names <- x$data$mrk.names[ch.id]
+    chrom <- x$data$chrom[mrk.names]
+    if (any(!is.na(x$data$genome.pos)))
+      genome.pos <- x$data$genome.pos[mrk.names]
+    ch_geno <- data.frame(chrom, genome.pos)
+    sorted_ch_geno <- ch_geno[with(ch_geno, order(chrom, genome.pos)),]
+    mrk.names <- rownames(sorted_ch_geno)
+  } ## sequence with specific markers
+  else if (all(is.character(arg)) & (length(arg)  ==  length(arg %in% x$data$mrk.names)))
+  {
+    mrk.names <- intersect(arg, x$data$mrk.names)
+  }
+  else if (is.vector(arg) && all(is.numeric(arg)))
+  {
+    assert_that(max(arg) <= x$data$n.mrk)
+    mrk.names <- x$data$mrk.names[arg]
+  }
+  x$initial.sequence <- intersect(mrk.names, x$screened.data$mrk.names)
+  class(x) <- unique(c(class(x), "initiated"))
+  return(x)
+}
+
+
 
 
 

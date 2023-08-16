@@ -238,11 +238,11 @@ table_to_mappoly <- function(dat,
     }
     res$data$redundant <- redundant
   }
-  res$data$screening <- .setScreeningClass(id.mrk = res$data$mrk.names,
-                                           id.ind = res$data$ind.names,
-                                           miss.mrk = apply(res$data$geno.dose, 1, function(x) sum(is.na(x)))/res$data$n.ind,
-                                           miss.ind = apply(res$data$geno.dose, 2, function(x) sum(is.na(x)))/res$data$n.mrk,
-                                           chisq.pval = suppressWarnings(mappoly2:::mappoly_chisq_test(res$data)))
+  res$data$QAQC.values <- .setQAQC(id.mrk = res$data$mrk.names,
+                                   id.ind = res$data$ind.names,
+                                   miss.mrk = apply(res$data$geno.dose, 1, function(x) sum(is.na(x)))/res$data$n.ind,
+                                   miss.ind = apply(res$data$geno.dose, 2, function(x) sum(is.na(x)))/res$data$n.mrk,
+                                   chisq.pval = suppressWarnings(mappoly2:::mappoly_chisq_test(res$data)))
   if(verbose) cat("----------------------------------\n")
   return(res)
 }

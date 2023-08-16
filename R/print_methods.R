@@ -26,7 +26,7 @@ print.mappoly2 <- function(x, detailed = FALSE,  ...) {
   if(is.null(x$linkage.groups))
     cat(" Not allocated")
   else
-    print_mappoly2_group (x$linkage.groups)
+    print_group(x$linkage.groups)
   cat("\n", txt[[8]])
   if(is.null(x$phases)){
     cat("\n ", txt[[9]], " 0", sep = "")
@@ -40,9 +40,11 @@ print.mappoly2 <- function(x, detailed = FALSE,  ...) {
   names(w)[is.na(names(w))] <- "NoCrh"
   if (all(is.null(x$data$chrom)) || all(is.na(x$data$chrom)))
     cat("\n     No. markers per chromosome: not available")
-  else {
+  else if(detailed){
     cat("\n     ----------\n     No. markers per chromosome:\n")
     print(data.frame(chrom = paste0("       ", names(w)), No.mrk = as.numeric(w)), row.names = FALSE)
+  } else {
+    cat("\n")
   }
     cat("     ----------\n     No. of markers per dosage in both parents:\n")
     freq <- table(paste(x$data$dosage.p1,
