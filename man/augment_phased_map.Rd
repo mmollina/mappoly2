@@ -2,17 +2,17 @@
 % Please edit documentation in R/map.R
 \name{augment_phased_map}
 \alias{augment_phased_map}
-\title{Efficiently phases unprocessed markers in a given phased
+\title{Efficiently phase unprocessed markers in a given phased
 genetic map, circumventing the need for complete
 HMM-based map recomputation.}
 \usage{
 augment_phased_map(
-  input.seq,
+  x,
   input.twopt,
   thresh.LOD.ph = 5,
   thresh.LOD.rf = 5,
   thresh.rf = 0.5,
-  max.phases = 5,
+  max.phase = 5,
   thresh.LOD.ph.to.insert = 10,
   thresh.rf.to.insert = NULL,
   tol = 0.001,
@@ -23,7 +23,7 @@ augment_phased_map(
 \item{void}{internal function}
 }
 \description{
-Efficiently phases unprocessed markers in a given phased
+Efficiently phase unprocessed markers in a given phased
 genetic map, circumventing the need for complete
 HMM-based map recomputation.
 }

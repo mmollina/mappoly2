@@ -5,7 +5,7 @@
 #' the package \code{MDSmap}, available under the GNU General Public License,
 #' Version 3, at \url{https://CRAN.R-project.org/package=MDSMap}.
 #'
-#' @param input.seq$pairwise an object of class \code{mappoly.input.seq$pairwiserix}.
+#' @param x$pairwise an object of class \code{mappoly.x$pairwiserix}.
 #'
 #' @param p integer. The smoothing parameter for the principal curve.
 #'   If \code{NULL} (default), this will be determined using leave-one-out cross validation.
@@ -52,20 +52,20 @@
 #' @importFrom princurve principal.curve
 #' @importFrom stats runif
 #' @importFrom utils read.csv write.csv
-#' @export mds
-mds <- function(input.seq,
-                lg,
-                ch = NULL,
-                p = NULL,
-                n = NULL,
-                ndim = 2,
-                weight.exponent = 2,
-                verbose = TRUE)
+#' @export
+mds_per_group <- function(x,
+                          gr,
+                          p = NULL,
+                          n = NULL,
+                          ndim = 2,
+                          weight.exponent = 2,
+                          verbose = TRUE)
 {
-  assert_that(is.pairwise.sequence(input.seq))
-  mrk.id <- get_markers_from_grouped_and_chromosome(input.seq, lg, ch)
-  rf.mat <- input.seq$pairwise$rec.mat[mrk.id, mrk.id]
-  lod.mat <- input.seq$pairwise$lod.mat[mrk.id, mrk.id]
+  assert_that(inherits(x,"pairwise"))
+  mrk.id <- x$working.sequences[[gr]]$mrk.names
+  assert_that(all(rownames(mrk.id)%in%x$pairwise$rec.mat), msg = "some markers in the sequence are not present in the pairwise rf.")
+  rf.mat <- x$pairwise$rec.mat[mrk.id, mrk.id]
+  lod.mat <- x$pairwise$lod.mat[mrk.id, mrk.id]
   o <- is.na(rf.mat)
   rf.mat[o] <- 1e-07
   lod.mat[o] <- 1e-07
@@ -111,8 +111,8 @@ mds <- function(input.seq,
   } else {
     removedloci <- n
   }
-  input.seq$order$mds <- list(smacofsym = smacofsym,pc = pc1,distmap = distmap,lodmap = lodmap,locimap = locimap,length = max(estpos),removed = n,locikey = locikey,meannnfit = nnfit$meanfit)
-  input.seq
+  x$working.sequences[[gr]]$order$mds$info <- list(smacofsym = smacofsym,pc = pc1,distmap = distmap,lodmap = lodmap,locimap = locimap,length = max(estpos),removed = n,locikey = locikey,meannnfit = nnfit$meanfit)
+  return(x)
 }
 
 
@@ -267,14 +267,14 @@ get.nearest.informative <- function (loci, lodmap){
 #' @importFrom utils head
 get_genome_order <- function(input.seq, verbose = TRUE){
   assert_that(is.mappoly2.sequence(input.seq))
-  genome.pos <- input.seq$data$genome.pos[input.seq$mrk.names]
-  chrom <- input.seq$data$chrom[input.seq$mrk.names]
+  genome.pos <- x$data$genome.pos[x$mrk.names]
+  chrom <- x$data$chrom[x$mrk.names]
   if(all(is.na(genome.pos))){
     if(all(is.na(chrom)))
       stop("No sequence or sequence position information found.")
     else{
       if (verbose) message("Ordering markers based on chromosome information")
-      M <- data.frame(seq = chrom, row.names = input.seq$mrk.names)
+      M <- data.frame(seq = chrom, row.names = x$mrk.names)
       M.out <- M[order(embedded_to_numeric(M[,1])),]
     }
   } else if(all(is.na(chrom))){
@@ -282,17 +282,17 @@ get_genome_order <- function(input.seq, verbose = TRUE){
       stop("No sequence or sequence position information found.")
     else{
       if (verbose) message("Ordering markers based on sequence position information")
-      M <- data.frame(seq.pos = genome.pos, row.names = input.seq$mrk.names)
+      M <- data.frame(seq.pos = genome.pos, row.names = x$mrk.names)
       M.out <- M[order(embedded_to_numeric(M[,1])),]
     }
   } else{
     M <- data.frame(seq = chrom,
                     seq.pos = genome.pos,
-                    row.names = input.seq$mrk.names)
+                    row.names = x$mrk.names)
     M.out <- M[order(embedded_to_numeric(M[, "seq"]),
                      embedded_to_numeric(M[, "seq.pos"])),]
   }
-  structure(list(data = input.seq$data, ord = M.out), class = "mappoly2.geno.ord")
+  structure(list(data = x$data, ord = M.out), class = "mappoly2.geno.ord")
 }
 
 #' @rdname get_genome_order

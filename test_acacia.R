@@ -1,93 +1,80 @@
 rm(list = ls())
 require(mappoly2)
 #### Read/QAQC ####
-x <- read_geno_csv(file.in = "~/repos/collaborations/acacia/full_sib_data/mappoly2_AC48-AC78.csv",
+x <- read_geno_csv(file.in = "~/repos/collaborations/acacia/full_sib_data/mappoly2_AC46-AC78.csv",
                      ploidy.p1 = 2,
                      ploidy.p2 = 2,
                      name.p1 = "AC48",
                      name.p2 = "AC78")
+args(read_geno_csv)
 plot(x)
 class(x)
 x
 x <- filter_data(x, mrk.thresh = .08, ind.thresh = .7)
+class(x)
+View(x$screened.data)
 plot(x, 'screened')
 x <- filter_individuals(x)
 plot(x, 'screened')
 #### Set Initial Sequence ####
 x <- set_initial_sequence(x, "all")
+class(x)
+View(x)
+x$initial.sequence
 plot(x, what = "initiated")
 x <- set_initial_sequence(x, c(1:100))
 plot(x, what = "initiated")
 x <- set_initial_sequence(x, sample(x$data$mrk.names, 100))
 plot(x, what = "initiated")
-x <- set_initial_sequence(x, c("ch1", "ch4", "ch6"))
+x <- set_initial_sequence(x, c("ch3"))
+
 plot(x, what = "initiated")
 #### Compute RF ####
 x <- pairwise_rf(x, ncpus = 8)
+class(x)
 plot(x, what = "pairwise", fact = 10)
 plot(x, what = "pairwise", type = "lod", fact = 10)
-### FIXME: rf_filter for initial vs. rf_filter for working
-### Make two functions? rf_filter_initial and rf_filter_working ????
-x <- rf_filter(x, 5, 5, .1, c(0.01, 1))
-
+#### Initial filter based in RF ####
+x <- init_rf_filter(x, 5, 5, .1, c(0.05, 0.95))
+args(mappoly2:::plot.mappoly2)
+plot(x, what = "pairwise")
+##?????
 #### Grouping ####
-x <- group(x, expected.groups = 3)
+x <- group(x, expected.groups = 2)
 plot(x, what = "group")
-x
-#### Set Working Sequence ####
-mrks.ch4 <- mappoly2:::get_markers_from_grouped_and_chromosome(x, lg = 2, ch = "ch4")
+View(x)
+#### Set Working Sequences ####
+x <- set_working_sequence(x)
+#### Working sequence filter based in RF ####
+#### Implement
+#### Ordering ####
+x <- mds_per_group(x, gr = 1)
+x <- mds_per_group(x, gr = 2)
+x <- mds_per_group(x, gr = 3)
+#### IMPLEMENT SEQUENTIAL ####
+# FIXME
+### Phasing #####
+x <- pairwise_phasing_per_group(x, gr = 1)
+x <- pairwise_phasing_per_group(x, gr = 2, thresh.LOD.ph = 120)
+x <- pairwise_phasing_per_group(x, gr = 3)
 
-
-
-
-
-
-x <- rf_filter(x, 5, 5, .1, c(0.01, 1))
-
-
-plot(x, what = "rf_filtered")
-x <- group(x, expected.groups = 13, comp.mat = T)
-x
-plot_mappoly2_group(x$linkage.groups)
-
-## check print for each step
-## check plot for each step
-## implement make_sequence
-
-
-
-
-
-
-x <- group(x, expected.groups = 5, comp.mat = TRUE, inter = F)
-
-
-
-
-
-
-
-
-
-#### Select parent 1####
-s.ch1.p1 <- make_sequence(dat, arg = "ch1", info.parent = "p1")
-s.ch1.p1
-tpt1 <- est_pairwise_rf(s.ch1.p1, ncpus = 7)
-# Phasing #
-s.ch1.p1 <- pairwise_phasing(input.seq = s.ch1.p1,
-                             input.twopt = tpt1,
-                             thresh.LOD.ph = 5,
-                             max.conf.btnk.p1 = 10)
 # Mapping #
-s.ch1.p1 <- mapping(input.seq = s.ch1.p1,
-                    verbose = TRUE,
-                    error = 0.00,# error = 0.0
-                    tol = 10e-4)
-plot_map(s.ch1.p1, mrk.names = TRUE)
-s.ch1.p1 <- mapping(input.seq = s.ch1.p1,
-                    verbose = TRUE,
-                    error = 0.05,
-                    tol = 10e-4)
+x <- mapping_per_group(x, gr = 1, error = 0.05)
+x <- mapping_per_group(x, gr = 2, error = 0.05)
+x <- mapping_per_group(x, gr = 3, error = 0.05)
+plot_map(x, gr = 1, mrk.names = TRUE)
+plot_map(x, gr = 2, mrk.names = TRUE, left.lim = 10, right.lim = 20)
+plot_map(x, gr = 3, mrk.names = TRUE)
+
+x$working.sequences$Lg_1$order$mds$phase[[1]]
+
+
+
+
+
+
+
+
 plot_map(s.ch1.p1, mrk.names = TRUE)
 #### Select parent 2####
 s.ch1.p2 <- make_sequence(dat, arg = "ch1", info.parent = "p2")

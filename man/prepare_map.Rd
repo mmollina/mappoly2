@@ -4,7 +4,7 @@
 \alias{prepare_map}
 \title{prepare maps for plot}
 \usage{
-prepare_map(input.seq)
+prepare_map(x, gr, type)
 }
 \arguments{
 \item{void}{internal function to be documented}

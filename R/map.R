@@ -4,43 +4,49 @@
 #' @keywords internal
 #' @author Marcelo Mollinari, \email{mmollin@ncsu.edu}
 #' @export
-mapping <- function(input.seq,
-                    phase.conf = "all",
-                    rf = NULL,
-                    error = 0.0,
-                    verbose = FALSE,
-                    tol = 10e-4,
-                    ret_H0 = FALSE)
+mapping_per_group <- function(x,
+                              gr,
+                              type = c("mds", "genome"),
+                              phase.conf = "all",
+                              rf = NULL,
+                              error = 0.0,
+                              verbose = FALSE,
+                              tol = 10e-4,
+                              ret_H0 = FALSE)
 {
-  assert_that(is.mappoly2.sequence(input.seq))
-  mrk.id <- rownames(input.seq$phases[[1]]$p1)
-  g <- input.seq$data$geno.dose[mrk.id, ]
+  assert_that(inherits(x, "ws"))
+  type <- match.arg(type)
+  if(type == "mds")
+    phase <- x$working.sequences[[gr]]$order$mds$phase
+  if(type == "genome")
+    phase <- x$working.sequences[[gr]]$order$genome$phase
+  assert_that(is.matrix(phase[[1]]$p1))
+  mrk.id <- rownames(phase[[1]]$p1)
+  g <- x$data$geno.dose[mrk.id,x$working.sequences[[gr]]$ind.names]
   g[is.na(g)] <- -1
   if(is.null(rf))
     rf <- rep(0.01, nrow(g) - 1)
   assert_that(length(rf) == nrow(g) - 1)
   if(all(phase.conf == "all"))
-    phase.conf <- 1:length(input.seq$phases)
+    phase.conf <- 1:length(phase)
 
-  assert_that(all(phase.conf%in%1:length(input.seq$phases)),
-              msg = "invalid phases specified in 'phase.conf'")
-
-  output.seq <- input.seq
+  assert_that(all(phase.conf%in%1:length(phase)),
+              msg = "invalid phase specified in 'phase.conf'")
 
   cat("Multi-locus map estimation\n")
   cat("   Number of phase configurations: ", length(phase.conf), "\n")
-  if (detect_info_par(input.seq) == "both" || ret_H0){
+  if (detect_info_par(x) == "both" || ret_H0){
     for(i in phase.conf){
       cat("   Conf.", i,":")
       pedigree <- matrix(rep(c(1,
                                2,
-                               input.seq$data$ploidy.p1,
-                               input.seq$data$ploidy.p2, 1),
-                             input.seq$data$n.ind),
-                         nrow = input.seq$data$n.ind,
+                               x$data$ploidy.p1,
+                               x$data$ploidy.p2, 1),
+                             x$data$n.ind),
+                         nrow = x$data$n.ind,
                          byrow = TRUE)
-      w <- est_hmm_map_biallelic(PH = list(input.seq$phases[[i]]$p1,
-                                           input.seq$phases[[i]]$p2),
+      w <- mappoly2:::est_hmm_map_biallelic(PH = list(phase[[i]]$p1,
+                                                      phase[[i]]$p2),
                                  G = g,
                                  pedigree = pedigree,
                                  rf = rf,
@@ -49,19 +55,24 @@ mapping <- function(input.seq,
                                  detailed_verbose = FALSE,
                                  tol = tol,
                                  ret_H0 = ret_H0)
-      output.seq$phases[[i]]$loglike <- w[[1]]
-      output.seq$phases[[i]]$rf <- w[[2]]
-      output.seq$phases[[i]]$error <- error
+      phase[[i]]$loglike <- w[[1]]
+      phase[[i]]$rf <- w[[2]]
+      phase[[i]]$error <- error
     }
     cat("Done with map estimation\n")
-
-    return(sort_phase(output.seq))
-  } else if(detect_info_par(input.seq) == "p1"){
-    id <- which(input.seq$data$ploidy.p2 == input.seq$data$dosage.p2[mrk.id])
-    g[id, ] <- g[id, ] - input.seq$data$ploidy.p2/2
+    phase <- sort_phase(phase)
+    if(type == "mds")
+      x$working.sequences[[gr]]$order$mds$phase <- phase
+    if(type == "genome")
+      x$working.sequences[[gr]]$order$genome$phase <- phase
+    return(x)
+  }
+  else if(detect_info_par(x) == "p1"){
+    id <- which(x$data$ploidy.p2 == x$data$dosage.p2[mrk.id])
+    g[id, ] <- g[id, ] - x$data$ploidy.p2/2
     for(i in phase.conf){
       cat("   Conf.", i,":")
-      w <- est_hmm_map_biallelic_single(PH = input.seq$phases[[i]]$p1,
+      w <- est_hmm_map_biallelic_single(PH = phase[[i]]$p1,
                                         G = g,
                                         rf = rf,
                                         err = error,
@@ -69,18 +80,24 @@ mapping <- function(input.seq,
                                         detailed_verbose = FALSE,
                                         tol = tol,
                                         ret_H0 = ret_H0)
-      output.seq$phases[[i]]$loglike <- w[[1]]
-      output.seq$phases[[i]]$rf <- w[[2]]
-      output.seq$phases[[i]]$error <- error
+      phase[[i]]$loglike <- w[[1]]
+      phase[[i]]$rf <- w[[2]]
+      phase[[i]]$error <- error
     }
     cat("Done with map estimation\n")
-    return(sort_phase(output.seq))
-  } else if(detect_info_par(input.seq) == "p2") {
-    id <- which(input.seq$data$ploidy.p1 == input.seq$data$dosage.p1[mrk.id])
-    g[id, ] <- g[id, ] - input.seq$data$ploidy.p1/2
+    phase <- sort_phase(phase)
+    if(type == "mds")
+      x$working.sequences[[gr]]$order$mds$phase <- phase
+    if(type == "genome")
+      x$working.sequences[[gr]]$order$genome$phase <- phase
+    return(x)
+  }
+  else if(detect_info_par(x) == "p2") {
+    id <- which(x$data$ploidy.p1 == x$data$dosage.p1[mrk.id])
+    g[id, ] <- g[id, ] - x$data$ploidy.p1/2
     for(i in phase.conf){
       cat("   Conf.", i,":")
-      w <- est_hmm_map_biallelic_single(PH = input.seq$phases[[i]]$p2,
+      w <- est_hmm_map_biallelic_single(PH = phase[[i]]$p2,
                                         G = g,
                                         rf = rf,
                                         err = error,
@@ -88,37 +105,43 @@ mapping <- function(input.seq,
                                         detailed_verbose = FALSE,
                                         tol = tol,
                                         ret_H0 = ret_H0)
-      output.seq$phases[[i]]$loglike <- w[[1]]
-      output.seq$phases[[i]]$rf <- w[[2]]
-      output.seq$phases[[i]]$error <- error
+      phase[[i]]$loglike <- w[[1]]
+      phase[[i]]$rf <- w[[2]]
+      phase[[i]]$error <- error
     }
     cat("Done with map estimation\n")
-    return(sort_phase(output.seq))
-  } else {
+    phase <- sort_phase(phase)
+    if(type == "mds")
+      x$working.sequences[[gr]]$order$mds$phase <- phase
+    if(type == "genome")
+      x$working.sequences[[gr]]$order$genome$phase <- phase
+    return(x)
+  }
+  else {
     stop("it should not get here")
   }
 }
-#' Efficiently phases unprocessed markers in a given phased
+#' Efficiently phase unprocessed markers in a given phased
 #' genetic map, circumventing the need for complete
 #' HMM-based map recomputation.
 #'
 #' @param void internal function
 #' @author Marcelo Mollinari, \email{mmollin@ncsu.edu}
 #' @export
-augment_phased_map <- function(input.seq,
+augment_phased_map <- function(x,
                                input.twopt,
                                thresh.LOD.ph = 5,
                                thresh.LOD.rf = 5,
                                thresh.rf = 0.5,
-                               max.phases = 5,
+                               max.phase = 5,
                                thresh.LOD.ph.to.insert = 10,
                                thresh.rf.to.insert = NULL,
                                tol = 10e-4,
                                verbose = TRUE){
-  assert_that(is.haplotype.sequence(input.seq))
-  if(all(input.seq$mrk.names%in%rownames(input.seq$phases[[1]]$p1))){
+  assert_that(is.haplotype.sequence(x))
+  if(all(x$mrk.names%in%rownames(phase[[1]]$p1))){
     message("All markers are phased. Retutning original sequence.")
-    return(input.seq)
+    return(x)
   }
   assert_that(is.mappoly2.twopt(input.twopt))
   M <- rf_list_to_matrix(input.twopt,
@@ -126,17 +149,17 @@ augment_phased_map <- function(input.seq,
                          thresh.LOD.rf = thresh.LOD.rf,
                          thresh.rf = thresh.rf,
                          shared.alleles = TRUE)
-  assert_that(matrix_contain_data_seq(M,input.seq))
-  mrk.pos <- rownames(input.seq$phases[[1]]$p1) # positioned markers
-  mrk.id <- setdiff(input.seq$mrk.names, mrk.pos) # markers to be positioned
+  assert_that(matrix_contain_data_seq(M,x))
+  mrk.pos <- rownames(phase[[1]]$p1) # positioned markers
+  mrk.id <- setdiff(x$mrk.names, mrk.pos) # markers to be positioned
   ## two-point phasing parent 1
-  dose.vec <- input.seq$data$dosage.p1[mrk.id]
-  InitPh1 <- input.seq$phases[[1]]$p1
+  dose.vec <- x$data$dosage.p1[mrk.id]
+  InitPh1 <- phase[[1]]$p1
   S1 <- M$Sh.p1[mrk.id, mrk.pos]
   L1 <- mappoly2:::phasing_one(mrk.id, dose.vec, S1, InitPh1, verbose)
   ## two-point phasing parent 2
-  dose.vec <- input.seq$data$dosage.p2[mrk.id]
-  InitPh2 <- input.seq$phases[[1]]$p2
+  dose.vec <- x$data$dosage.p2[mrk.id]
+  InitPh2 <- phase[[1]]$p2
   S2 <- M$Sh.p2[mrk.id, mrk.pos]
   L2 <- mappoly2:::phasing_one(mrk.id, dose.vec, S2, InitPh2, verbose)
   ## Selecting phase configurations
@@ -147,36 +170,36 @@ augment_phased_map <- function(input.seq,
     colnames(temp) <- c("n. phase. conf.", "frequency")
     print(temp)
   }
-  mrk.sel <- which(n.conf <= max.phases)
+  mrk.sel <- which(n.conf <= max.phase)
   if(length(mrk.sel) == 0)
-    stop("No markers were selected for 'max.phases' = ", max.phases,
-         "\n'max.phases' should be at least ", min(n.conf))
-  L1 <- L1[n.conf <= max.phases]
-  L2 <- L2[n.conf <= max.phases]
-  mrk.id <- mrk.id[n.conf <= max.phases]
+    stop("No markers were selected for 'max.phase' = ", max.phase,
+         "\n'max.phase' should be at least ", min(n.conf))
+  L1 <- L1[n.conf <= max.phase]
+  L2 <- L2[n.conf <= max.phase]
+  mrk.id <- mrk.id[n.conf <= max.phase]
   pedigree <- matrix(rep(c(1,
                            2,
-                           input.seq$data$ploidy.p1,
-                           input.seq$data$ploidy.p2, 1),
-                         input.seq$data$n.ind),
-                     nrow = input.seq$data$n.ind,
+                           x$data$ploidy.p1,
+                           x$data$ploidy.p2, 1),
+                         x$data$n.ind),
+                     nrow = x$data$n.ind,
                      byrow = TRUE)
-  flanking <- mappoly2:::find_flanking_markers(input.seq$mrk.names, mrk.pos, mrk.id)
+  flanking <- mappoly2:::find_flanking_markers(x$mrk.names, mrk.pos, mrk.id)
   phasing_results <- vector("list", length(flanking))
   names(phasing_results) <- names(flanking)
   if(verbose) pb <- txtProgressBar(min = 0, max = length(L1), style = 3)
   for(i in 1:length(L1)){
-    G <- input.seq$data$geno.dose[mrk.id[i], ,drop = TRUE]
+    G <- x$data$geno.dose[mrk.id[i], ,drop = TRUE]
     G[is.na(G)] <- -1
     u <- match(unlist(flanking[[mrk.id[i]]]), mrk.pos)
     if(is.na(u)[1]){ # Marker inserted at the beginning of the linkage group
-      homolog_prob <- as.matrix(input.seq$phases[[1]]$haploprob[,c(na.omit(u), na.omit(u)+1)+2])
+      homolog_prob <- as.matrix(phase[[1]]$haploprob[,c(na.omit(u), na.omit(u)+1)+2])
       idx <- c(1,0,2)
     } else if(is.na(u)[2]){ # Marker inserted at the end of the linkage group
-      homolog_prob <- as.matrix(input.seq$phases[[1]]$haploprob[,c(na.omit(u)-1, na.omit(u))+2])
+      homolog_prob <- as.matrix(phase[[1]]$haploprob[,c(na.omit(u)-1, na.omit(u))+2])
       idx <- c(0,2,1)
     } else { # Marker inserted in the middle of the linkage group
-      homolog_prob <- as.matrix(input.seq$phases[[1]]$haploprob[,u+2])
+      homolog_prob <- as.matrix(phase[[1]]$haploprob[,u+2])
       idx <- c(0,1,2)
     }
     w2<-w1<-NULL
@@ -206,7 +229,7 @@ augment_phased_map <- function(input.seq,
     phasing_results[[mrk.id[i]]] <- list(loglike = x[id],
                                          rf.vec = t(sapply(z[id],
                                                            function(x) x[[2]])),
-                                         phases = list(p1 = w1[id,,drop=FALSE],
+                                         phase = list(p1 = w1[id,,drop=FALSE],
                                                        p2 = w2[id,,drop=FALSE]))
     if(verbose) setTxtProgressBar(pb, i)
 
@@ -216,40 +239,40 @@ augment_phased_map <- function(input.seq,
                                         function(x) length(x$loglike)==1 ||
                                           x$loglike[2] > thresh.LOD.ph.to.insert)]
   if(is.null(thresh.rf.to.insert))
-    thresh.rf.to.insert <- max(input.seq$phases[[1]]$rf)
+    thresh.rf.to.insert <- max(phase[[1]]$rf)
   if(thresh.rf.to.insert < 0 || thresh.rf.to.insert >= 0.5)
     stop("'thresh.rf.to.insert' parameter must be between 0 and 0.5")
   selected.list <- phasing_results[sapply(phasing_results, function(x) max(x$rf.vec[1,]) <= thresh.rf.to.insert)]
   for(i in names(selected.list)){
-    pos <- mappoly2:::find_flanking_markers(input.seq$mrk.names,
-                                            rownames(input.seq$phases[[1]]$p1),
+    pos <- mappoly2:::find_flanking_markers(x$mrk.names,
+                                            rownames(phase[[1]]$p1),
                                             i)
     if(length(unlist(pos)) == 0) next()
-    cur.mrk <- rownames(input.seq$phases[[1]]$p1)
+    cur.mrk <- rownames(phase[[1]]$p1)
     if(is.na(pos[[1]]$preceding))# beginning
     {
-      input.seq$phases[[1]]$p1 <- rbind(selected.list[[i]]$phases$p1[1,], input.seq$phases[[1]]$p1)
-      input.seq$phases[[1]]$p2 <- rbind(selected.list[[i]]$phases$p2[1,], input.seq$phases[[1]]$p2)
-      rownames(input.seq$phases[[1]]$p1) <- rownames(input.seq$phases[[1]]$p2) <- c(i, cur.mrk)
+      phase[[1]]$p1 <- rbind(selected.list[[i]]$phase$p1[1,], phase[[1]]$p1)
+      phase[[1]]$p2 <- rbind(selected.list[[i]]$phase$p2[1,], phase[[1]]$p2)
+      rownames(phase[[1]]$p1) <- rownames(phase[[1]]$p2) <- c(i, cur.mrk)
     }
     else if (is.na(pos[[1]]$succeeding)){ #end
-      input.seq$phases[[1]]$p1 <- rbind(input.seq$phases[[1]]$p1, selected.list[[i]]$phases$p1[1,])
-      input.seq$phases[[1]]$p2 <- rbind(input.seq$phases[[1]]$p2, selected.list[[i]]$phases$p2[1,])
-      rownames(input.seq$phases[[1]]$p1) <- rownames(input.seq$phases[[1]]$p2) <- c(cur.mrk, i)
+      phase[[1]]$p1 <- rbind(phase[[1]]$p1, selected.list[[i]]$phase$p1[1,])
+      phase[[1]]$p2 <- rbind(phase[[1]]$p2, selected.list[[i]]$phase$p2[1,])
+      rownames(phase[[1]]$p1) <- rownames(phase[[1]]$p2) <- c(cur.mrk, i)
     }
     else {
       preceding <- cur.mrk[1:match(pos[[1]]$preceding, cur.mrk)]
       succeeding <- cur.mrk[(match(pos[[1]]$succeeding, cur.mrk)): length(cur.mrk)]
-      input.seq$phases[[1]]$p1 <- rbind(input.seq$phases[[1]]$p1[preceding,],
-                                        selected.list[[i]]$phases$p1[1,],
-                                        input.seq$phases[[1]]$p1[succeeding,])
-      input.seq$phases[[1]]$p2 <- rbind(input.seq$phases[[1]]$p2[preceding,],
-                                        selected.list[[i]]$phases$p2[1,],
-                                        input.seq$phases[[1]]$p2[succeeding,])
-      rownames(input.seq$phases[[1]]$p1) <- rownames(input.seq$phases[[1]]$p2) <- c(preceding, i, succeeding)
+      phase[[1]]$p1 <- rbind(phase[[1]]$p1[preceding,],
+                                        selected.list[[i]]$phase$p1[1,],
+                                        phase[[1]]$p1[succeeding,])
+      phase[[1]]$p2 <- rbind(phase[[1]]$p2[preceding,],
+                                        selected.list[[i]]$phase$p2[1,],
+                                        phase[[1]]$p2[succeeding,])
+      rownames(phase[[1]]$p1) <- rownames(phase[[1]]$p2) <- c(preceding, i, succeeding)
     }
   }
-  return(input.seq)
+  return(x)
 }
 
 #'This function merges two genetic maps built from markers that are exclusively
@@ -259,60 +282,63 @@ augment_phased_map <- function(input.seq,
 #' @param void internal function
 #' @author Marcelo Mollinari, \email{mmollin@ncsu.edu}
 #' @export
-merge_single_parent_maps <- function(input.seq.all,
-                                     input.seq.p1,
-                                     input.seq.p2,
+merge_single_parent_maps <- function(x.all,
+                                     x.p1,
+                                     x.p2,
                                      input.twopt){
-  temp.mrk.id <- character(length(input.seq.all$mrk.names))
-  temp.mrk.id[match(rownames(input.seq.p1$phases[[1]]$p1), input.seq.all$mrk.names)] <- rownames(input.seq.p1$phases[[1]]$p1)
-  temp.mrk.id[match(rownames(input.seq.p2$phases[[1]]$p2), input.seq.all$mrk.names)] <- rownames(input.seq.p2$phases[[1]]$p2)
+  temp.mrk.id <- character(length(x.all$mrk.names))
+  temp.mrk.id[match(rownames(x.p1$phase[[1]]$p1), x.all$mrk.names)] <- rownames(x.p1$phase[[1]]$p1)
+  temp.mrk.id[match(rownames(x.p2$phase[[1]]$p2), x.all$mrk.names)] <- rownames(x.p2$phase[[1]]$p2)
   temp.mrk.id <- temp.mrk.id[temp.mrk.id != ""]
-  ph.p2 <- ph.p1 <- matrix(0, length(temp.mrk.id), input.seq.p1$data$ploidy.p1, dimnames = list(temp.mrk.id, NULL))
-  ph.p1[rownames(input.seq.p1$phases[[1]]$p1), ] <- input.seq.p1$phases[[1]]$p1
-  ph.p2[rownames(input.seq.p1$phases[[1]]$p2), ] <- input.seq.p1$phases[[1]]$p2
-  ph.p1[rownames(input.seq.p2$phases[[1]]$p1), ] <- input.seq.p2$phases[[1]]$p1
-  ph.p2[rownames(input.seq.p2$phases[[1]]$p2), ] <- input.seq.p2$phases[[1]]$p2
-  input.seq.all$phases <- list(list(p1 = ph.p1,
+  ph.p2 <- ph.p1 <- matrix(0, length(temp.mrk.id), x.p1$data$ploidy.p1, dimnames = list(temp.mrk.id, NULL))
+  ph.p1[rownames(x.p1$phase[[1]]$p1), ] <- x.p1$phase[[1]]$p1
+  ph.p2[rownames(x.p1$phase[[1]]$p2), ] <- x.p1$phase[[1]]$p2
+  ph.p1[rownames(x.p2$phase[[1]]$p1), ] <- x.p2$phase[[1]]$p1
+  ph.p2[rownames(x.p2$phase[[1]]$p2), ] <- x.p2$phase[[1]]$p2
+  x.all$phase <- list(list(p1 = ph.p1,
                                     p2 = ph.p2,
                                     loglike = NULL,
                                     rf = NULL,
                                     error = NULL,
                                     haploprob = NULL))
-  return(input.seq.all)
+  return(x.all)
 }
 
 #' prepare maps for plot
 #' @param void internal function to be documented
 #' @keywords internal
-prepare_map <- function(input.seq){
-  assert_that(mappoly2:::is.mapped.sequence(input.seq))
+prepare_map <- function(x, gr, type){
+  if(type == "mds")
+    phase <- x$working.sequences[[gr]]$order$mds$phase
+  if(type == "genome")
+    phase <- x$working.sequences[[gr]]$order$genome$phase
   ## Gathering marker positions
-  map <- cumsum(imf_h(c(0, input.seq$phases[[1]]$rf)))
-  names(map) <- rownames(input.seq$phases[[1]]$p1)
+  map <- cumsum(imf_h(c(0, phase[[1]]$rf)))
+  names(map) <- rownames(phase[[1]]$p1)
 
-  ## Gathering phases
-  ph.p1 <- input.seq$phases[[1]]$p1
-  ph.p2 <- input.seq$phases[[1]]$p2
-  colnames(ph.p1) <- paste0("p1.", 1:input.seq$data$ploidy.p1)
-  colnames(ph.p2) <- paste0("p2.", 1:input.seq$data$ploidy.p2)
-  if(is.null(input.seq$data$ref))
+  ## Gathering phase
+  ph.p1 <- phase[[1]]$p1
+  ph.p2 <- phase[[1]]$p2
+  colnames(ph.p1) <- paste0("p1.", 1:x$data$ploidy.p1)
+  colnames(ph.p2) <- paste0("p2.", 1:x$data$ploidy.p2)
+  if(is.null(x$data$ref))
   {
     ph.p1[ph.p1 == 1] <- ph.p2[ph.p2 == 1] <- "A"
     ph.p1[ph.p1 == 0] <- ph.p2[ph.p2 == 0] <- "B"
   } else {
     for(i in names(map)){
-      ph.p1[i, ph.p1[i,] == 1] <- input.seq$data$alt[i]
-      ph.p1[i, ph.p1[i,] == 0] <- input.seq$data$ref[i]
-      ph.p2[i, ph.p2[i,] == 1] <- input.seq$data$alt[i]
-      ph.p2[i, ph.p2[i,] == 0] <- input.seq$data$ref[i]
+      ph.p1[i, ph.p1[i,] == 1] <- x$data$alt[i]
+      ph.p1[i, ph.p1[i,] == 0] <- x$data$ref[i]
+      ph.p2[i, ph.p2[i,] == 1] <- x$data$alt[i]
+      ph.p2[i, ph.p2[i,] == 0] <- x$data$ref[i]
     }
   }
-  d.p1 <- input.seq$data$dosage.p1[names(map)]
-  d.p2 <- input.seq$data$dosage.p2[names(map)]
-  list(ploidy.p1 = input.seq$data$ploidy.p1,
-       ploidy.p2 = input.seq$data$ploidy.p2,
-       name.p1 = input.seq$data$name.p1,
-       name.p2 = input.seq$data$name.p2,
+  d.p1 <- x$data$dosage.p1[names(map)]
+  d.p2 <- x$data$dosage.p2[names(map)]
+  list(ploidy.p1 = x$data$ploidy.p1,
+       ploidy.p2 = x$data$ploidy.p2,
+       name.p1 = x$data$name.p1,
+       name.p2 = x$data$name.p2,
        map = map,
        ph.p1 = ph.p1,
        ph.p2 = ph.p2,
@@ -323,13 +349,15 @@ prepare_map <- function(input.seq){
 #' @importFrom grDevices rgb
 #' @importFrom graphics rect
 #' @export
-plot_map <- function(x, left.lim = 0, right.lim = Inf,
+plot_map <- function(x, gr, type = c("mds", "gemnome"),
+                     left.lim = 0, right.lim = Inf,
                      phase = TRUE, mrk.names = FALSE,
                      plot.dose = TRUE, homolog.names.adj = 3,
                      cex = 1, xlim = NULL, main = "",...) {
-  old.p1ar <- par(no.readonly = TRUE)
-  on.exit(par(old.p1ar))
-  map.info <- prepare_map(x)
+  old.par <- par(no.readonly = TRUE)
+  on.exit(par(old.par))
+  type <- match.arg(type)
+  map.info <- mappoly2:::prepare_map(x, gr, type)
   if(any(map.info$ph.p1 == "B")){
     var.col <- c(A = "black", B = "darkgray")
   } else {
@@ -533,10 +561,10 @@ plot_genome_vs_map <- function(seq.list,
   geno.vs.map <- NULL
   for(i in 1:length(seq.list)){
     LG <- genomic.pos <- map.pos <- NULL
-    mrk.names <- rownames(seq.list[[i]]$phases[[1]]$p1)
+    mrk.names <- rownames(seq.list[[i]]$phase[[1]]$p1)
     geno.vs.map <- rbind(geno.vs.map,
                          data.frame(mrk.names = mrk.names,
-                                    map.pos = cumsum(imf_h(c(0, seq.list[[i]]$phases[[1]]$rf))),
+                                    map.pos = cumsum(imf_h(c(0, seq.list[[i]]$phase[[1]]$rf))),
                                     genomic.pos = seq.list[[i]]$data$genome.pos[mrk.names]/1e6,
                                     LG = as.factor(i),
                                     chr = as.factor(seq.list[[i]]$data$chrom[mrk.names])))

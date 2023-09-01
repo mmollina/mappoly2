@@ -309,15 +309,15 @@ filter_individuals <- function(x,
 #' @export
 #' @importFrom ggplot2 ggplot geom_histogram aes scale_fill_manual xlab ggtitle
 #' @importFrom graphics hist
-rf_filter <- function(x,
-                      thresh.LOD.ph = 5,
-                      thresh.LOD.rf = 5,
-                      thresh.rf = 0.15,
-                      probs = c(0.05, 1),
-                      diag.markers = NULL,
-                      mrk.order = NULL,
-                      diagnostic.plot = TRUE,
-                      breaks = 100)
+init_rf_filter <- function(x,
+                           thresh.LOD.ph = 5,
+                           thresh.LOD.rf = 5,
+                           thresh.rf = 0.15,
+                           probs = c(0.05, 1),
+                           diag.markers = NULL,
+                           mrk.order = NULL,
+                           diagnostic.plot = TRUE,
+                           breaks = 100)
 {
   assert_that(inherits(x, "pairwise"))
   probs <- range(probs)
@@ -348,17 +348,15 @@ rf_filter <- function(x,
       ggplot2::xlab(paste0("Non 'NA' values at LOD.ph = ", thresh.LOD.ph, ", LOD.rf = ", thresh.LOD.rf, ", and thresh.rf = ", thresh.rf))
     print(p)
   }
-  x$screened.rf <- list(thresholds = c(thresh.LOD.ph = thresh.LOD.ph,
-                                       thresh.LOD.rf = thresh.LOD.rf,
-                                       thresh.rf = thresh.rf,
-                                       prob.lower = probs[1],
-                                       prob.upper = probs[2]),
-                        mrk.names = ids)
-  class(x) <- unique(c(class(x), "rf_filtered"))
-  x$working.sequence <- ids
+  x$initial.screened.rf <- list(thresholds = c(thresh.LOD.ph = thresh.LOD.ph,
+                                               thresh.LOD.rf = thresh.LOD.rf,
+                                               thresh.rf = thresh.rf,
+                                               prob.lower = probs[1],
+                                               prob.upper = probs[2]),
+                                mrk.names = ids)
+  class(x) <- unique(c(class(x), "init_rf_screened"))
   return(x)
 }
-
 
 filter_rf_matrix <- function(x,
                              type = c("rf", "sh"),

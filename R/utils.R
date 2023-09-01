@@ -8,7 +8,7 @@ embedded_to_numeric <- function(x) {
 #' @export
 detect_info_par<-function(x){
   ## checking for correct object
-  assert_that(is.mappoly2.sequence(x))
+  assert_that(inherits(x, "ws"))
   if(all(x$data$dosage.p2 == 0 | x$data$dosage.p2 == x$data$ploidy.p2))
     return("p1")
   if(all(x$data$dosage.p1 == 0 | x$data$dosage.p1 == x$data$ploidy.p1))
@@ -18,13 +18,12 @@ detect_info_par<-function(x){
 }
 
 sort_phase <- function(x, only.best = TRUE){
-  assert_that(is.mappoly2.sequence(x))
-  ph <- x$phases[sapply(x$phases, function(x) !is.null(x$loglike))]
+  ph <- x[sapply(x, function(x) !is.null(x$loglike))]
   if(only.best){
-    x$phases <- ph[which.max(sapply(ph, function(x) x$loglike))]
+    x <- ph[which.max(sapply(ph, function(x) x$loglike))]
     return(x)
   } else {
-    x$phases <- ph[order(sapply(ph, function(x) x$loglike), decreasing = TRUE)]
+    x <- ph[order(sapply(ph, function(x) x$loglike), decreasing = TRUE)]
     return(x)
   }
 }

@@ -5,7 +5,7 @@
 \title{Conditional probabilities computation using Hidden Markov Models}
 \usage{
 calc_haplotypes(
-  input.seq,
+  x,
   phase.conf = c("best", "all"),
   verbose = FALSE,
   tol = 0.001,

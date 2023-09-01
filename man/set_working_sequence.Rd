@@ -6,14 +6,11 @@
 \usage{
 set_working_sequence(
   x,
-  arg = NULL,
-  slot.name = NULL,
-  cl = c("data", "screened", "group", "genome.order", "mds"),
-  info.parent = c("both", "p1", "p2"),
-  genomic.info = NULL,
-  phase = NULL,
-  pairwise = NULL,
-  linkage.groups = NULL
+  lg = NULL,
+  ch = NULL,
+  mrk.names = NULL,
+  ind.names = NULL,
+  seq.names = NULL
 )
 }
 \arguments{

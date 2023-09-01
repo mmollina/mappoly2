@@ -1,7 +1,7 @@
 ###### OLD ####
 rm(list = ls())
 require(mappoly2)
-source("~/repos/official_repos/misc/simulation.R")
+source("misc/simulation.R")
 ploidy.p1 = 4
 ploidy.p2 = 4
 n.mrk <- 100
@@ -16,7 +16,7 @@ ph<-test_simulate(ploidy.p1 = ploidy.p1,
                   n.chrom = 1,
                   random = FALSE,
                   seed = 2986)
-dat <- read_geno_csv(file.in = "~/repos/official_repos/misc/fake_triploid.csv",
+dat <- read_geno_csv(file.in = "misc/fake_triploid.csv",
                      ploidy.p1 = ploidy.p1, ploidy.p2 = ploidy.p2)
 s <- make_sequence(dat, "all", info.parent = "p1")
 tpt <- est_pairwise_rf(s)
