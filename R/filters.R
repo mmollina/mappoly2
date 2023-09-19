@@ -358,24 +358,85 @@ init_rf_filter <- function(x,
   return(x)
 }
 
+#' @export
+rf_filter_per_group <- function(x,
+                                gr,
+                                thresh.LOD.ph = 5,
+                                thresh.LOD.rf = 5,
+                                thresh.rf = 0.15,
+                                probs = c(0.05, 1),
+                                diag.markers = NULL,
+                                mrk.order = NULL,
+                                diagnostic.plot = TRUE,
+                                breaks = 100)
+{
+  assert_that(inherits(x, "ws"))
+  mrk.names <- x$working.sequences[[gr]]$mrk.names
+  probs <- range(probs)
+  ## Getting filtered rf matrix
+  M <- mappoly2:::filter_rf_matrix(x,
+                                  type = "rf",
+                                  thresh.LOD.ph = thresh.LOD.ph,
+                                  thresh.LOD.rf = thresh.LOD.rf,
+                                  thresh.rf = thresh.rf,
+                                  mrk.names)
+
+  if(!is.null(mrk.order)){
+    assert_that(all(mrk.order%in%mrk.names))
+    M <- M[mrk.order, mrk.order]
+  }
+  if(!is.null(diag.markers))
+    M[abs(col(M) - row(M)) > diag.markers] <- NA
+  z <- apply(M, 1, function(x) sum(!is.na(x)))
+  w <- hist(z, breaks = breaks, plot = FALSE)
+  th <- quantile(z, probs = probs)
+  rem <- c(which(z < th[1]), which(z > th[2]))
+  ids <- names(which(z >= th[1] & z <= th[2]))
+  value <- type <- NULL
+  if(diagnostic.plot){
+    d <- rbind(data.frame(type = "original", value = z),
+               data.frame(type = "filtered", value = z[ids]))
+    p <- ggplot2::ggplot(d, ggplot2::aes(value)) +
+      ggplot2::geom_histogram(ggplot2::aes(fill = type),
+                              alpha = 0.4, position = "identity", binwidth = diff(w$mids)[1]) +
+      ggplot2::scale_fill_manual(values = c("#00AFBB", "#E7B800")) +
+      ggplot2::ggtitle( paste0("Filtering probs: [", probs[1], " : ", probs[2], "] - Non NA values by row in rf matrix - b width: ", diff(w$mids)[1])) +
+      ggplot2::xlab(paste0("Non 'NA' values at LOD.ph = ", thresh.LOD.ph, ", LOD.rf = ", thresh.LOD.rf, ", and thresh.rf = ", thresh.rf))
+    print(p)
+  }
+  x$working.sequences[[gr]]$screened.rf <- list(thresholds = c(thresh.LOD.ph = thresh.LOD.ph,
+                                                               thresh.LOD.rf = thresh.LOD.rf,
+                                                               thresh.rf = thresh.rf,
+                                                               prob.lower = probs[1],
+                                                               prob.upper = probs[2]),
+                                                mrk.names = ids)
+  return(x)
+}
+
+
 filter_rf_matrix <- function(x,
                              type = c("rf", "sh"),
                              thresh.LOD.ph = 0,
                              thresh.LOD.rf = 0,
-                             thresh.rf = 0.5){
+                             thresh.rf = 0.5,
+                             mrk.names = NULL){
   type <- match.arg(type)
-  id1 <- abs(x$pairwise$lod.ph.mat) < thresh.LOD.ph
-  id2 <- abs(x$pairwise$lod.mat) < thresh.LOD.rf
-  id3 <- x$pairwise$rec.mat > thresh.rf
+  if(is.null(mrk.names))
+    mrk.names <- colnames(x$pairwise$rec.mat)
+  lod.ph.mat <- x$pairwise$lod.ph.mat[mrk.names,mrk.names]
+  lod.mat <- x$pairwise$lod.mat[mrk.names,mrk.names]
+  rec.mat <- x$pairwise$rec.mat[mrk.names,mrk.names]
+  id1 <- abs(lod.ph.mat) < thresh.LOD.ph
+  id2 <- abs(lod.mat) < thresh.LOD.rf
+  id3 <- rec.mat > thresh.rf
   if(type == "rf"){
-    rec.mat <- x$pairwise$rec.mat
     if(thresh.LOD.ph > 0) rec.mat[id1] <- NA
     if(thresh.LOD.rf > 0) rec.mat[id2] <- NA
     if(thresh.rf < 0.5) rec.mat[id3] <- NA
     return(rec.mat)
   } else if(type == "sh"){
-    sh.p1 <- x$pairwise$Sh.p1
-    sh.p2 <- x$pairwise$Sh.p2
+    sh.p1 <- x$pairwise$Sh.p1[mrk.names,mrk.names]
+    sh.p2 <- x$pairwise$Sh.p2[mrk.names,mrk.names]
     if(thresh.LOD.ph > 0) sh.p1[id1] <- sh.p1[id1] <- NA
     if(thresh.LOD.rf > 0) sh.p1[id2] <- sh.p1[id2] <- NA
     if(thresh.rf < 0.5)  sh.p1[id3] <- sh.p1[id3] <- NA

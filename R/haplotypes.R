@@ -4,13 +4,22 @@
 #' @keywords internal
 #' @author Marcelo Mollinari, \email{mmollin@ncsu.edu}
 #' @export
-calc_haplotypes <- function(x,
-                            phase.conf = c("best","all"),
-                            verbose = FALSE,
-                            tol = 10e-4,
-                            compute.both.parents = TRUE)
+calc_haplotypes_per_group <- function(x,
+                                      gr,
+                                      type = c("both", "mds", "genome"))
 {
-  #assert_that(is.mappoly2.sequence(x))
+  type <- match.arg(type)
+  id.map <- sapply(x$working.sequences$Lg_1$order,
+                   function(y) !is.null(y$phase[[1]]$loglike))
+  if(all(!id.map)) stop("the map is not estimated")
+
+  for(i in which(id.map)){
+
+  }
+
+
+
+
   mrk.id <- rownames(x$working.sequencesphases[[1]]$p1)
   g <- x$data$geno.dose[mrk.id, ]
   g[is.na(g)] <- -1

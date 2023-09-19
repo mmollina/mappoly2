@@ -6,21 +6,21 @@
 \alias{plot.mappoly2.geno.ord}
 \title{Get the genomic position of markers in a sequence}
 \usage{
-get_genome_order(input.seq, verbose = TRUE)
+get_genome_order(x, verbose = TRUE)
 
 \method{print}{mappoly2.geno.ord}(x, ...)
 
 \method{plot}{mappoly2.geno.ord}(x, ...)
 }
 \arguments{
-\item{input.seq}{a sequence object of class \code{mappoly.sequence}}
+\item{x}{an object of the class mappoly.geno.ord}
 
 \item{verbose}{if \code{TRUE} (default), the current progress is shown; if
 \code{FALSE}, no output is produced}
 
-\item{x}{an object of the class mappoly.geno.ord}
-
 \item{...}{currently ignored}
+
+\item{input.seq}{a sequence object of class \code{mappoly.sequence}}
 }
 \description{
 This functions gets the genomic position of markers in a sequence and

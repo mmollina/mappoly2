@@ -1,133 +1,283 @@
-###### OLD ####
 rm(list = ls())
 require(mappoly2)
 source("misc/simulation.R")
+setwd("~/repos/official_repos/mappoly2/")
 ploidy.p1 = 4
 ploidy.p2 = 4
-n.mrk <- 100
-map.length = 30
+n.mrk <- 300
+map.length = 100
 ph<-test_simulate(ploidy.p1 = ploidy.p1,
                   ploidy.p2 = ploidy.p2,
-                  fpath = "~/repos/official_repos/misc/fake_triploid.csv",
+                  fpath = "misc/fake_triploid.csv",
                   n.mrk = n.mrk,
                   n.ind = 300,
                   map.length = map.length,
-                  miss.perc = 0,
-                  n.chrom = 1,
+                  miss.perc = 5,
+                  n.chrom = 5,
                   random = FALSE,
                   seed = 2986)
-dat <- read_geno_csv(file.in = "misc/fake_triploid.csv",
-                     ploidy.p1 = ploidy.p1, ploidy.p2 = ploidy.p2)
-s <- make_sequence(dat, "all", info.parent = "p1")
-tpt <- est_pairwise_rf(s)
-s.phased <- pairwise_phasing(input.seq = s,
+####Reading Data####
+x <- read_geno_csv(file.in = "misc/fake_triploid.csv",
+                   ploidy.p1 = ploidy.p1,
+                   ploidy.p2 = ploidy.p2)
+
+#### Initial QA/QC ####
+x <- filter_data(x, mrk.thresh = .08, ind.thresh = .7)
+plot(x)
+plot(x, 'screened')
+x <- filter_individuals(x)
+plot(x, 'screened')
+
+#### Set Initial Sequence ####
+x <- set_initial_sequence(x, "all")
+plot(x, what = "initiated")
+x <- set_initial_sequence(x, c(1:100))
+plot(x, what = "initiated")
+x <- set_initial_sequence(x, sample(x$data$mrk.names, 100))
+plot(x, what = "initiated")
+x <- set_initial_sequence(x, c("ch3"))
+plot(x, what = "initiated")
+
+#### Compute RF ####
+x <- set_initial_sequence(x, "all")
+n.cpus <- parallel::detectCores() - 1
+x <- pairwise_rf(x, ncpus = n.cpus)
+plot(x, what = "pairwise", fact = 5)
+plot(x, what = "pairwise", type = "lod", fact = 5)
+#### Initial filter based in RF ####
+x <- init_rf_filter(x, 5, 5, .1, c(0.01, 0.99))
+plot(x, what = "pairwise")
+
+#### Grouping ####
+x <- group(x, expected.groups = 13)
+plot(x, what = "group")
+print(x)
+#### Set Working Sequences ####
+x <- set_working_sequence(x,
+                          lg = list(c(1,4),
+                                    c(2,3),
+                                    c(5,6)),
+                          ch = list(c(1,3),
+                                    2,
+                                    c(4,5)))
+
+x <- set_working_sequence(x, ch = list(1,2,3,4,5))
+#### Working sequence filter based in RF ####
+x <- rf_filter_per_group(x, gr = 1, 5, 5, .1, c(0.01, 0.98))
+x <- rf_filter_per_group(x, gr = 2, 5, 5, .1, c(0.01, 0.98))
+x <- rf_filter_per_group(x, gr = 3, 5, 5, .1, c(0.01, 0.98))
+x <- rf_filter_per_group(x, gr = 4, 5, 5, .1, c(0.04, 0.98))
+x <- rf_filter_per_group(x, gr = 5, 5, 5, .1, c(0.01, 0.98))
+#### Ordering ####
+x <- mds_per_group(x, gr = 1)
+x <- mds_per_group(x, gr = 2)
+x <- mds_per_group(x, gr = 3)
+x <- mds_per_group(x, gr = 4)
+x <- mds_per_group(x, gr = 5)
+plot(x, what = "pairwise", ord = x$working.sequences[[1]]$order$mds$info$locimap$locus)
+plot(x, what = "pairwise", ord = rownames(x$working.sequences[[1]]$order$genome$info))
+plot(x, what = "pairwise", ord = x$working.sequences[[3]]$order$mds$info$locimap$locus)
+plot(x, what = "pairwise", ord = x$working.sequences[[4]]$order$mds$info$locimap$locus)
+plot(x, what = "pairwise", ord = x$working.sequences[[5]]$order$mds$info$locimap$locus)
+x <- genome_order_per_group(x, gr = 1)
+x <- genome_order_per_group(x, gr = 2)
+x <- genome_order_per_group(x, gr = 3)
+x <- genome_order_per_group(x, gr = 4)
+x <- genome_order_per_group(x, gr = 5)
+plot(x, what = "pairwise", ord = rownames(x$working.sequences[[1]]$order$genome$info))
+plot(x, what = "pairwise", ord = rownames(x$working.sequences[[2]]$order$genome$info))
+plot(x, what = "pairwise", ord = rownames(x$working.sequences[[3]]$order$genome$info))
+plot(x, what = "pairwise", ord = rownames(x$working.sequences[[4]]$order$genome$info))
+plot(x, what = "pairwise", ord = rownames(x$working.sequences[[5]]$order$genome$info))
+
+
+#### IMPLEMENT SEQUENTIAL ####
+# FIXME
+### Phasing #####
+x <- pairwise_phasing_per_group(x, gr = 1, type = "mds")
+x <- pairwise_phasing_per_group(x, gr = 2, type = "mds")
+x <- pairwise_phasing_per_group(x, gr = 3, type = "mds")
+x <- pairwise_phasing_per_group(x, gr = 4, type = "mds")
+x <- pairwise_phasing_per_group(x, gr = 5, type = "mds")
+x <- pairwise_phasing_per_group(x, gr = 1, type = "genome")
+x <- pairwise_phasing_per_group(x, gr = 2, type = "genome")
+x <- pairwise_phasing_per_group(x, gr = 3, type = "genome")
+x <- pairwise_phasing_per_group(x, gr = 4, type = "genome")
+x <- pairwise_phasing_per_group(x, gr = 5, type = "genome")
+
+# Mapping #
+x <- mapping_per_group(x, gr = 1, error = 0.05)
+x <- mapping_per_group(x, gr = 2, error = 0.05)
+x <- mapping_per_group(x, gr = 3, error = 0.05)
+plot_map(x, gr = 1, mrk.names = TRUE)
+plot_map(x, gr = 2, mrk.names = TRUE, left.lim = 10, right.lim = 20)
+plot_map(x, gr = 3, mrk.names = TRUE)
+
+s.ch1.all <- calc_haplotypes(s.ch1.all)
+
+
+
+
+
+
+
+
+
+
+plot_map(s.ch1.p1, mrk.names = TRUE)
+#### Select parent 2####
+s.ch1.p2 <- make_sequence(dat, arg = "ch1", info.parent = "p2")
+tpt2 <- est_pairwise_rf(s.ch1.p2, ncpus = 7)
+# Phasing #
+s.ch1.p2 <- pairwise_phasing(input.seq = s.ch1.p2,
+                             input.twopt = tpt2,
+                             thresh.LOD.ph = 5,
+                             max.conf.btnk.p2 = 5)
+# Mapping #
+s.ch1.p2 <- mapping(input.seq = s.ch1.p2,
+                    verbose = TRUE,
+                    error = 0.00,# error = 0.0
+                    tol = 10e-4)
+plot_map(s.ch1.p2, mrk.names = TRUE)
+s.ch1.p2 <- mapping(input.seq = s.ch1.p2,
+                    verbose = TRUE,
+                    error = 0.05,
+                    tol = 10e-4)
+plot_map(s.ch1.p2, mrk.names = TRUE)
+#### Merging maps from p1 and p2 ####
+s.ch1.all <- merge_single_parent_maps(input.seq.all = s.ch1.all,
+                                      input.seq.p1 = s.ch1.p1,
+                                      input.seq.p2 = s.ch1.p2,
+                                      input.twopt = tpt.ch1)
+s.ch1.all <- mapping(input.seq = s.ch1.all,
+                     verbose = TRUE,
+                     error = 0.00,
+                     tol = 10e-4)
+plot_map(s.ch1.all, mrk.names = TRUE)
+s.ch1.all <- calc_haplotypes(s.ch1.all)
+s.ch1.all <- augment_phased_map(input.seq = s.ch1.all,
+                                input.twopt = tpt)
+s.ch1.all <- mapping(input.seq = s.ch1.all,
+                     verbose = TRUE,
+                     error = 0.00,
+                     tol = 10e-4)
+plot_map(s.ch1.all)
+s.ch1.all <- calc_haplotypes(s.ch1.all)
+input.mat <- rf_list_to_matrix(tpt.ch1,
+                               thresh.LOD.ph = 5,
+                               thresh.LOD.rf = 5,
+                               thresh.rf = .5,
+                               shared.alleles = TRUE)
+
+
+plot_map(s.ch1.all, mrk.names = T, xlim = c(-10,105))
+
+
+
+
+
+
+#### Two-points ####
+tpt <- est_pairwise_rf(s, ncpus = 7)
+m <- rf_list_to_matrix(tpt)
+plot(m)
+
+#### Grouping ####
+lg <- group(m, expected.groups = 5, comp.mat = TRUE, inter = F)
+
+#### CH1 ####
+s.ch1.all <- make_sequence(lg, 1, genomic.info = 1)
+s.ch1.all
+tpt.ch1 <- est_pairwise_rf(s.ch1.all) ## Will remove
+#### Select parent 1####
+s.ch1.p1 <- make_sequence(s.ch1.all, info.parent = "p1")
+s.ch1.p1
+# Phasing #
+s.ch1.p1 <- pairwise_phasing(input.seq = s.ch1.p1,
                              input.twopt = tpt,
-                             thresh.LOD.ph = 28,
-                             max.conf.btnk.p1 = 20)
-s.phased
-err <- c(0.0, 0.01, 0.05)
-L <- vector("list", length(err))
-tm <- numeric(length(err))
-for(i in 1:length(err))
-  tm[i] <- system.time(L[[i]] <- hmm_map_reconstruction(input.seq = s.phased,
-                                                        verbose = TRUE,
-                                                        error = err[i],
-                                                        tol = 10e-4))[3]
-plot(tm~err, xlab = "error rate", ylab = "time(s)", col = 2, type = "b")
-d <- lapply(L, function(x) sapply(x$phases, function(x) cumsum(c(0,imf_h(x$rf)))))
-r <- c(0, max(sapply(d, max)))
-plot(0, type = "n", ylim = r, xlim = c(0,n.mrk))
-abline(h = map.length, lty = 2)
-for(i in 1:length(err)){
-  ll <- sapply(L[[i]]$phases, function(x) x$loglike)
-  best <- which.max(ll)
-  for(j in 1:ncol(d[[i]])){
-    z1<-1; z2<-0.5
-    if(j == best)
-      z1 <- 3; z2 <- 1
-      points(d[[i]][,j], type = "l", col = i+1, lwd = z1)
-  }
-}
-legend("topleft", legend=err, col=1:length(err)+1, lty=1, cex=0.8)
+                             thresh.LOD.ph = 3,
+                             max.conf.btnk.p1 = 10)
+# Mapping #
+s.ch1.p1 <- mapping(input.seq = s.ch1.p1,
+                    verbose = TRUE,
+                    error = 0.00,# error = 0.0
+                    tol = 10e-4)
+plot_map(s.ch1.p1, mrk.names = TRUE)
+#### Select parent 2####
+s.ch1.p2 <- make_sequence(s.ch1.all, info.parent = "p2")
+s.ch1.p2
+# Phasing #
+s.ch1.p2 <- pairwise_phasing(input.seq = s.ch1.p2,
+                             input.twopt = tpt,
+                             thresh.LOD.ph = 3,
+                             max.conf.btnk.p1 = 10)
+# Mapping #
+s.ch1.p2 <- mapping(input.seq = s.ch1.p2,
+                    verbose = TRUE,
+                    error = 0.00,# error = 0.0
+                    tol = 10e-4)
+plot_map(s.ch1.p2, mrk.names = TRUE)
+#### Merging maps from p1 and p2 ####
+s.ch1.all <- merge_single_parent_maps(input.seq.all = s.ch1.all,
+                                      input.seq.p1 = s.ch1.p1,
+                                      input.seq.p2 = s.ch1.p2,
+                                      input.twopt = tpt.ch1)
+s.ch1.all <- mapping(input.seq = s.ch1.all,
+                     verbose = TRUE,
+                     error = 0.00,
+                     tol = 10e-4)
+plot_map(s.ch1.all, mrk.names = TRUE)
+s.ch1.all <- calc_haplotypes(s.ch1.all)
+s.ch1.all <- augment_phased_map(input.seq = s.ch1.all,
+                                input.twopt = tpt)
+s.ch1.all <- mapping(input.seq = s.ch1.all,
+                     verbose = TRUE,
+                     error = 0.00,
+                     tol = 10e-4)
+plot_map(s.ch1.all)
+s.ch1.all <- calc_haplotypes(s.ch1.all)
+input.mat <- rf_list_to_matrix(tpt.ch1,
+                               thresh.LOD.ph = 5,
+                               thresh.LOD.rf = 5,
+                               thresh.rf = .5,
+                               shared.alleles = TRUE)
 
 
-
-i<-1
-mrk.id <- rownames(s.phased$phases[[1]]$p1)
-g <- s.phased$data$geno.dose[mrk.id, ]
-id <- which(s.phased$data$ploidy.p2 == s.phased$data$dosage.p2[mrk.id])
-g[id, ] <- g[id, ] - s.phased$data$ploidy.p2/2
-
-bla<-mappoly2:::visit_states_biallelic_single(s.phased$phases[[i]]$p1, g, 0.01)
+plot_map(s.ch1.all, mrk.names = T, xlim = c(-10,105))
 
 
-###### TEST #####
-#i<-which.max(sapply(L[[1]]$phases, function(x) x$loglike))
-G <- s.phased$data$geno.dose[mrk.id, ]
-z1 <- mappoly2:::est_hmm_map_biallelic_single(s.phased$phases[[i]]$p1,
-                                              G,
-                                              rf = rep(0.01, (nrow(G)-1)),
-                                              err = 0.05,
-                                              verbose = T,
-                                              detailed_verbose = F,
-                                              tol = 10e-4,
-                                              ret_H0 = F)
-imf_h(z1[[2]])
+### Begin
+mrk <- "Ch_1_M_1"
+drop.seq <- drop_marker(input.seq = s.ch1.all, mrk, reestimate.map = T)
+plot_map(drop.seq, 0, 10, mrk.names = T, xlim = c(-2, 11), cex = 1.5)
+drop.seq<-calc_haplotypes(drop.seq)
+drop.seq <- add_marker(drop.seq, mrk, thresh.rf.to.add = .1)
+plot_map(drop.seq, 0, 10, mrk.names = T, xlim = c(-2, 11), cex = 1.5)
+drop.seq <- mapping(drop.seq, verbose = T)
+plot_map(drop.seq, 0, 10, mrk.names = T, xlim = c(-2, 11), cex = 1.5)
 
-#######
-Z <- vector("list", length(s.phased$phases))
-for(i in 1:length(s.phased$phases)){
-  mrk.id <- rownames(s.phased$phases[[i]]$p1)
-  G <- s.phased$data$geno.dose[mrk.id, ]
-  pedigree <- matrix(rep(c(1,
-                           2,
-                           s.phased$data$ploidy.p1,
-                           s.phased$data$ploidy.p2, 1),
-                         s.phased$data$n.ind),
-                     nrow = s.phased$data$n.ind,
-                     byrow = TRUE)
-  PH = list(s.phased$phases[[i]]$p1,
-            s.phased$phases[[i]]$p2)
-  Z[[i]] <- mappoly2:::est_hmm_map_biallelic2(PH, G, pedigree,
-                                              rf = rep(0.01, (nrow(G)-1)),
-                                              err = 0.0,
-                                              verbose = T,
-                                              detailed_verbose = F,
-                                              tol = 10e-4,
-                                              ret_H0 = F)
-}
-
-(best <- which.max(sapply(Z, function(x) x[[1]])))
-imf_h(Z[[2]][[2]])
-plot(c(0,cumsum(imf_h(Z[[best]][[2]]))))
+### Middle
+mrk <- "Ch_1_M_74"
+drop.seq <- drop_marker(input.seq = s.ch1.all, mrk, reestimate.map = T)
+plot_map(drop.seq, 60, 80, mrk.names = T, xlim = c(58, 81), cex = 1.5)
+drop.seq<-calc_haplotypes(drop.seq)
+drop.seq <- add_marker(drop.seq, mrk)
+plot_map(drop.seq, 60, 80, mrk.names = T, xlim = c(58, 81), cex = 1.5)
+drop.seq <- mapping(drop.seq, verbose = T)
+plot_map(drop.seq, 60, 80, mrk.names = T, xlim = c(58, 81), cex = 1.5)
 
 
+#### End
+plot_map(s.ch1.all, 90, 100, mrk.names = T, xlim = c(89, 101), cex = 1.5)
+mrk <- "Ch_1_M_100"
+drop.seq <- drop_marker(input.seq = s.ch1.all, mrk, reestimate.map = T)
+plot_map(drop.seq, 90, 100, mrk.names = T, xlim = c(89, 101), cex = 1.5)
+drop.seq<-calc_haplotypes(drop.seq)
+drop.seq <- add_marker(drop.seq, mrk, thresh.rf.to.add = 0.1, tol = 10e-6)
+plot_map(drop.seq, 90, 100, mrk.names = T, xlim = c(89, 103), cex = 1.5)
+drop.seq <- mapping(drop.seq, verbose = T)
+plot_map(drop.seq, 90, 100, mrk.names = T, xlim = c(89, 101), cex = 1.5)
 
-
-
-
-
-
-
-
-### LOG algorithm ####
-system.time(z2 <- mappoly2:::est_hmm_map_biallelic2(PH,
-                                                    G, pedigree,
-                                                    rf = rep(0.01, (nrow(G)-1)),
-                                                    err = 0.05,
-                                                    verbose = T,
-                                                    detailed_verbose = F,
-                                                    tol = 10e-4,
-                                                    ret_H0 = F))
-points(cumsum(imf_h(z1[[2]])), col = 4)
-points(cumsum(imf_h(z2[[2]])), col = 2, pch = 20)
-
-points(cumsum(imf_h(z1[[2]])), col = 3, pch = 4)
-points(cumsum(imf_h(z2[[2]])), col = 5, pch = 5)
-
-
-z1[[1]]
-z2[[1]]
 
 
 

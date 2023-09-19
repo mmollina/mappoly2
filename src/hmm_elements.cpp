@@ -599,7 +599,7 @@ List vs_biallelic_error(List PH,
   List result = calculate_L_and_initialize_H(n_fullsib_pop, n_mrk, n_ind, ploidy_p1, ploidy_p2);
   List L = result["L"];
   List H = result["H"];
-  List E = result["E"]; // Emission probabilities to be implemented
+  List E = result["E"];
   for(int k = 0; k < n_mrk; k++) { // ***************************************** Markers
     List H_k(n_ind);
     List E_k(n_ind);

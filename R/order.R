@@ -62,6 +62,7 @@ mds_per_group <- function(x,
                           verbose = TRUE)
 {
   assert_that(inherits(x,"pairwise"))
+  assert_that(inherits(x,"ws"))
   mrk.id <- x$working.sequences[[gr]]$mrk.names
   assert_that(all(rownames(mrk.id)%in%x$pairwise$rec.mat), msg = "some markers in the sequence are not present in the pairwise rf.")
   rf.mat <- x$pairwise$rec.mat[mrk.id, mrk.id]
@@ -114,8 +115,6 @@ mds_per_group <- function(x,
   x$working.sequences[[gr]]$order$mds$info <- list(smacofsym = smacofsym,pc = pc1,distmap = distmap,lodmap = lodmap,locimap = locimap,length = max(estpos),removed = n,locikey = locikey,meannnfit = nnfit$meanfit)
   return(x)
 }
-
-
 
 #' @rdname mds
 #' @export
@@ -251,7 +250,6 @@ get.nearest.informative <- function (loci, lodmap){
   neighbours
 }
 
-
 #' Get the genomic position of markers in a sequence
 #'
 #' This functions gets the genomic position of markers in a sequence and
@@ -265,16 +263,15 @@ get.nearest.informative <- function (loci, lodmap){
 #' @author Marcelo Mollinari, \email{mmollin@ncsu.edu}
 #' @export get_genome_order
 #' @importFrom utils head
-get_genome_order <- function(input.seq, verbose = TRUE){
-  assert_that(is.mappoly2.sequence(input.seq))
-  genome.pos <- x$data$genome.pos[x$mrk.names]
-  chrom <- x$data$chrom[x$mrk.names]
+get_genome_order <- function(x, verbose = TRUE){
+  genome.pos <- x$data$genome.pos[x$data$mrk.names]
+  chrom <- x$data$chrom[x$data$mrk.names]
   if(all(is.na(genome.pos))){
     if(all(is.na(chrom)))
       stop("No sequence or sequence position information found.")
     else{
       if (verbose) message("Ordering markers based on chromosome information")
-      M <- data.frame(seq = chrom, row.names = x$mrk.names)
+      M <- data.frame(seq = chrom, row.names = x$data$mrk.names)
       M.out <- M[order(embedded_to_numeric(M[,1])),]
     }
   } else if(all(is.na(chrom))){
@@ -282,17 +279,51 @@ get_genome_order <- function(input.seq, verbose = TRUE){
       stop("No sequence or sequence position information found.")
     else{
       if (verbose) message("Ordering markers based on sequence position information")
-      M <- data.frame(seq.pos = genome.pos, row.names = x$mrk.names)
+      M <- data.frame(seq.pos = genome.pos, row.names = x$data$mrk.names)
       M.out <- M[order(embedded_to_numeric(M[,1])),]
     }
   } else{
     M <- data.frame(seq = chrom,
                     seq.pos = genome.pos,
-                    row.names = x$mrk.names)
+                    row.names = x$data$mrk.names)
     M.out <- M[order(embedded_to_numeric(M[, "seq"]),
                      embedded_to_numeric(M[, "seq.pos"])),]
   }
   structure(list(data = x$data, ord = M.out), class = "mappoly2.geno.ord")
+}
+
+
+#' @export
+genome_order_per_group <- function(x, gr){
+  assert_that(inherits(x,"ws"))
+  mrk.id <- x$working.sequences[[gr]]$mrk.names
+  genome.pos <- x$data$genome.pos[mrk.id]
+  chrom <- x$data$chrom[mrk.id]
+  if(all(is.na(genome.pos))){
+    if(all(is.na(chrom)))
+      stop("No sequence or sequence position information found.")
+    else{
+      if (verbose) message("Ordering markers based on chromosome information")
+      M <- data.frame(seq = chrom, row.names = mrk.id)
+      M.out <- M[order(embedded_to_numeric(M[,1])),]
+    }
+  } else if(all(is.na(chrom))){
+    if(all(is.na(genome.pos)))
+      stop("No sequence or sequence position information found.")
+    else{
+      if (verbose) message("Ordering markers based on sequence position information")
+      M <- data.frame(seq.pos = genome.pos, row.names = mrk.id)
+      M.out <- M[order(embedded_to_numeric(M[,1])),]
+    }
+  } else{
+    M <- data.frame(seq = chrom,
+                    seq.pos = genome.pos,
+                    row.names = mrk.id)
+    M.out <- M[order(embedded_to_numeric(M[, "seq"]),
+                     embedded_to_numeric(M[, "seq.pos"])),]
+  }
+  x$working.sequences[[gr]]$order$genome$info <- M.out
+  return(x)
 }
 
 #' @rdname get_genome_order

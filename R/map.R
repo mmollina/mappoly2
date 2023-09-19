@@ -349,7 +349,7 @@ prepare_map <- function(x, gr, type){
 #' @importFrom grDevices rgb
 #' @importFrom graphics rect
 #' @export
-plot_map <- function(x, gr, type = c("mds", "gemnome"),
+plot_map <- function(x, gr, type = c("mds", "genome"),
                      left.lim = 0, right.lim = Inf,
                      phase = TRUE, mrk.names = FALSE,
                      plot.dose = TRUE, homolog.names.adj = 3,

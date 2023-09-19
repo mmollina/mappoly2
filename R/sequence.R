@@ -79,25 +79,35 @@ set_working_sequence <- function(x,
       seq.names <- paste0("Lg_", unique(x$linkage.groups$groups.snp))
       return(initiate_working_sequence(x, mrk.names, ind.names, seq.names))
     }
-  } else {
-    stop("Inform 'lg', 'ch', or a list containing the markers for the desired sequences")
-  }
-  ## Set up LG
-  if(!is.null(lg)){
+  } else if(!is.null(lg) & !is.null(ch)){
     assert_that(is.list(lg), msg = "'lg' should be a list")
-    if(is.null(ch)) ch <- lg
-  }
-  ## Set up CH
-  if(!is.null(ch)){
     assert_that(is.list(ch), msg = "'ch' should be a list")
-    if(is.null(lg)) lg <- ch
+    assert_that(length(lg) == length(ch))
+    mrk.names <- vector("list", length(lg))
+    for(i in 1:length(lg)){
+      mrk.names[[i]] <- mappoly2:::get_markers_from_grouped_and_chromosome(x, lg[[i]], ch[[i]])
+    }
+    return(initiate_working_sequence(x, mrk.names, ind.names, seq.names))
+  } else if(!is.null(lg) & is.null(ch)){
+    assert_that(is.list(lg), msg = "'lg' should be a list")
+    mrk.names <- vector("list", length(lg))
+    for(i in 1:length(lg)){
+      mrk.names[[i]] <- mappoly2:::get_markers_from_grouped_sequence(x, lg[[i]])
+    }
+    return(initiate_working_sequence(x, mrk.names, ind.names, seq.names))
+  } else if(is.null(lg) & !is.null(ch)){
+    mrk.names <- vector("list", length(ch))
+    assert_that(is.list(ch), msg = "'ch' should be a list")
+    for(i in 1:length(ch)){
+      mrk.names[[i]] <- rownames(mappoly2:::get_markers_from_chromosome(x, ch[[i]]))
+      if(!is.null(x$initial.screened.rf))
+        mrk.names[[i]] <- intersect(mrk.names[[i]], x$initial.screened.rf$mrk.names)
+      else if(!is.null(x$screened.data$mrk.names)){
+        mrk.names[[i]] <- intersect(mrk.names[[i]], x$screened.data$mrk.names)
+      }
+    }
+    return(initiate_working_sequence(x, mrk.names, ind.names, seq.names))
   }
-  assert_that(lenth(lg) == length(ch))
-  mrk.names <- vector("list", length(lg))
-  for(i in 1:length(lg)){
-    mrk.names[[i]] <- get_markers_from_grouped_and_chromosome(x, lg[[i]], ch[[i]])
-  }
-  return(initiate_working_sequence(x, mrk.names, ind.names, seq.names))
 }
 
 #' @importFrom graphics barplot layout mtext image legend

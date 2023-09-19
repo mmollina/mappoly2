@@ -17,7 +17,7 @@ pairwise_phasing_per_group <- function(x,
   if(type == "mds")
     mrk.id <- as.character(x$working.sequences[[gr]]$order$mds$info$locimap$locus)
   if(type == "genome")
-    mrk.id <- as.character(x$working.sequences[[gr]]$order$genome$info$mrk.names) #FIXME
+    mrk.id <- rownames(x$working.sequences[[gr]]$order$genome$info) #FIXME
   m<-mappoly2:::filter_rf_matrix(x,
                                  type = "sh",
                                  thresh.LOD.ph,
