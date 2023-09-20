@@ -57,18 +57,14 @@ pairwise_phasing_per_group <- function(x,
   for(i in 1:length(Ph.p1$phase_configs)){
     for(j in 1:length(Ph.p2$phase_configs)){
       Ph[[cte]] <- list(p1 = Ph.p1$phase_configs[[i]][mrks,],
-                        p2 = Ph.p2$phase_configs[[j]][mrks,],
-                        loglike = NULL,
-                        rf = NULL,
-                        error = NULL,
-                        haploprob = NULL)
+                        p2 = Ph.p2$phase_configs[[j]][mrks,])
       cte <- cte + 1
     }
   }
   if(type == "mds")
-    x$working.sequences[[gr]]$order$mds$phase = unique(Ph)
+    x$working.sequences[[gr]]$order$mds$phase.twopt = unique(Ph)
   if(type == "genome")
-    x$working.sequences[[gr]]$order$genome$phase = unique(Ph)
+    x$working.sequences[[gr]]$order$genome$phase.twopt = unique(Ph)
   return(x)
 }
 

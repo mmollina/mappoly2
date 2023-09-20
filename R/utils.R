@@ -6,12 +6,13 @@ embedded_to_numeric <- function(x) {
 }
 
 #' @export
-detect_info_par<-function(x){
+detect_info_par<-function(x, gr){
   ## checking for correct object
   assert_that(inherits(x, "ws"))
-  if(all(x$data$dosage.p2 == 0 | x$data$dosage.p2 == x$data$ploidy.p2))
+  idx <- x$working.sequences[[gr]]$mrk.names
+  if(all(x$data$dosage.p2[idx] == 0 | x$data$dosage.p2[idx] == x$data$ploidy.p2))
     return("p1")
-  if(all(x$data$dosage.p1 == 0 | x$data$dosage.p1 == x$data$ploidy.p1))
+  if(all(x$data$dosage.p1[idx] == 0 | x$data$dosage.p1[idx] == x$data$ploidy.p1))
     return("p2")
   else
     return("both")

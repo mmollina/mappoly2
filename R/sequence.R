@@ -277,9 +277,11 @@ initiate_working_sequence <- function(x,
     x$working.sequences[[i]] <- list(mrk.names = intersect(x$screened.data$mrk.names, mrk.names[[i]]),
                                      ind.names = intersect(x$screened.data$ind.names, ind.names[[i]]),
                                      order = list(mds = list(info = NULL,
-                                                              phase = NULL),
+                                                             phase.twopt = NULL,
+                                                             hmm.map = NULL),
                                                   genome = list(info = NULL,
-                                                                 phase = NULL)))
+                                                                phase.twopt = NULL,
+                                                                hmm.map = NULL)))
   }
   class(x) <- unique(c(class(x), "ws"))
   return(x)

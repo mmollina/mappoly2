@@ -52,6 +52,34 @@
 #' @importFrom princurve principal.curve
 #' @importFrom stats runif
 #' @importFrom utils read.csv write.csv
+#'
+#'
+#' @export
+mds <- function(x,
+                p = NULL,
+                n = NULL,
+                ndim = 2,
+                weight.exponent = 2,
+                verbose = TRUE){
+  assert_that(inherits(x,"ws"))
+  inherits(x,"pairwise")
+  if(!is.null(n))
+    assert_that(is.list(n), msg = "'n' should contain a list with markers to be removed for each group")
+  if(verbose)
+    cat("Running MDS:\n")
+  for(i in 1:length(x$working.sequences)){
+    if(verbose) cat(" '--> group:", i, "\n")
+    x <- mds_per_group(x, i,
+                       p = p,
+                       n = n[[i]],
+                       ndim = ndim,
+                       weight.exponent = weight.exponent,
+                       verbose = verbose)
+  }
+  return(x)
+}
+
+
 #' @export
 mds_per_group <- function(x,
                           gr,
@@ -116,104 +144,6 @@ mds_per_group <- function(x,
   return(x)
 }
 
-#' @rdname mds
-#' @export
-print.mappoly2.pcmap <- function(x, ...)
-{
-  cat("\nThis is an object of class 'mappoly.mds'")
-  cat("\nNumber of markers: ", nrow(x$locimap))
-  cat("\nNumber of dimensions used: ", x$sm$ndim)
-  cat("\nStress: ", x$smacofsym$stress)
-  cat("\nMean Nearest Neighbour Fit:", x$meannnfit)
-}
-
-#' @rdname mds
-#' @export
-print.mappoly2.pcmap3d <- function(x, ...)
-{
-  cat("\nThis is an object of class 'mappoly.mds'")
-  cat("\nNumber of markers: ", nrow(x$locimap))
-  cat("\nNumber of dimensions used: ", x$sm$ndim)
-  cat("\nStress: ", x$smacofsym$stress)
-  cat("\nMean Nearest Neighbour Fit:", x$meannnfit)
-}
-
-#' @author Katharine F. Preedy, \email{katharine.preedy@bioss.ac.uk}
-#' @export
-plot.mappoly2.pcmap <- function (x, D1lim = NULL, D2lim = NULL, displaytext = FALSE, ...)
-{
-  oldpar <- par(mfrow = c(1, 2))
-  on.exit(par(oldpar))
-  with(x, {
-    if (displaytext  ==  TRUE) {
-      labels = locikey$locus
-    }
-    else {
-      labels = locikey$confplotno
-    }
-    graphics::plot(smacofsym$conf, type = "n", main = "MDS with principal curve",
-                   xlim = D1lim, ylim = D2lim, xlab = "Dim 1", ylab = "Dim 2")
-    text(smacofsym$conf, labels = labels, cex = 0.8)
-    lines(pc)
-    if (displaytext  ==  TRUE) {
-      labels1 = locimap$locus
-    }
-    else {
-      labels1 = locimap$confplotno
-    }
-    graphics::plot(locimap$position, locimap$nnfit, type = "n",
-                   xlab = "Position", ylab = "nnfit", main = "nearest neighbour fits")
-    text(locimap$position, locimap$nnfit, labels1)
-  })
-}
-
-#' @author Katharine F. Preedy, \email{katharine.preedy@bioss.ac.uk}
-#' @export
-plot.mappoly2.pcmap3d <- function(x, D1lim = NULL, D2lim = NULL, D3lim = NULL, displaytext = FALSE, ...)
-{
-  oldpar <- par(mfrow = c(2, 2))
-  on.exit(par(oldpar))
-  with(x, {
-    if (displaytext  ==  TRUE) {
-      labels = locikey$locus
-    }
-    else {
-      labels = locikey$confplotno
-    }
-    graphics::par(mfrow = c(2, 2))
-    graphics::plot(smacofsym$conf[, "D1"], smacofsym$conf[,
-                                                          "D2"], type = "n", main = "MDS with principal curve",
-                   xlab = "Dimension 1", ylab = "Dimension 2", xlim = D1lim,
-                   ylim = D2lim)
-    text(smacofsym$conf[, "D1"], smacofsym$conf[, "D2"],
-         labels = labels, cex = 0.8)
-    lines(pc$s[, "D1"][pc$ord], pc$s[, "D2"][pc$ord])
-    graphics::plot(smacofsym$conf[, "D1"], smacofsym$conf[,
-                                                          "D3"], type = "n", main = "MDS with principal curve",
-                   xlab = "Dimension 1", ylab = "Dimension 3", xlim = D1lim,
-                   ylim = D3lim)
-    text(smacofsym$conf[, "D1"], smacofsym$conf[, "D3"],
-         labels = labels, cex = 0.8)
-    lines(pc$s[, "D1"][pc$ord], pc$s[, "D3"][pc$ord])
-    graphics::plot(smacofsym$conf[, "D2"], smacofsym$conf[,
-                                                          "D3"], type = "n", main = "MDS with principal curve",
-                   xlab = "Dimension 2", ylab = "Dimension 3", xlim = D2lim,
-                   ylim = D3lim)
-    text(smacofsym$conf[, "D2"], smacofsym$conf[, "D3"],
-         labels = labels, cex = 0.8)
-    lines(pc$s[, "D2"][pc$ord], pc$s[, "D3"][pc$ord])
-    if (displaytext  ==  TRUE) {
-      labels1 = locimap$locus
-    }
-    else {
-      labels1 = locimap$confplotno
-    }
-    graphics::plot(locimap$position, locimap$nnfit, type = "n",
-                   xlab = "Position", ylab = "nnfit", main = "nearest neighbour fits")
-    text(locimap$position, locimap$nnfit, labels1)
-  })
-}
-
 #'@author Katharine F. Preedy, \email{katharine.preedy@bioss.ac.uk}
 #'@keywords internal
 calc.nnfit <- function (distmap, lodmap, estmap){
@@ -250,49 +180,6 @@ get.nearest.informative <- function (loci, lodmap){
   neighbours
 }
 
-#' Get the genomic position of markers in a sequence
-#'
-#' This functions gets the genomic position of markers in a sequence and
-#' return an ordered data frame with the name and position of each marker
-#' @param input.seq a sequence object of class \code{mappoly.sequence}
-#' @param verbose if \code{TRUE} (default), the current progress is shown; if
-#'     \code{FALSE}, no output is produced
-#' @param x 	an object of the class mappoly.geno.ord
-#' @param ... 	currently ignored
-#'
-#' @author Marcelo Mollinari, \email{mmollin@ncsu.edu}
-#' @export get_genome_order
-#' @importFrom utils head
-get_genome_order <- function(x, verbose = TRUE){
-  genome.pos <- x$data$genome.pos[x$data$mrk.names]
-  chrom <- x$data$chrom[x$data$mrk.names]
-  if(all(is.na(genome.pos))){
-    if(all(is.na(chrom)))
-      stop("No sequence or sequence position information found.")
-    else{
-      if (verbose) message("Ordering markers based on chromosome information")
-      M <- data.frame(seq = chrom, row.names = x$data$mrk.names)
-      M.out <- M[order(embedded_to_numeric(M[,1])),]
-    }
-  } else if(all(is.na(chrom))){
-    if(all(is.na(genome.pos)))
-      stop("No sequence or sequence position information found.")
-    else{
-      if (verbose) message("Ordering markers based on sequence position information")
-      M <- data.frame(seq.pos = genome.pos, row.names = x$data$mrk.names)
-      M.out <- M[order(embedded_to_numeric(M[,1])),]
-    }
-  } else{
-    M <- data.frame(seq = chrom,
-                    seq.pos = genome.pos,
-                    row.names = x$data$mrk.names)
-    M.out <- M[order(embedded_to_numeric(M[, "seq"]),
-                     embedded_to_numeric(M[, "seq.pos"])),]
-  }
-  structure(list(data = x$data, ord = M.out), class = "mappoly2.geno.ord")
-}
-
-
 #' @export
 genome_order_per_group <- function(x, gr){
   assert_that(inherits(x,"ws"))
@@ -326,25 +213,12 @@ genome_order_per_group <- function(x, gr){
   return(x)
 }
 
-#' @rdname get_genome_order
 #' @export
-print.mappoly2.geno.ord <- function(x, ...){
-  print(head(x$ord))
+genome_order <- function(x){
+  assert_that(inherits(x,"ws"))
+  for(i in 1:length(x$working.sequences)){
+    x <- genome_order_per_group(x, i)
+  }
+  return(x)
 }
-
-#' @rdname get_genome_order
-#' @export
-#' @importFrom ggplot2 ggplot aes geom_point xlab ylab theme
-plot.mappoly2.geno.ord <- function(x, ...){
-  seq <- seq.pos <- NULL
-  w <- x$ord
-  w$seq <- as.factor(w$seq)
-  w$seq = with(w, reorder(seq))
-  ggplot2::ggplot(w,
-                  ggplot2::aes(x = seq.pos, y = seq, group = as.factor(seq))) +
-    ggplot2::geom_point(ggplot2::aes(color = as.factor(seq)), shape = 108, size = 5, show.legend = FALSE) +
-    ggplot2::xlab("Position") +
-    ggplot2::ylab("Chromosome")
-}
-
 
