@@ -116,3 +116,18 @@ get_markers_from_grouped_and_chromosome <- function(x, lg = NULL, ch = NULL){
   return(intersect(mrk.id.ch, mrk.id.lg))
 }
 
+#' @export
+get_dosage_type <- function(x, gr, type = c("mds", "genome")){
+  type <- match.arg(type)
+  id.mrk <- rownames(x$working.sequences[[gr]]$order[[type]]$hmm.map$p1)
+  assert_that(!is.null(id.mrk))
+  p1 <- abs(abs(x$data$dosage.p1[id.mrk] - x$data$ploidy.p1/2) - x$data$ploidy.p1/2)
+  p2 <- abs(abs(x$data$dosage.p2[id.mrk] - x$data$ploidy.p2/2) - x$data$ploidy.p2/2)
+  s.p1 <- p1  ==  1 & p2  ==  0
+  s.p2 <- p1  ==  0 & p2  ==  1
+  ds <- p1  ==  1 & p2  ==  1
+  list(simplex.p1 = id.mrk[s.p1],
+       simplex.p2 = id.mrk[s.p2],
+       double.simplex = id.mrk[ds],
+       multiplex = id.mrk[!(s.p1 | s.p2 | ds)])
+}
