@@ -1,25 +1,33 @@
 rm(list = ls())
 require(mappoly2)
-source("misc/simulation.R")
 setwd("~/repos/official_repos/mappoly2/")
+source("misc/simulation.R")
 ploidy.p1 = 4
 ploidy.p2 = 4
 n.mrk <- 300
 map.length = 100
 ph<-test_simulate(ploidy.p1 = ploidy.p1,
                   ploidy.p2 = ploidy.p2,
-                  fpath = "misc/fake_triploid.csv",
+                  fpath = "misc/fake_data.csv",
                   n.mrk = n.mrk,
                   n.ind = 300,
                   map.length = map.length,
                   miss.perc = 5,
-                  n.chrom = 5,
+                  n.chrom = 3,
                   random = FALSE,
                   seed = 2986)
 ####Reading Data####
-x <- read_geno_csv(file.in = "misc/fake_triploid.csv",
+x <- read_geno_csv(file.in = "misc/fake_data.csv",
                    ploidy.p1 = ploidy.p1,
                    ploidy.p2 = ploidy.p2)
+
+
+
+
+
+
+
+
 
 #### Initial QA/QC ####
 x <- filter_data(x, mrk.thresh = .08, ind.thresh = .7)

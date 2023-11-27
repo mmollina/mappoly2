@@ -1,87 +1,88 @@
-#'Data Input in CSV format
+#' Data Input in CSV Format
 #'
-#'Reads a comma-separated values (CSV) data file containing genetic marker data.
-#'This function returns an object of class \code{mappoly2}.
+#' Reads a comma-separated values (CSV) data file containing genetic marker data.
+#' This function returns an object of the class \code{mappoly2}.
 #'
-#' The CSV file should have rows representing markers, with the first row used
-#' as a header. The first seven columns should contain the marker names, the
-#' dosage in parents 1 and 2, the chromosome information (i.e. chromosome,
-#' scaffold, contig, etc), the position of the marker within the sequence, the
-#' alternate and reference alleles, if available. If not available, the values
-#' should be filled by NA.
+#' The CSV file should have rows representing markers, with the first row being
+#' used as a header. The first seven columns should contain the marker names, the
+#' dosages in parents 1 and 2, chromosome information (i.e., chromosome,
+#' scaffold, contig, etc.), the position of the marker within the sequence, and
+#' the alternate and reference alleles, if available. If not available, the values
+#' should be filled with NA.
 #' The remaining columns should contain the dosage of the full-sib population.
 #' For a tetraploid example of such a file, see the \code{Examples} section.
 #'
-#' @param file.in a character string with the name of (or full path to)
-#' the input file containing the data to be read
+#' @param file.in A character string with the name of (or full path to)
+#' the input file containing the data to be read.
 #'
-#' @param ploidy.p1 ploidy level of parent 1
+#' @param ploidy.p1 Ploidy level of parent 1.
 #'
-#' @param ploidy.p2 ploidy level of parent 1
+#' @param ploidy.p2 Ploidy level of parent 2.
 #'
-#' @param name.p1 name of parent 1
+#' @param name.p1 Name of parent 1.
 #'
-#' @param name.p2 name of parent 2
+#' @param name.p2 Name of parent 2.
 #'
-#' @param filter.non.conforming if \code{TRUE} (default), data points with
-#' unexpected genotypes (i.e. double reduction) are converted to 'NA'.
+#' @param filter.non.conforming If \code{TRUE} (default), data points with
+#' unexpected genotypes (e.g., double reduction) are converted to 'NA'.
 #' See the \code{\link[mappoly]{segreg_poly}} function for information on
 #' expected classes and their respective frequencies.
 #'
-#' @param filter.redundant logical. If \code{TRUE} (default), removes redundant
+#' @param filter.redundant Logical. If \code{TRUE} (default), removes redundant
 #' markers during map construction, keeping them annotated to export to the
 #' final map.
 #'
-#' @param verbose if \code{TRUE} (default), shows the current progress; if
-#' \code{FALSE}, no output is produced
+#' @param verbose If \code{TRUE} (default), shows the current progress; if
+#' \code{FALSE}, no output is produced.
 #'
-#' @param x an object of the class \code{mappoly.sequence}
+#' @param x An object of the class \code{mappoly.sequence}.
 #'
-#' @param thresh.line position of a threshold line for p values of the segregation test (default = \code{0.05/n.mrk})
+#' @param thresh.line Position of a threshold line for p-values of the segregation test (default = \code{0.05/n.mrk}).
 #'
-#' @param ... currently ignored
+#' @param ... Currently ignored.
 #'
-#' @return An object of class \code{mappoly2} which contains a list with
+#' @return An object of the class \code{mappoly2} which contains a list with
 #' the following components:
 #'
-#' \item{ploidy.p1}{ploidy level of the first parent}
-#' \item{ploidy.p2}{ploidy level of the second parent}
-#' \item{n.ind}{number individuals}
-#' \item{n.mrk}{total number of markers}
-#' \item{ind.names}{names or identifiers of the individuals}
-#' \item{mrk.names}{names or identifiers of the genetic markers}
-#' \item{name.p1}{names or identifiers of the first parent}
-#' \item{name.p2}{names or identifiers of the second parent}
-#' \item{dosage.p1}{the dosage for the first parent}
-#' \item{dosage.p2}{the dosage for the second parent}
-#' \item{chrom}{chromosome numbers for all markers}
-#' \item{genome.pos}{physical positions on the genome for the genetic markers}
-#' \item{seq.ref}{the reference DNA sequence data for the genetic markers}
-#' \item{seq.alt}{the alternate DNA sequence data for the genetic markers}
-#' \item{all.mrk.depth}{represents the depth of coverage for all genetic markers.
-#' NULL when using csv input files}
-#' \item{geno.dose}{a matrix containing the dosage for each marker (rows) for
+#' \item{ploidy.p1}{Ploidy level of the first parent.}
+#' \item{ploidy.p2}{Ploidy level of the second parent.}
+#' \item{n.ind}{Number of individuals.}
+#' \item{n.mrk}{Total number of markers.}
+#' \item{ind.names}{Names or identifiers of the individuals.}
+#' \item{mrk.names}{Names or identifiers of the genetic markers.}
+#' \item{name.p1}{Name or identifier of the first parent.}
+#' \item{name.p2}{Name or identifier of the second parent.}
+#' \item{dosage.p1}{The dosage for the first parent.}
+#' \item{dosage.p2}{The dosage for the second parent.}
+#' \item{chrom}{Chromosome numbers for all markers.}
+#' \item{genome.pos}{Physical positions on the genome for the genetic markers.}
+#' \item{seq.ref}{The reference DNA sequence data for the genetic markers.}
+#' \item{seq.alt}{The alternate DNA sequence data for the genetic markers.}
+#' \item{all.mrk.depth}{Represents the depth of coverage for all genetic markers.
+#' NULL when using CSV input files.}
+#' \item{geno.dose}{A matrix containing the dosage for each marker (rows) for
 #' each individual (columns).}
-#' \item{kept}{a list of all non-redundant markers if \code{filter.redundant = TRUE}}
-#' \item{filter.correspondence}{a list of all non-redundant markers and its equivalence
-#' to the redundant ones if \code{filter.redundant = TRUE}}
+#' \item{kept}{A list of all non-redundant markers if \code{filter.redundant = TRUE}.}
+#' \item{filter.correspondence}{A list of all non-redundant markers and their equivalence
+#' to the redundant ones if \code{filter.redundant = TRUE}.}
 #'
 #' @examples
 #' \donttest{
 #' tempfl <- list.files(system.file('extdata', package = 'mappoly2'),
 #'                      full.names = TRUE)
-#' SolCAP.dose <- read_geno_csv(file.in  = tempfl,
-#'                                         ploidy.p1 = 4,
-#'                                         name.p1 = "Atlantic",
-#'                                         name.p2 = "B1829-5")
+#' SolCAP.dose <- read_geno_csv(file.in = tempfl,
+#'                              ploidy.p1 = 4,
+#'                              name.p1 = "Atlantic",
+#'                              name.p2 = "B1829-5")
 #' print(SolCAP.dose, detailed = TRUE)
 #' plot(SolCAP.dose)
-#'}
+#' }
 #' @author Marcelo Mollinari, \email{mmollin@ncsu.edu}
 #' @importFrom grDevices rgb
 #' @importFrom stats na.omit
 #' @importFrom utils read.csv
-#' @export read_geno_csv
+#' @importFrom assertthat is.readable
+#' @export
 read_geno_csv <- function(file.in,
                           ploidy.p1,
                           ploidy.p2 = ploidy.p1,
@@ -90,6 +91,7 @@ read_geno_csv <- function(file.in,
                           filter.non.conforming = TRUE,
                           filter.redundant = TRUE,
                           verbose = TRUE) {
+  assert_that(is.readable(file.in))
   dat <- read.csv(file = file.in,
                   header = TRUE,
                   stringsAsFactors = FALSE)
@@ -220,21 +222,21 @@ table_to_mappoly <- function(dat,
       all.mrk.depth = NULL,
       geno.dose = geno.dose,
       redundant = NULL)),
-    class = c("mappoly2", "data")
+    class = c("mappoly2.data")
   )
 
   # Screening non-conforming markers
   if (filter.non.conforming) {
     if (verbose) cat(" -->  Filtering non-conforming markers.\n     ")
-    res$data <- mappoly2:::filter_non_conforming_classes(res$data)
+    res$data <- filter_non_conforming_classes(res$data)
   }
   # Screening redundant markers
   if(filter.redundant){
     if (verbose) cat(" -->  Filtering markers with redundant information.\n     ")
-    redundant <- mappoly2:::filter_redundant(res)
+    redundant <- filter_redundant(res)
     if(all(is.na(redundant))) res$data$redundant <- NA
     else{
-      res$data <- mappoly2:::subset_data(res$data, select.mrk = setdiff(res$data$mrk.names, redundant$removed))
+      res$data <- subset_data(res$data, select.mrk = setdiff(res$data$mrk.names, redundant$removed))
     }
     res$data$redundant <- redundant
   }
@@ -242,7 +244,7 @@ table_to_mappoly <- function(dat,
                                    id.ind = res$data$ind.names,
                                    miss.mrk = apply(res$data$geno.dose, 1, function(x) sum(is.na(x)))/res$data$n.ind,
                                    miss.ind = apply(res$data$geno.dose, 2, function(x) sum(is.na(x)))/res$data$n.mrk,
-                                   chisq.pval = suppressWarnings(mappoly2:::mappoly_chisq_test(res$data)))
+                                   chisq.pval = suppressWarnings(mappoly_chisq_test(res$data)))
   if(verbose) cat("----------------------------------\n")
   return(res)
 }

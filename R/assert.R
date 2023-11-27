@@ -1,5 +1,5 @@
 is.mappoly2.data <- function (x)
-  inherits(x, "mappoly2.data")
+  inherits(x, c("mappoly2.data"))
 is.mappoly2.map <- function (x)
   inherits(x, "mappoly2.map")
 is.mappoly2.sequence <- function (x)

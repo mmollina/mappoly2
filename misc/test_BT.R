@@ -1,62 +1,203 @@
 rm(list = ls())
 require(mappoly2)
-require(crayon)
-dat <- read_geno_csv(file.in = "~/repos/official_repos/misc/BT.csv",
-                     ploidy.p1 = 6, ploidy.p2 = 6, name.p1 = "Beauregard",
+#### Read ####
+dat <- read_geno_csv(file.in = "misc/BT_trifida.csv",
+                     ploidy.p1 = 6, ploidy.p2 = 6,
+                     name.p1 = "Beauregard",
                      name.p2 = "Tanzania")
-dat <- filter_missing(dat, type = "marker", filter.thres = 0.2, inter = F)
-dat <- filter_missing(dat, type = "individual", filter.thres = 0.2, inter = F)
+dat
+plot(dat)
+dat <- filter_missing(dat,
+                      type = "marker",
+                      filter.thres = 0.25)
+dat <- filter_missing(dat,
+                      type = "individual",
+                      filter.thres = 0.19)
 dat <- filter_individuals(dat)
-s.all <- filter_segregation(dat)
-plot(s.all)
-s9 <- make_sequence(dat, "ch09", info.parent = "p1")
-s9
-tpt9 <- est_pairwise_rf(s9, ncpus = 8)
-m <- rf_list_to_matrix(tpt9,
-                       shared.alleles = TRUE,
-                       thresh.LOD.ph = 3)
-g9 <- get_genome_order(s9)
-s9 <- make_sequence(g9)
-plot(m, ord = s9, fact = 5)
-mrk.id <- s9$mrk.names
-dose.p1 <- s9$data$dosage.p1[mrk.id]
-ploidy.p1 <- s9$data$ploidy.p1
-S.p1 <- m$Sh.p1[mrk.id, mrk.id]
-Ph.p1 <- mappoly2:::twopt_phasing_cpp(mrk.id,ploidy.p1,dose.p1,S.p1, max_conf_number = 1)
-dose.p2 <- s9$data$dosage.p2[mrk.id]
-ploidy.p2 <- s9$data$ploidy.p2
-S.p2 <- m$Sh.p2[mrk.id, mrk.id]
-Ph.p2 <- mappoly2:::twopt_phasing_cpp(mrk.id,ploidy.p2,dose.p2,S.p2, max_conf_number = 2)
-mrks <- intersect(Ph.p1$marker_names, Ph.p2$marker_names)
-for(i in 1:length(Ph.p1$phase_configs))
-  rownames(Ph.p1$phase_configs[[i]]) <- Ph.p1$marker_names
-for(i in 1:length(Ph.p2$phase_configs))
-  rownames(Ph.p2$phase_configs[[i]]) <- Ph.p2$marker_names
-s9 <- make_sequence(dat, "ch09", info.parent = "p1")
-mrks <- mrks[1:40]
-s9 <- make_sequence(s9, mrks)
-cte <- 1
-PH <- MAPs <- vector("list", length(Ph.p1$phase_configs) * length(Ph.p2$phase_configs))
-length(PH)
-for(i in 1:length(Ph.p1$phase_configs)){
-  for(j in 1:length(Ph.p2$phase_configs)){
-    PH[[cte]] <- list(p1 = Ph.p1$phase_configs[[i]][mrks,],
-                      p2 = Ph.p2$phase_configs[[j]][mrks,])
-    MAPs[[cte]] <- hmm_map_reconstruction(s9,
-                                          PH[[cte]],
-                                          verbose = TRUE,
-                                          tol = 10e-4)
-    cte <- cte + 1
-  }
-}
-best <- which.max(sapply(MAPs, function(x) x$loglike))
-plot(cumsum(imf_h(MAPs[[best]]$rec.frac)))
-p1.est <- mappoly::ph_matrix_to_list(PH[[best]]$p1)
-p1.sim <- mappoly::ph_matrix_to_list(ph[[1]]$p1[mrks,])
-mappoly::compare_haplotypes(dat$ploidy.p1, p1.est, p1.sim)
-p2.est <- mappoly::ph_matrix_to_list(PH[[best]]$p2)
-p2.sim <- mappoly::ph_matrix_to_list(ph[[1]]$p2[mrks,])
-mappoly::compare_haplotypes(dat$ploidy.p2, p2.est, p2.sim)
+s <- make_sequence(dat, "all")
+s <- filter_segregation(s, inter = FALSE)
+print(s, detailed = TRUE)
+plot(s)
+#### Two points ####
+s <- pairwise_rf(s, ncpus = 8)
+s
+plot(s, type = "rf", fact = 2)
+
+
+
+#### Select parent 1####
+s.ch1.p1 <- make_sequence(dat, arg = "ch1", info.parent = "p1")
+s.ch1.p1
+tpt1 <- est_pairwise_rf(s.ch1.p1, ncpus = 7)
+# Phasing #
+s.ch1.p1 <- pairwise_phasing(input.seq = s.ch1.p1,
+                             input.twopt = tpt1,
+                             thresh.LOD.ph = 5,
+                             max.conf.btnk.p1 = 10)
+# Mapping #
+s.ch1.p1 <- mapping(input.seq = s.ch1.p1,
+                    verbose = TRUE,
+                    error = 0.00,# error = 0.0
+                    tol = 10e-4)
+plot_map(s.ch1.p1, mrk.names = TRUE)
+s.ch1.p1 <- mapping(input.seq = s.ch1.p1,
+                    verbose = TRUE,
+                    error = 0.05,
+                    tol = 10e-4)
+plot_map(s.ch1.p1, mrk.names = TRUE)
+#### Select parent 2####
+s.ch1.p2 <- make_sequence(dat, arg = "ch1", info.parent = "p2")
+tpt2 <- est_pairwise_rf(s.ch1.p2, ncpus = 7)
+# Phasing #
+s.ch1.p2 <- pairwise_phasing(input.seq = s.ch1.p2,
+                             input.twopt = tpt2,
+                             thresh.LOD.ph = 5,
+                             max.conf.btnk.p2 = 5)
+# Mapping #
+s.ch1.p2 <- mapping(input.seq = s.ch1.p2,
+                    verbose = TRUE,
+                    error = 0.00,# error = 0.0
+                    tol = 10e-4)
+plot_map(s.ch1.p2, mrk.names = TRUE)
+s.ch1.p2 <- mapping(input.seq = s.ch1.p2,
+                    verbose = TRUE,
+                    error = 0.05,
+                    tol = 10e-4)
+plot_map(s.ch1.p2, mrk.names = TRUE)
+#### Merging maps from p1 and p2 ####
+s.ch1.all <- merge_single_parent_maps(input.seq.all = s.ch1.all,
+                                      input.seq.p1 = s.ch1.p1,
+                                      input.seq.p2 = s.ch1.p2,
+                                      input.twopt = tpt.ch1)
+s.ch1.all <- mapping(input.seq = s.ch1.all,
+                     verbose = TRUE,
+                     error = 0.00,
+                     tol = 10e-4)
+plot_map(s.ch1.all, mrk.names = TRUE)
+s.ch1.all <- calc_haplotypes(s.ch1.all)
+s.ch1.all <- augment_phased_map(input.seq = s.ch1.all,
+                                input.twopt = tpt)
+s.ch1.all <- mapping(input.seq = s.ch1.all,
+                     verbose = TRUE,
+                     error = 0.00,
+                     tol = 10e-4)
+plot_map(s.ch1.all)
+s.ch1.all <- calc_haplotypes(s.ch1.all)
+input.mat <- rf_list_to_matrix(tpt.ch1,
+                               thresh.LOD.ph = 5,
+                               thresh.LOD.rf = 5,
+                               thresh.rf = .5,
+                               shared.alleles = TRUE)
+
+
+plot_map(s.ch1.all, mrk.names = T, xlim = c(-10,105))
+
+
+
+
+
+
+#### Two-points ####
+tpt <- est_pairwise_rf(s, ncpus = 7)
+m <- rf_list_to_matrix(tpt)
+plot(m)
+
+#### Grouping ####
+lg <- group(m, expected.groups = 5, comp.mat = TRUE, inter = F)
+
+#### CH1 ####
+s.ch1.all <- make_sequence(lg, 1, genomic.info = 1)
+s.ch1.all
+tpt.ch1 <- est_pairwise_rf(s.ch1.all) ## Will remove
+#### Select parent 1####
+s.ch1.p1 <- make_sequence(s.ch1.all, info.parent = "p1")
+s.ch1.p1
+# Phasing #
+s.ch1.p1 <- pairwise_phasing(input.seq = s.ch1.p1,
+                             input.twopt = tpt,
+                             thresh.LOD.ph = 3,
+                             max.conf.btnk.p1 = 10)
+# Mapping #
+s.ch1.p1 <- mapping(input.seq = s.ch1.p1,
+                    verbose = TRUE,
+                    error = 0.00,# error = 0.0
+                    tol = 10e-4)
+plot_map(s.ch1.p1, mrk.names = TRUE)
+#### Select parent 2####
+s.ch1.p2 <- make_sequence(s.ch1.all, info.parent = "p2")
+s.ch1.p2
+# Phasing #
+s.ch1.p2 <- pairwise_phasing(input.seq = s.ch1.p2,
+                             input.twopt = tpt,
+                             thresh.LOD.ph = 3,
+                             max.conf.btnk.p1 = 10)
+# Mapping #
+s.ch1.p2 <- mapping(input.seq = s.ch1.p2,
+                    verbose = TRUE,
+                    error = 0.00,# error = 0.0
+                    tol = 10e-4)
+plot_map(s.ch1.p2, mrk.names = TRUE)
+#### Merging maps from p1 and p2 ####
+s.ch1.all <- merge_single_parent_maps(input.seq.all = s.ch1.all,
+                                        input.seq.p1 = s.ch1.p1,
+                                        input.seq.p2 = s.ch1.p2,
+                                        input.twopt = tpt.ch1)
+s.ch1.all <- mapping(input.seq = s.ch1.all,
+                       verbose = TRUE,
+                       error = 0.00,
+                       tol = 10e-4)
+plot_map(s.ch1.all, mrk.names = TRUE)
+s.ch1.all <- calc_haplotypes(s.ch1.all)
+s.ch1.all <- augment_phased_map(input.seq = s.ch1.all,
+                                input.twopt = tpt)
+s.ch1.all <- mapping(input.seq = s.ch1.all,
+                     verbose = TRUE,
+                     error = 0.00,
+                     tol = 10e-4)
+plot_map(s.ch1.all)
+s.ch1.all <- calc_haplotypes(s.ch1.all)
+input.mat <- rf_list_to_matrix(tpt.ch1,
+                       thresh.LOD.ph = 5,
+                       thresh.LOD.rf = 5,
+                       thresh.rf = .5,
+                       shared.alleles = TRUE)
+
+
+plot_map(s.ch1.all, mrk.names = T, xlim = c(-10,105))
+
+
+### Begin
+mrk <- "Ch_1_M_1"
+drop.seq <- drop_marker(input.seq = s.ch1.all, mrk, reestimate.map = T)
+plot_map(drop.seq, 0, 10, mrk.names = T, xlim = c(-2, 11), cex = 1.5)
+drop.seq<-calc_haplotypes(drop.seq)
+drop.seq <- add_marker(drop.seq, mrk, thresh.rf.to.add = .1)
+plot_map(drop.seq, 0, 10, mrk.names = T, xlim = c(-2, 11), cex = 1.5)
+drop.seq <- mapping(drop.seq, verbose = T)
+plot_map(drop.seq, 0, 10, mrk.names = T, xlim = c(-2, 11), cex = 1.5)
+
+### Middle
+mrk <- "Ch_1_M_74"
+drop.seq <- drop_marker(input.seq = s.ch1.all, mrk, reestimate.map = T)
+plot_map(drop.seq, 60, 80, mrk.names = T, xlim = c(58, 81), cex = 1.5)
+drop.seq<-calc_haplotypes(drop.seq)
+drop.seq <- add_marker(drop.seq, mrk)
+plot_map(drop.seq, 60, 80, mrk.names = T, xlim = c(58, 81), cex = 1.5)
+drop.seq <- mapping(drop.seq, verbose = T)
+plot_map(drop.seq, 60, 80, mrk.names = T, xlim = c(58, 81), cex = 1.5)
+
+
+#### End
+plot_map(s.ch1.all, 90, 100, mrk.names = T, xlim = c(89, 101), cex = 1.5)
+mrk <- "Ch_1_M_100"
+drop.seq <- drop_marker(input.seq = s.ch1.all, mrk, reestimate.map = T)
+plot_map(drop.seq, 90, 100, mrk.names = T, xlim = c(89, 101), cex = 1.5)
+drop.seq<-calc_haplotypes(drop.seq)
+drop.seq <- add_marker(drop.seq, mrk, thresh.rf.to.add = 0.1, tol = 10e-6)
+plot_map(drop.seq, 90, 100, mrk.names = T, xlim = c(89, 103), cex = 1.5)
+drop.seq <- mapping(drop.seq, verbose = T)
+plot_map(drop.seq, 90, 100, mrk.names = T, xlim = c(89, 101), cex = 1.5)
+
 
 
 

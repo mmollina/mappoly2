@@ -2,9 +2,15 @@ rm(list = ls())
 require(mappoly2)
 source("misc/simulation/simulation_PS.R")
 setwd("misc/simulation/")
-x <- sim_map(ploidy = 4, map.length = 100, n.ind = 200, perc.random.missing = 5,
-              n.mrk = 1000, n.chr = 3, prob.dose = c(0.225,0.225,0.1,0.225,0.225),
-              seed.for.config = 3489, seed.for.pop = 2745)
+x <- sim_map(ploidy = 4,
+             map.length = 100,
+             n.ind = 200,
+             perc.random.missing = 5,
+             n.mrk = 1000,
+             n.chr = 3,
+             prob.dose = c(0.225,0.225,0.1,0.225,0.225),
+             seed.for.config = 3489,
+             seed.for.pop = 2745)
 setwd("~/repos/official_repos/mappoly2/")
 dev.off()
 
