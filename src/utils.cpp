@@ -116,7 +116,7 @@ using namespace Rcpp;
  }
 
  // [[Rcpp::export]]
- List mappoly_chisq_test(List input_data) {
+ NumericVector mappoly_chisq_test(List input_data) {
    int ploidy_p1 = input_data["ploidy.p1"];
    int ploidy_p2 = input_data["ploidy.p2"];
    int n_ind = input_data["n.ind"];
@@ -152,8 +152,8 @@ using namespace Rcpp;
      }
    }
    chisq_p_out.names() = mrk_names;
-   input_data["chisq.pval"] = chisq_p_out;
-   return input_data;
+   //input_data["chisq.pval"] = chisq_p_out;
+   return chisq_p_out;
  }
 
  // [[Rcpp::export]]
