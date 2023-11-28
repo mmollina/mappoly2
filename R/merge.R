@@ -17,9 +17,6 @@
 #' markers during map construction, keeping them annotated to export to the
 #' final map.
 #'
-#' @param verbose if \code{TRUE} (default), shows the current progress; if
-#' \code{FALSE}, no output is produced
-#'
 #' @return The merged and filtered dataset if more than one dataset was provided;
 #'         the original dataset if only one was provided.
 #'
@@ -41,8 +38,7 @@
 #'
 #' @export
 merge_datasets <- function(..., filter.non.conforming = TRUE,
-                                    filter.redundant = TRUE,
-                                    verbose = TRUE){
+                                    filter.redundant = TRUE){
 
   # Put all datasets in a list
   datasets <- list(...)
@@ -56,30 +52,27 @@ merge_datasets <- function(..., filter.non.conforming = TRUE,
   # Check that all datasets are of the correct class
   assert_that(all(sapply(datasets, is.mappoly2.data)))
 
-  if (verbose) cat(" -->  Merging datasets.\n     ")
-
-  # Use Reduce function to iteratively merge all datasets
-  merged_res <- Reduce(function(x, y) merge(x, y), datasets)
-
-  # Computing chi-square p.values
-  res <- suppressWarnings(mappoly_chisq_test(merged_res))
+  # Use Reduce function to interactively merge all datasets
+  res <- Reduce(function(x, y) merge(x, y), datasets)
 
   # Screening non-conforming markers
   if (filter.non.conforming) {
-    if (verbose) cat(" -->  Filtering non-conforming markers.\n     ")
     res <- filter_non_conforming_classes(res)
   }
-  # FIXME
-  class(res) <- class(merged_res)
   # Screening redundant markers
   if(filter.redundant){
-    if (verbose) cat(" -->  Filtering redundant markers.\n     ")
-    s <- make_sequence(res, arg = "all")
-    sf <- filter_redundant(s)
-    res$redundant <- sf$redundant
-    res <- subset_data(res, select.mrk = setdiff(res$mrk.names, sf$redundant$removed))
+    redundant <- filter_redundant(res)
+    if(all(is.na(redundant))) res$redundant <- NA
+    else{
+      res <- subset_data(res, select.mrk = setdiff(res$mrk.names, redundant$removed))
+    }
+    res$redundant <- redundant
   }
-  if(verbose) cat("----------------------------------\n")
+  res$QAQC.values <- .setQAQC(id.mrk = res$mrk.names,
+                              id.ind = res$ind.names,
+                              miss.mrk = apply(res$geno.dose, 1, function(x) sum(is.na(x)))/res$n.ind,
+                              miss.ind = apply(res$geno.dose, 2, function(x) sum(is.na(x)))/res$n.mrk,
+                              chisq.pval = suppressWarnings(mappoly_chisq_test(res)))
   return(res)
 }
 
