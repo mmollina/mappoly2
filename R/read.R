@@ -204,47 +204,46 @@ table_to_mappoly <- function(dat,
 
   geno.dose <- geno.dose[id, , drop = FALSE]
   res <- structure(
-    list(data = list(
-      ploidy.p1 = ploidy.p1,
-      ploidy.p2 = ploidy.p2,
-      n.ind = n.ind,
-      n.mrk = sum(id),
-      ind.names = ind.names,
-      mrk.names = mrk.names[id],
-      name.p1 = name.p1,
-      name.p2 = name.p2,
-      dosage.p1 = dosage.p1[id],
-      dosage.p2 = dosage.p2[id],
-      chrom = chrom[id],
-      genome.pos = genome.pos[id],
-      ref = ref,
-      alt = alt,
-      all.mrk.depth = NULL,
-      geno.dose = geno.dose,
-      redundant = NULL)),
+    list(ploidy.p1 = ploidy.p1,
+         ploidy.p2 = ploidy.p2,
+         n.ind = n.ind,
+         n.mrk = sum(id),
+         ind.names = ind.names,
+         mrk.names = mrk.names[id],
+         name.p1 = name.p1,
+         name.p2 = name.p2,
+         dosage.p1 = dosage.p1[id],
+         dosage.p2 = dosage.p2[id],
+         chrom = chrom[id],
+         genome.pos = genome.pos[id],
+         ref = ref,
+         alt = alt,
+         all.mrk.depth = NULL,
+         geno.dose = geno.dose,
+         redundant = NULL),
     class = c("mappoly2.data")
   )
 
   # Screening non-conforming markers
   if (filter.non.conforming) {
     if (verbose) cat(" -->  Filtering non-conforming markers.\n     ")
-    res$data <- filter_non_conforming_classes(res$data)
+    res <- mappoly2:::filter_non_conforming_classes(res)
   }
   # Screening redundant markers
   if(filter.redundant){
     if (verbose) cat(" -->  Filtering markers with redundant information.\n     ")
     redundant <- filter_redundant(res)
-    if(all(is.na(redundant))) res$data$redundant <- NA
+    if(all(is.na(redundant))) res$redundant <- NA
     else{
-      res$data <- subset_data(res$data, select.mrk = setdiff(res$data$mrk.names, redundant$removed))
+      res <- subset_data(res, select.mrk = setdiff(res$mrk.names, redundant$removed))
     }
-    res$data$redundant <- redundant
+    res$redundant <- redundant
   }
-  res$data$QAQC.values <- .setQAQC(id.mrk = res$data$mrk.names,
-                                   id.ind = res$data$ind.names,
-                                   miss.mrk = apply(res$data$geno.dose, 1, function(x) sum(is.na(x)))/res$data$n.ind,
-                                   miss.ind = apply(res$data$geno.dose, 2, function(x) sum(is.na(x)))/res$data$n.mrk,
-                                   chisq.pval = suppressWarnings(mappoly_chisq_test(res$data)))
+  res$QAQC.values <- .setQAQC(id.mrk = res$mrk.names,
+                              id.ind = res$ind.names,
+                              miss.mrk = apply(res$geno.dose, 1, function(x) sum(is.na(x)))/res$n.ind,
+                              miss.ind = apply(res$geno.dose, 2, function(x) sum(is.na(x)))/res$n.mrk,
+                              chisq.pval = suppressWarnings(mappoly_chisq_test(res)))
   if(verbose) cat("----------------------------------\n")
   return(res)
 }

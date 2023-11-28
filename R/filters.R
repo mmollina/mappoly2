@@ -42,11 +42,11 @@
 #' Filter out markers with redundant information
 filter_redundant <- function(x)
 {
-  id <- duplicated(x$data$geno.dose, dimnames = TRUE)
-  dat.unique <- x$data$geno.dose[!id, ]
-  if(nrow(x$data$geno.dose) == nrow(dat.unique))
+  id <- duplicated(x$geno.dose, dimnames = TRUE)
+  dat.unique <- x$geno.dose[!id, ]
+  if(nrow(x$geno.dose) == nrow(dat.unique))
     return(NA)
-  dat.duplicated <- x$data$geno.dose[id, , drop = FALSE]
+  dat.duplicated <- x$geno.dose[id, , drop = FALSE]
   n1 <- apply(dat.unique, 1, paste, collapse = "")
   n2 <- apply(dat.duplicated, 1, paste, collapse = "")
   return(data.frame(kept = rownames(dat.unique)[match(n2,n1)],
@@ -61,15 +61,14 @@ filter_data <- function(x,
                         chisq.pval.thresh = NULL,
                         read.depth.thresh = c(5,1000),
                         plot.screening = TRUE) {
-  assert_that(inherits(x, "data"))
-  assert_that(all(class(x)%in%c("mappoly2", "data", "screened")))
+  assert_that(inherits(x, "mappoly2.data"))
   op <- par(pty = "s", mfrow = c(2,2), mar = c(4,3,3,2))
   on.exit(par(op))
-  chisq.val <- x$data$QAQC.values$markers$chisq.pval
+  chisq.val <- x$QAQC.values$markers$chisq.pval
   # Set threshold for chi-square p-values using Bonferroni approximation if not specified
   if(is.null(chisq.pval.thresh))
     chisq.pval.thresh <- 0.05/length(chisq.val)
-  id <- mappoly2:::.get_mrk_ind_from_QAQC(x$data$QAQC.values,
+  id <- mappoly2:::.get_mrk_ind_from_QAQC(x$QAQC.values,
                                           miss.mrk.thresh = mrk.thresh,
                                           miss.ind.thresh = ind.thresh,
                                           chisq.pval.thresh = chisq.pval.thresh,
@@ -79,7 +78,7 @@ filter_data <- function(x,
   pal <- c("#56B4E9","#E69F00")
   if (plot.screening) {
     ####Missing markers ####
-    z <- sort(x$data$QAQC.values$markers$miss)
+    z <- sort(x$QAQC.values$markers$miss)
     rg <- range(z)
     if(rg[2] < .1) rg[2] <- .1
     plot(z,
@@ -97,7 +96,7 @@ filter_data <- function(x,
            col = rev(pal),
            pch = c(4, 1))
     ####Missing individuals ####
-    z <- sort(x$data$QAQC.values$individuals$miss)
+    z <- sort(x$QAQC.values$individuals$miss)
     rg <- range(z)
     if(rg[2] < .1) rg[2] <- .1
     plot(z,
@@ -116,7 +115,7 @@ filter_data <- function(x,
            col = rev(pal),
            pch = c(4, 1))
     #### Chi-square test ####
-    w <- log10(sort(x$data$QAQC.values$markers$chisq.pval, decreasing = TRUE))
+    w <- log10(sort(x$QAQC.values$markers$chisq.pval, decreasing = TRUE))
     th <- log10(chisq.pval.thresh)
     plot(w,
          xlab = "markers",
@@ -129,8 +128,8 @@ filter_data <- function(x,
     i <- paste0("Included: ", sum(w >= th))
     legend("bottomleft",  c(f, i) , col = rev(pal), pch = c(4,1))
     #### Read Depth ####
-    if(all(!is.na(x$data$QAQC.values$markers$read.depth))){
-      hist_info <- hist(x$data$QAQC.values$markers$read.depth,
+    if(all(!is.na(x$QAQC.values$markers$read.depth))){
+      hist_info <- hist(x$QAQC.values$markers$read.depth,
                         main = "Read depth", xlab = "number of reads", col = pal[1])
       lower_tail <- read.depth.thresh[1]
       upper_tail <- read.depth.thresh[2]
@@ -184,40 +183,39 @@ filter_individuals <- function(x,
                                ind.to.remove = NULL,
                                inter = TRUE,
                                verbose = TRUE){
-  assert_that(inherits(x, "data"))
-  assert_that(all(class(x)%in%c("mappoly2", "data", "screened")))
-  if(x$data$ploidy.p1 != x$data$ploidy.p2)
+  assert_that(mappoly2:::is.mappoly2.data(x))
+  if(x$ploidy.p1 != x$ploidy.p2)
     stop("'filter_individuals' cannot be executed\n  on progenies with odd ploidy levels.")
   op <- par(pty="s")
   on.exit(par(op))
-  D <- t(x$data$geno.dose)
-  if(inherits(x, "screened")){
+  D <- t(x$geno.dose)
+  if(is.mappol2.screened(x)){
     D <- D[x$screened.data$ind.names, x$screened.data$mrk.names]
-    D <- rbind(x$data$dosage.p1[x$screened.data$mrk.names],
-               x$data$dosage.p2[x$screened.data$mrk.names],
+    D <- rbind(x$dosage.p1[x$screened.data$mrk.names],
+               x$dosage.p2[x$screened.data$mrk.names],
                D)
   } else {
-    D <- rbind(x$data$dosage.p1,
-               x$data$dosage.p2,
+    D <- rbind(x$dosage.p1,
+               x$dosage.p2,
                D)
   }
-  rownames(D)[1:2] <- c(x$data$name.p1, x$data$name.p2)
-  G  <- AGHmatrix::Gmatrix(D, method = "VanRaden",ploidy = x$data$ploidy.p1/2 + x$data$ploidy.p2/2)
+  rownames(D)[1:2] <- c(x$name.p1, x$name.p2)
+  G  <- AGHmatrix::Gmatrix(D, method = "VanRaden",ploidy = x$ploidy.p1/2 + x$ploidy.p2/2)
   y1 <- G[1,]
   y2 <- G[2,]
   df <- data.frame(x = y1, y = y2, type = c(2, 2, rep(4, length(y1)-2)))
   plot(df[,1:2], col = df$type, pch = 19,
-       xlab = paste0("relationships between the offspring and ",x$data$name.p1),
-       ylab = paste0("relationships between the offspring and ",x$data$name.p2))
+       xlab = paste0("relationships between the offspring and ",x$name.p1),
+       ylab = paste0("relationships between the offspring and ",x$name.p2))
   abline(c(0,1), lty = 2)
   abline(c(-0.4,1), lty = 2, col = "gray")
   abline(c(0.4,1), lty = 2, col = "gray")
   legend("topright",  c("Parents", "Offspring") , col = c(2,4), pch = 19)
   if(!is.null(ind.to.remove)){
-    full.sib <- !x$data$ind.names%in%ind.to.remove
-    x$data$QAQC.values$individuals[,"full.sib"] <- !rownames(x$data$QAQC.values$individuals)%in%ind.to.remove
+    full.sib <- !x$ind.names%in%ind.to.remove
+    x$QAQC.values$individuals[,"full.sib"] <- !rownames(x$QAQC.values$individuals)%in%ind.to.remove
     if(inherits(x, "screened")){
-      id <- mappoly2:::.get_mrk_ind_from_QAQC(x$data$QAQC.values,
+      id <- mappoly2:::.get_mrk_ind_from_QAQC(x$QAQC.values,
                                               miss.mrk.thresh = x$screened.data$thresholds$miss.mrk,
                                               miss.ind.thresh = x$screened.data$thresholds$miss.ind,
                                               chisq.pval.thresh = x$screened.data$thresholds$chisq.pval,
@@ -243,10 +241,10 @@ filter_individuals <- function(x,
         warning("No individuals removed. Returning original data set.")
         return(x)
       }
-      full.sib <- !x$data$ind.names%in%ind.to.remove
-      x$data$QAQC.values$individuals[,"full.sib"] <- !rownames(x$data$QAQC.values$individuals)%in%ind.to.remove
+      full.sib <- !x$ind.names%in%ind.to.remove
+      x$QAQC.values$individuals[,"full.sib"] <- !rownames(x$QAQC.values$individuals)%in%ind.to.remove
       if(inherits(x, "screened")){
-        id <- mappoly2:::.get_mrk_ind_from_QAQC(x$data$QAQC.values,
+        id <- mappoly2:::.get_mrk_ind_from_QAQC(x$QAQC.values,
                                                 miss.mrk.thresh = x$screened.data$thresholds$miss.mrk,
                                                 miss.ind.thresh = x$screened.data$thresholds$miss.ind,
                                                 chisq.pval.thresh = x$screened.data$thresholds$chisq.pval,

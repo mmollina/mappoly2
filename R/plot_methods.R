@@ -1,105 +1,36 @@
 #' @export
 #' @importFrom graphics barplot layout mtext image legend
 #' @importFrom grDevices colorRampPalette
-plot.mappoly2 <- function(x,
-                          what = c("raw",
-                                   "screened",
-                                   "initiated",
-                                   "pairwise",
-                                   "pairwise_mds",
-                                   "pairwise_genome",
-                                   "group"),
-                          type = c("rf", "lod"),
-                          ord = NULL,
-                          rem = NULL,
-                          main.text = NULL,
-                          index = FALSE,
-                          fact = 1, ...)
+plot.mappoly2.data<-function(x, type = c("screened", "raw"))
 {
-  oldpar <- par()
-  on.exit(par(oldpar))
-  what <- match.arg(what)
-  if (what == "raw"){
-    assert_that(inherits(x, "data"))
-    plot_data(x, text = "Raw data", col = "darkred")
-  }
-  else if(what == "screened"){
-    assert_that(inherits(x, "screened"))
-      plot_data(x,
-                text = "All data - screened",
-                col =  "#07607e",
-                mrk.id = x$screened.data$mrk.names,
-                ind.id = x$screened.data$ind.names)
-  }
-  else if(what == "initiated"){
-    assert_that(inherits(x, "initiated"))
-    plot_data(x,
-              text = "Initial sequence - screened",
-              col =  "#07607e",
-              mrk.id = x$initial.sequence,
+  opar <- par(no.readonly = TRUE)
+  on.exit(par(opar))
+  type <- match.arg(type)
+  if(is.mappol2.screened(x) & type == "screened")
+    plot_data(x, text = "Screened data", col = "darkblue",
+              mrk.id = x$screened.data$mrk.names,
               ind.id = x$screened.data$ind.names)
-  }
-  else if(what == "pairwise"){
-    assert_that(inherits(x, "pairwise"))
-    plot_rf_matrix(x$pairwise,
-                   type = type,
-                   ord = ord,
-                   rem = rem,
-                   main.text = main.text,
-                   index = index,
-                   fact = fact)
-  } else if(what == "group"){
-    plot_group(x$linkage.groups)
-  } else if(what == "pairwise_mds"){
-    assert_that(inherits(x, "pairwise"))
-    idx <- sapply(x$working.sequences, function(x) !is.null(x$order$mds))
-    assert_that(any(idx))
-    if(sum(idx) == 2)
-      op <- par(mfrow = c(1, 2), pty = "s")
-    else
-      op <- par(mfrow = c(ceiling(sqrt(sum(idx))),
-                          ceiling(sqrt(sum(idx)))),
-                pty = "s")
-    on.exit(par(op))
-    for(i in which(idx))
-      mappoly2:::plot_rf_matrix(x$pairwise,
-                     type = type,
-                     ord = x$working.sequences[[i]]$order$mds$info$locimap$locus,
-                     main.text = paste0(names(x$working.sequences)[i], "-MDS"),
-                     fact = fact)
-  } else if(what == "pairwise_genome"){
-    assert_that(inherits(x, "pairwise"))
-    idx <- sapply(x$working.sequences, function(x) !is.null(x$order$genome))
-    assert_that(any(idx))
-    if(sum(idx) == 2)
-      op <- par(mfrow = c(1, 2), pty = "s")
-    else
-      op <- par(mfrow = c(ceiling(sqrt(sum(idx))),
-                          ceiling(sqrt(sum(idx)))),
-                pty = "s")
-    for(i in which(idx))
-      mappoly2:::plot_rf_matrix(x$pairwise,
-                                type = type,
-                                ord = rownames(x$working.sequences[[i]]$order$genome$info),
-                                main.text = paste0(names(x$working.sequences)[i], "-genome"),
-                                fact = fact)
-  }
+  else
+    plot_data(x, text = "Raw data", col = "darkred")
 }
+
+
+
 
 
 plot_data <- function(x, text, col, mrk.id = NULL, ind.id = NULL, ...){
   oldpar <- par(mar = c(5,4,1,2))
   on.exit(par(oldpar))
   if(is.null(mrk.id))
-    mrk.id <- x$data$mrk.names
+    mrk.id <- x$mrk.names
   if(is.null(ind.id))
-    ind.id <- x$data$ind.names
-  freq <- table(paste(x$data$dosage.p1[mrk.id],
-                      x$data$dosage.p2[mrk.id],
+    ind.id <- x$ind.names
+  freq <- table(paste(x$dosage.p1[mrk.id],
+                      x$dosage.p2[mrk.id],
                       sep = "-"))
   d.temp <- matrix(unlist(strsplit(names(freq), "-")), ncol = 2, byrow = TRUE)
   type <- apply(d.temp, 1, function(x,ploidy.p1, ploidy.p2) paste0(sort(abs(abs(as.numeric(x)-(ploidy.p1/2))-(ploidy.p2/2))), collapse = ""),
-                ploidy.p1 = x$data$ploidy.p1, ploidy.p2 = x$data$ploidy.p2)
+                ploidy.p1 = x$ploidy.p1, ploidy.p2 = x$ploidy.p2)
   type.names <- names(table(type))
   mrk.dist <- as.numeric(freq)
   names(mrk.dist) <- apply(d.temp, 1 , paste, collapse = "-")
@@ -107,8 +38,8 @@ plot_data <- function(x, text, col, mrk.id = NULL, ind.id = NULL, ...){
   barplot(mrk.dist, las = 2,
           xlab = "Number of markers",
           ylab = "Dosage combination", horiz = TRUE)
-  pval <- x$data$QAQC.values$markers[,"chisq.pval"]
-  names(pval) <- rownames(x$data$QAQC.values$markers)
+  pval <- x$QAQC.values$markers[,"chisq.pval"]
+  names(pval) <- rownames(x$QAQC.values$markers)
   if(is.null(pval))
   {
     plot(0, 0, axes = FALSE, xlab = "", ylab = "", type = "n")
@@ -125,9 +56,9 @@ plot_data <- function(x, text, col, mrk.id = NULL, ind.id = NULL, ...){
   par(mar = c(5,1,0,2))
   pal <- c("black", colorRampPalette(c("#D73027", "#F46D43", "#FDAE61", "#FEE090",
                                        "#FFFFBF", "#E0F3F8", "#ABD9E9", "#74ADD1",
-                                       "#4575B4"))(x$data$ploidy.p1/2 + x$data$ploidy.p2/2 + 1))
-  names(pal) <- c(-1:(x$data$ploidy.p1/2 + x$data$ploidy.p2/2))
-  M <- as.matrix(x$data$geno.dose[mrk.id,ind.id])
+                                       "#4575B4"))(x$ploidy.p1/2 + x$ploidy.p2/2 + 1))
+  names(pal) <- c(-1:(x$ploidy.p1/2 + x$ploidy.p2/2))
+  M <- as.matrix(x$geno.dose[mrk.id,ind.id])
   M[is.na(M)] <- -1
   image(x = 1:nrow(M), z = M, axes = FALSE, xlab = "",
         col = pal[as.character(sort(unique(as.vector(M))))], useRaster = TRUE)
@@ -138,14 +69,14 @@ plot_data <- function(x, text, col, mrk.id = NULL, ind.id = NULL, ...){
   plot(0:10,0:10, type = "n", axes = FALSE, xlab = "", ylab = "")
   legend(0,10,
          horiz = FALSE,
-         legend = c("missing", 0:(x$data$ploidy.p1/2 + x$data$ploidy.p2/2)),
+         legend = c("missing", 0:(x$ploidy.p1/2 + x$ploidy.p2/2)),
          pch = 22,
          pt.cex = 3,
          pt.bg = pal, pt.lwd = 0,
          bty = "n", xpd = TRUE)
-  if(!is.null(x$data$redundant)){
+  if(!is.null(x$redundant)){
     par(mar = c(5,0,2,2))
-    red = round(100*nrow(x$data$redundant)/(length(x$data$mrk.names) + nrow(x$data$redundant)),1)
+    red = round(100*nrow(x$redundant)/(length(x$mrk.names) + nrow(x$redundant)),1)
     if(length(red) == 0){
       plot(x = 0, y = 0, type = "n", axes = F, xlab = "", ylab = "")
       text(x = 0, y = 0, "No redundant markers", srt=90)
