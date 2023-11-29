@@ -229,7 +229,7 @@ BEGIN_RCPP
 END_RCPP
 }
 // mappoly_chisq_test
-List mappoly_chisq_test(List input_data);
+NumericVector mappoly_chisq_test(List input_data);
 RcppExport SEXP _mappoly2_mappoly_chisq_test(SEXP input_dataSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
@@ -251,8 +251,6 @@ BEGIN_RCPP
 END_RCPP
 }
 
-RcppExport SEXP pairwise_rf_estimation(void *, void *, void *, void *, void *, void *, void *, void *, void *);
-
 static const R_CallMethodDef CallEntries[] = {
     {"_mappoly2_calc_haploprob_biallelic", (DL_FUNC) &_mappoly2_calc_haploprob_biallelic, 5},
     {"_mappoly2_calc_haploprob_biallelic_single", (DL_FUNC) &_mappoly2_calc_haploprob_biallelic_single, 4},
@@ -269,7 +267,6 @@ static const R_CallMethodDef CallEntries[] = {
     {"_mappoly2_segreg_poly", (DL_FUNC) &_mappoly2_segreg_poly, 4},
     {"_mappoly2_mappoly_chisq_test", (DL_FUNC) &_mappoly2_mappoly_chisq_test, 1},
     {"_mappoly2_filter_non_conforming_classes", (DL_FUNC) &_mappoly2_filter_non_conforming_classes, 1},
-    {"pairwise_rf_estimation", (DL_FUNC) &pairwise_rf_estimation, 9},
     {NULL, NULL, 0}
 };
 

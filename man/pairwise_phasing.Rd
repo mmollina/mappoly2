@@ -6,7 +6,6 @@
 \usage{
 pairwise_phasing(
   input.seq,
-  input.twopt,
   thresh.LOD.ph = 3,
   thresh.LOD.rf = 3,
   thresh.rf = 0.5,

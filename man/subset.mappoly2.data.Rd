@@ -11,7 +11,9 @@
   n = NULL,
   select.mrk = NULL,
   select.ind = NULL,
-  seed = NULL
+  seed = NULL,
+  filter.non.conforming = TRUE,
+  filter.redundant = TRUE
 )
 }
 \arguments{
@@ -20,6 +22,18 @@
 \item{type}{A character string, either "marker" or "individual", indicating whether markers or individuals should be subset.}
 
 \item{n}{An integer specifying the number of individuals or markers to be sampled. If NULL, \code{percentage} must be specified.}
+
+\item{seed}{a single value, interpreted as an integer, or \code{NULL}.
+See the \code{\link[base]{set.seed}} function for information.}
+
+\item{filter.non.conforming}{If \code{TRUE} (default), data points with
+unexpected genotypes (e.g., double reduction) are converted to 'NA'.
+See the \code{\link[mappoly]{segreg_poly}} function for information on
+expected classes and their respective frequencies.}
+
+\item{filter.redundant}{Logical. If \code{TRUE} (default), removes redundant
+markers during map construction, keeping them annotated to export to the
+final map.}
 
 \item{percentage}{A numeric value between 0 and 1 indicating the proportion of individuals or markers to be sampled.
 This parameter is considered only if \code{n} is set to NULL.}

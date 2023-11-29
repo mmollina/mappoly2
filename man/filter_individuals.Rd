@@ -5,14 +5,15 @@
 \title{Filter out individuals}
 \usage{
 filter_individuals(
-  input.data,
+  x,
   ind.to.remove = NULL,
   inter = TRUE,
+  type = c("Gmat", "PCA"),
   verbose = TRUE
 )
 }
 \arguments{
-\item{input.data}{The name of the input object (class \code{mappoly.data}).}
+\item{x}{The name of the input object (class \code{mappoly.data}).}
 
 \item{ind.to.remove}{A character vector containing the names of the individuals
 to be removed. If \code{NULL}, the function opens an interactive graphic to
@@ -20,6 +21,11 @@ allow for individual selection.}
 
 \item{inter}{If \code{TRUE}, the function expects user input to proceed with
 filtering.}
+
+\item{type}{A character string specifying the procedure to be used for
+detecting outlier offspring. Options include "Gmat", which
+utilizes the genomic kinship matrix, and "PCA", which employs
+principal component analysis on the dosage matrix.}
 
 \item{verbose}{If \code{TRUE} (default), the function shows the list of filtered
 out individuals.}

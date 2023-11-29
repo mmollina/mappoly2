@@ -1,7 +1,13 @@
 is.mappoly2.data <- function (x)
   inherits(x, c("mappoly2.data"))
-is.mappol2.screened <- function(x)
+is.mappol2.screened <- function(x){
+  inherits(x, c("mappoly2.data"))
   "screened.data"%in%names(x)
+}
+has.chromosome.info <- function(x){
+  assert_that(is.mappoly2.data(x))
+  !all(is.na(x$chrom)) & !is.null(x$chrom)
+}
 is.mappoly2.map <- function (x)
   inherits(x, "mappoly2.map")
 is.mappoly2.sequence <- function (x)
@@ -29,9 +35,7 @@ is.phased.sequence <- function(x){
   is.mappoly2.sequence(x) &&
   !is.null(x$phases[[1]]$p1) && !is.null(x$phases[[1]]$p2)
 }
-has.chromosome.info <- function(x){
-  !all(is.na(x$data$chrom)) & !is.null(x$data$chrom)
-}
+
 is.grouped.sequence <- function(x){
   is.mappoly2.sequence(x) &&
     !is.null(x$linkage.groups)

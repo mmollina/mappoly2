@@ -4,19 +4,12 @@
 #' @author Marcelo Mollinari, \email{mmollin@ncsu.edu}
 #' @export
 pairwise_phasing <- function(input.seq,
-                             input.twopt,
                              thresh.LOD.ph = 3,
                              thresh.LOD.rf = 3,
                              thresh.rf = 0.5,
                              max.conf.btnk.p1 = 1,
                              max.conf.btnk.p2 = max.conf.btnk.p1,
                              verbose = TRUE){
-  m <- rf_list_to_matrix(input.twopt,
-                         thresh.LOD.ph = thresh.LOD.ph,
-                         thresh.LOD.rf = thresh.LOD.rf,
-                         thresh.rf = thresh.rf,
-                         shared.alleles = TRUE,
-                         verbose = FALSE)
   mrk.id <- input.seq$mrk.names
   {
     if(verbose)
@@ -24,7 +17,7 @@ pairwise_phasing <- function(input.seq,
     Ph.p1 <- mappoly2:::twopt_phasing_cpp(mrk_id = mrk.id,
                                           ploidy = input.seq$data$ploidy.p1,
                                           dose_vec = input.seq$data$dosage.p1,
-                                          S = m$Sh.p1[mrk.id, mrk.id],
+                                          S = input.seq$pairwise$Sh.p1[mrk.id, mrk.id],
                                           max_conf_number = max.conf.btnk.p1,
                                           verbose = verbose)
     for(i in 1:length(Ph.p1$phase_configs))

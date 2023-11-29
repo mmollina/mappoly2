@@ -173,19 +173,26 @@ filter_data <- function(x,
 #' @param inter If \code{TRUE}, the function expects user input to proceed with
 #' filtering.
 #'
+#' @param type A character string specifying the procedure to be used for
+#'             detecting outlier offspring. Options include "Gmat", which
+#'             utilizes the genomic kinship matrix, and "PCA", which employs
+#'             principal component analysis on the dosage matrix.
+#'
 #' @param verbose If \code{TRUE} (default), the function shows the list of filtered
 #'  out individuals.
 #'
 #' @author Marcelo Mollinari, \email{mmollin@ncsu.edu}
-#'
+#' @importFrom stats prcomp
 #' @export
 filter_individuals <- function(x,
                                ind.to.remove = NULL,
                                inter = TRUE,
+                               type = c("Gmat", "PCA"),
                                verbose = TRUE){
   assert_that(mappoly2:::is.mappoly2.data(x))
   if(x$ploidy.p1 != x$ploidy.p2)
     stop("'filter_individuals' cannot be executed\n  on progenies with odd ploidy levels.")
+  type <- match.arg(type)
   op <- par(pty="s")
   on.exit(par(op))
   D <- t(x$geno.dose)
@@ -200,17 +207,37 @@ filter_individuals <- function(x,
                D)
   }
   rownames(D)[1:2] <- c(x$name.p1, x$name.p2)
-  G  <- AGHmatrix::Gmatrix(D, method = "VanRaden",ploidy = x$ploidy.p1/2 + x$ploidy.p2/2)
-  y1 <- G[1,]
-  y2 <- G[2,]
-  df <- data.frame(x = y1, y = y2, type = c(2, 2, rep(4, length(y1)-2)))
-  plot(df[,1:2], col = df$type, pch = 19,
-       xlab = paste0("relationships between the offspring and ",x$name.p1),
-       ylab = paste0("relationships between the offspring and ",x$name.p2))
-  abline(c(0,1), lty = 2)
-  abline(c(-0.4,1), lty = 2, col = "gray")
-  abline(c(0.4,1), lty = 2, col = "gray")
-  legend("topright",  c("Parents", "Offspring") , col = c(2,4), pch = 19)
+  if(type == "Gmat"){
+    G  <- AGHmatrix::Gmatrix(D, method = "VanRaden",ploidy = x$ploidy.p1/2 + x$ploidy.p2/2)
+    y1 <- G[1,]
+    y2 <- G[2,]
+    df <- data.frame(x = y1, y = y2, type = c(2, 2, rep(4, length(y1)-2)))
+    plot(df[,1:2], col = df$type, pch = 19,
+         xlab = paste0("relationships between the offspring and ",x$name.p1),
+         ylab = paste0("relationships between the offspring and ",x$name.p2))
+    abline(c(0,1), lty = 2)
+    abline(c(-0.4,1), lty = 2, col = "gray")
+    abline(c(0.4,1), lty = 2, col = "gray")
+    legend("topright",  c("Parents", "Offspring") , col = c(2,4), pch = 19)
+  }
+  else{
+    row_means <- rowMeans(D, na.rm = TRUE)
+    for (i in 1:nrow(D))
+      D[i, is.na(D[i, ])] <- row_means[i]
+    pc <- prcomp(D)
+    x <- pc$x[,"PC1"]
+    y <- pc$x[,"PC2"]
+    a <- diff(range(x))*0.05
+    b <- diff(range(y))*0.05
+    df <- data.frame(x = x, y = y, type = c(2, 2, rep(4, length(x)-2)))
+    plot(df[,1:2], col = df$type, pch = 19,
+         xlab = "PC1",
+         ylab = "PC2",
+         xlim = c(min(x)-a, max(x)+a),
+         ylim = c(min(y)-b, max(y)+b))
+    points(df[1:2,1:2], col = 2, pch = 19)
+    legend("bottomleft",  c("Parents", "Offspring") , col = c(2,4), pch = 19)
+  }
   if(!is.null(ind.to.remove)){
     full.sib <- !x$ind.names%in%ind.to.remove
     x$QAQC.values$individuals[,"full.sib"] <- !rownames(x$QAQC.values$individuals)%in%ind.to.remove
@@ -239,6 +266,7 @@ filter_individuals <- function(x,
       }
       if(length(ind.to.remove) == 0){
         warning("No individuals removed. Returning original data set.")
+        par(pty="m")
         return(x)
       }
       full.sib <- !x$ind.names%in%ind.to.remove
@@ -251,6 +279,7 @@ filter_individuals <- function(x,
                                                 read.depth.thresh = x$screened.data$thresholds$read.depth)
       }
       x$screened.data <- id
+      par(pty="m")
       return(x)
     } else{
       warning("No individuals removed. Returning original data set.")

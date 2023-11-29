@@ -4,12 +4,7 @@
 \alias{merge_datasets}
 \title{Merge Multiple Genomic Datasets}
 \usage{
-merge_datasets(
-  ...,
-  filter.non.conforming = TRUE,
-  filter.redundant = TRUE,
-  verbose = TRUE
-)
+merge_datasets(..., filter.non.conforming = TRUE, filter.redundant = TRUE)
 }
 \arguments{
 \item{...}{Comma-separated list of datasets of class 'mappoly2.data'.}
@@ -22,9 +17,6 @@ expected classes and their respective frequencies.}
 \item{filter.redundant}{logical. If \code{TRUE} (default), removes redundant
 markers during map construction, keeping them annotated to export to the
 final map.}
-
-\item{verbose}{if \code{TRUE} (default), shows the current progress; if
-\code{FALSE}, no output is produced}
 }
 \value{
 The merged and filtered dataset if more than one dataset was provided;

@@ -1,6 +1,21 @@
 get_seq_indices <- function(input.seq){
   match(input.seq$mrk.names, input.seq$data$mrk.names)
 }
+
+get_QAQCmrk_indices <- function(x){
+  match(x$screened.data$mrk.names, x$mrk.names)
+}
+
+get_mrk_indices_from_chrom <- function(x, chrom){
+  assert_that(mappoly2:::has.chromosome.info(x))
+  ch.n.arg <- mappoly2:::embedded_to_numeric(chrom)
+  assert_that(!any(is.na(ch.n.arg)), msg = "provide a valid chromosome identifier")
+  ch.n.dat <- mappoly2:::embedded_to_numeric(x$chrom)
+  ch.id <- intersect(which(ch.n.dat%in%ch.n.arg), mappoly2:::get_QAQCmrk_indices(x))
+  ch.id
+}
+
+
 embedded_to_numeric <- function(x) {
   as.integer(gsub("[^0-9]", "", x))
 }
