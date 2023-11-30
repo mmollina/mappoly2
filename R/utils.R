@@ -20,6 +20,36 @@ embedded_to_numeric <- function(x) {
   as.integer(gsub("[^0-9]", "", x))
 }
 
+#' Msg function
+#'
+#' @param void internal function to be documented
+#' @keywords internal
+#' @importFrom cli rule
+#' @importFrom magrittr %>%
+msg <- function(text, line = 1, col = "-"){
+  cli::rule(line = line, left = text) %>%
+    text_col(col = col) %>%
+    message()
+}
+
+#' @importFrom rstudioapi isAvailable hasFun getThemeInfo
+#' @importFrom crayon white black
+text_col <- function(x, col = c("-","red", "blue")) {
+  col <- match.arg(col)
+  if(col == "red") return(crayon::red(x))
+  else if(col == "blue") return(crayon::blue(x))
+  # If RStudio not available, messages already printed in black
+  if (!rstudioapi::isAvailable()) {
+    return(x)
+  }
+  if (!rstudioapi::hasFun("getThemeInfo")) {
+    return(x)
+  }
+  theme <- rstudioapi::getThemeInfo()
+  if (isTRUE(theme$dark)) crayon::white(x) else crayon::black(x)
+}
+
+
 #' Detects which parent is informative
 #'
 #' @param x an object of class \code{mappoly2.sequence}

@@ -45,7 +45,7 @@ pairwise_rf <- function(input.data,
                         verbose = TRUE,
                         tol = .Machine$double.eps^0.25)
 {
-  assert_that(mappoly2:::is.mappol2.screened(input.data),
+  assert_that(mappoly2:::has.mappoly2.screened(input.data),
               msg = "The input data is not screened")
   mrk.scope <- match.arg(mrk.scope)
 
@@ -56,7 +56,8 @@ pairwise_rf <- function(input.data,
                                                    ncpus,
                                                    mrk.pairs,
                                                    input.data$mrk.names[seq.num],
-                                                   tol)
+                                                   tol,
+                                                   mrk.scope)
     return(input.data)
   } else if (mrk.scope == "per.chrom") {
     ch <- unique(input.data$chrom)
@@ -82,7 +83,8 @@ pairwise_rf <- function(input.data,
                                    lod.mat = lod.mat,
                                    lod.ph.mat = lod.ph.mat,
                                    Sh.p1 = Sh.p1,
-                                   Sh.p2 = Sh.p2)
+                                   Sh.p2 = Sh.p2,
+                                   mrk.scope = mrk.scope)
 
     return(input.data)
   } else {
@@ -93,7 +95,8 @@ pairwise_rf <- function(input.data,
                                                    ncpus,
                                                    mrk.pairs,
                                                    input.data$mrk.names[seq.num],
-                                                   tol)
+                                                   tol,
+                                                   mrk.scope)
     return(input.data)
   }
 }
@@ -109,7 +112,8 @@ pairwise_rf_full_mat <- function(input.data,
                                  ncpus = 1L,
                                  mrk.pairs,
                                  seq.mrk.names,
-                                 tol = .Machine$double.eps^0.25)
+                                 tol = .Machine$double.eps^0.25,
+                                 mrk.scope = NULL)
 {
   mrk.pairs <- mrk.pairs - 1
   count.cache <- mappoly2:::full_counts[[paste(sort(unlist(input.data[1:2])), collapse = "x")]]
@@ -166,7 +170,8 @@ pairwise_rf_full_mat <- function(input.data,
                      lod.mat = abs(LOD_rf),
                      lod.ph.mat = abs(LOD_ph),
                      Sh.p1 = Sh_P1,
-                     Sh.p2 = Sh_P2)
+                     Sh.p2 = Sh_P2,
+                     mrk.scope = mrk.scope)
   return(pairwise.rf)
 }
 

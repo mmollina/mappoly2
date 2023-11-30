@@ -1,12 +1,15 @@
 #' @export
 #' @importFrom graphics barplot layout mtext image legend
 #' @importFrom grDevices colorRampPalette
-plot.mappoly2.data<-function(x, type = c("screened", "raw"))
+plot.mappoly2.input<-function(x, type = c("rf", "screened", "raw"))
 {
   opar <- par(no.readonly = TRUE)
   on.exit(par(opar))
   type <- match.arg(type)
-  if(is.mappol2.screened(x) & type == "screened")
+  if(mappoly2:::has.mappoly2.rf(x) & type == "rf"){
+    plot_rf_matrix(x$pairwise.rf,
+                   fact = ceiling(ncol(x$pairwise.rf$rec.mat)/1000))
+  } else if(has.mappoly2.screened(x) & type == "screened")
     plot_data(x, text = "Screened data", col = "darkblue",
               mrk.id = x$screened.data$mrk.names,
               ind.id = x$screened.data$ind.names)
@@ -14,11 +17,11 @@ plot.mappoly2.data<-function(x, type = c("screened", "raw"))
     plot_data(x, text = "Raw data", col = "darkred")
 }
 
-
-
-
-
-plot_data <- function(x, text, col, mrk.id = NULL, ind.id = NULL, ...){
+plot_data <- function(x,
+                      text,
+                      col,
+                      mrk.id = NULL,
+                      ind.id = NULL, ...){
   oldpar <- par(mar = c(5,4,1,2))
   on.exit(par(oldpar))
   if(is.null(mrk.id))
@@ -93,17 +96,15 @@ plot_data <- function(x, text, col, mrk.id = NULL, ind.id = NULL, ...){
   }
   par(mfrow = c(1,1))
 }
-plot_rf_matrix <- function(x, type = c("rf", "lod"), ord = NULL, rem = NULL,
-                           main.text = NULL, index = FALSE, fact = 1, ...){
+
+plot_rf_matrix <- function(x,
+                           type = c("rf", "lod"),
+                           ord = NULL,
+                           rem = NULL,
+                           main.text = NULL,
+                           index = FALSE,
+                           fact = 1, ...){
   type <- match.arg(type)
-  #if(ncol(x$rec.mat) > 1000)
-  #  fact = 3
-  #if(ncol(x$rec.mat) > 5000)
-  #  fact = 5
-  #if(ncol(x$rec.mat) > 10000)
-  #  fact = 10
-  if(is.mappoly2.sequence(ord))
-    ord <- ord$mrk.names
   if(type  ==  "rf"){
     w <- x$rec.mat
     if(!is.null(ord))

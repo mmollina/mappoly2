@@ -4,7 +4,7 @@ setwd("~/repos/official_repos/mappoly2/")
 source("misc/simulation.R")
 ploidy.p1 = 4
 ploidy.p2 = 4
-n.mrk <- 300
+n.mrk <- 550
 map.length = 100
 ph<-test_simulate(ploidy.p1 = ploidy.p1,
                   ploidy.p2 = ploidy.p2,
@@ -13,7 +13,7 @@ ph<-test_simulate(ploidy.p1 = ploidy.p1,
                   n.ind = 300,
                   map.length = map.length,
                   miss.perc = 5,
-                  n.chrom = 3,
+                  n.chrom = 10,
                   random = FALSE,
                   seed = 2986)
 ####Reading Data####
@@ -50,11 +50,17 @@ dat
 
 #### Pairwise rf ####
 system.time(dat <- pairwise_rf(dat, mrk.scope = "all", ncpus = 8))
-heatmap(dat$pairwise.rf$rec.mat, Rowv = NA, Colv = NA)
+dat
+print(dat, detailed = TRUE)
+plot(dat)
 system.time(dat <- pairwise_rf(dat, mrk.scope = "per.chrom", ncpus = 8))
-heatmap(dat$pairwise.rf$rec.mat, Rowv = NA, Colv = NA)
-system.time(dat <- pairwise_rf(dat, mrk.scope = "chrom", chrom = 1, ncpus = 8))
-heatmap(dat$pairwise.rf$rec.mat, Rowv = NA, Colv = NA, col = rainbow(20))
+dat
+print(dat, detailed = TRUE)
+plot(dat)
+system.time(dat <- pairwise_rf(dat, mrk.scope = "chrom", chrom = c(1,3), ncpus = 8))
+dat
+print(dat, detailed = TRUE)
+plot(dat)
 
 
 
@@ -680,4 +686,4 @@ B2721 <- read_geno_csv(file.in = "inst/extdata/B2721.csv",
                        ploidy.p2 = 4,
                        name.p1 = B2721$name.p1,
                        name.p2 = B2721$name.p2)
-
+save(B2721, file = "data/example_data.rda")

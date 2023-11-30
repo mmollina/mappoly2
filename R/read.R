@@ -221,7 +221,7 @@ table_to_mappoly <- function(dat,
          all.mrk.depth = NULL,
          geno.dose = geno.dose,
          redundant = NULL),
-    class = c("mappoly2.data")
+    class = c("mappoly2.input")
   )
 
   # Screening non-conforming markers

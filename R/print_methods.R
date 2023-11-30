@@ -1,25 +1,52 @@
 #' @export
-print.mappoly2.data <- function(x, type = c("screened", "raw"), detailed = FALSE,  ...) {
-  cat("This is an object of class 'mappoly2.data'\n")
-  cat("               ------                   ")
+print.mappoly2.input <- function(x, type = c("screened", "raw"), detailed = FALSE,  ...) {
+  #### Raw ####
+  msg("Data summary", col = "blue")
   txt <- list(
     paste0("    Ploidy level of ", x$name.p1, ":"),
     paste0("    Ploidy level of ", x$name.p2, ":"),
-    paste0("    No. individuals:"),
-    paste0("    No. markers:"),
-    paste0("    Percentage of missing:"))
+    "    No. individuals:",
+    "    No. markers:",
+    "    Percentage of missing:",
+    "    Chromosome info:",
+    "    Genome position:",
+    "    Recombination farction:",
+    "    Marker scope:")
   n <- sapply(txt, nchar)
   for (i in 1:length(txt)) {
     txt[[i]] <- paste(txt[[i]], paste0(rep(" ", max(n) - n[i]), collapse = ""))
   }
   id <- is.na(x$geno.dose)
-  cat("\n", txt[[1]], x$ploidy.p1)
+  cat(" ", txt[[1]], " ", x$ploidy.p1, sep ="")
   cat("\n", txt[[2]], x$ploidy.p2)
   cat("\n", txt[[3]], x$n.ind)
   cat("\n", txt[[4]], length(x$mrk.names))
-  cat("\n ", txt[[5]], " ",   round(100*sum(id)/length(id),1), "%", sep = "")
-  if(is.mappol2.screened(x)){
-    cat("\n     ----------\n     Filtering information:")
+  cat("\n ", txt[[5]], " ",   round(100*sum(id)/length(id),1), "%" ,sep = "")
+  chrom.flag <- FALSE
+  if (all(is.null(x$chrom)) || all(is.na(x$chrom)))
+    cat("\n", txt[[6]], "unavailable")
+  else{
+    cat("\n", txt[[6]], "available")
+    chrom.flag <- TRUE
+  }
+  if(any(is.numeric(x$genome.pos)))
+    cat("\n",  txt[[7]], "available")
+  else
+    cat("\n",  txt[[7]], "unavailable")
+
+  #### RF ####
+    if(has.mappoly2.rf(x)){
+      cat("\n",  txt[[8]], "available")
+      cat("\n ",  txt[[9]], " ",
+          x$pairwise.rf$mrk.scope,
+          " (",
+          paste(unique(x$chrom[colnames(x$pairwise.rf$rec.mat)]), collapse = ", "),
+          ")\n\n", sep = "")
+    } else
+    cat("\n",  txt[[8]], "unavailable\n\n")
+  #### Screened ####
+  if(mappoly2:::has.mappoly2.screened(x)){
+    msg("Filtering information", col = "blue")
     txt <- list(
       "    Thresholds",
       "       missing mrk: ",
@@ -34,7 +61,7 @@ print.mappoly2.data <- function(x, type = c("screened", "raw"), detailed = FALSE
       txt[[i]] <- paste(txt[[i]], paste0(rep(" ", max(n) - n[i]), collapse = ""))
     }
     id <- is.na(x$geno.dose)
-    cat("\n", txt[[1]])
+    cat(txt[[1]])
     cat("\n", txt[[2]], x$screened.data$thresholds$miss.mrk)
     cat("\n", txt[[3]], x$screened.data$thresholds$miss.ind)
     cat("\n", txt[[4]], format(x$screened.data$thresholds$chisq.pval, digits = 3))
@@ -42,21 +69,19 @@ print.mappoly2.data <- function(x, type = c("screened", "raw"), detailed = FALSE
     cat("\n", txt[[6]], ifelse(all(is.na(x$QAQC.values$individuals$full.sib)),
                                "-", sum(!x$QAQC.values$individuals$full.sib)))
     cat("\n", txt[[7]], length(x$screened.data$mrk.names))
-    cat("\n", txt[[8]], length(x$screened.data$ind.names))
+    cat("\n", txt[[8]], length(x$screened.data$ind.names), "\n\n")
   }
+  #### Detailed ####
   w <- table(x$chrom, useNA = "always")
-  w <- w[order(embedded_to_numeric(names(w)))]
+  w <- w[order(mappoly2:::embedded_to_numeric(names(w)))]
   names(w)[is.na(names(w))] <- "NoCrh"
-  if (all(is.null(x$chrom)) || all(is.na(x$chrom)))
-    cat("\n     ----------\n     No. markers per chromosome not available\n")
-  cat("\n     ----------\n     No. markers per chromosome:\n")
-  print(data.frame(chrom = paste0("       ", names(w)), No.mrk = as.numeric(w)), row.names = FALSE)
-  if(any(is.numeric(x$genome.pos)))
-    cat("     ----------\n     Genome position available\n")
-  else
-    cat("     ----------\n     Genome position unavailable\n")
   if(detailed){
-    cat("     ----------\n     No. of markers per dosage in both parents:\n")
+    if(chrom.flag){
+      msg("No. markers per chromosome", col = "blue")
+      print(data.frame(chrom = paste0("       ", names(w)), No.mrk = as.numeric(w)), row.names = FALSE)
+    }
+    cat("\n")
+    msg("No. of markers per dosage in both parents", col = "blue")
     freq <- table(paste(x$dosage.p1,
                         x$dosage.p2, sep = "-"))
     d.temp <- matrix(unlist(strsplit(names(freq), "-")), ncol = 2, byrow = TRUE)

@@ -57,6 +57,6 @@ Additional arguments (\code{chrom} or \code{sequence}) must be specified when us
 }
 \examples{
   dat <- filter_data(B2721, mrk.thresh = .08, ind.thresh = 0.06)
-  dat <- pairwise_rf(dat, mrk.scope = "chrom", chrom = "ch1", ncpus = 8)
+  dat <- pairwise_rf(dat, mrk.scope = "chrom", chrom = "ch10")
 
 }

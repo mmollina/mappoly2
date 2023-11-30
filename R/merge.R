@@ -50,7 +50,10 @@ merge_datasets <- function(..., filter.non.conforming = TRUE,
   }
 
   # Check that all datasets are of the correct class
-  assert_that(all(sapply(datasets, is.mappoly2.data)))
+  assert_that(all(sapply(datasets, has.mappoly2.data)))
+
+  # Check that all datasets are not screened
+  assert_that(all(!sapply(datasets, has.mappoly2.screened)))
 
   # Use Reduce function to interactively merge all datasets
   res <- Reduce(function(x, y) merge(x, y), datasets)
@@ -77,7 +80,7 @@ merge_datasets <- function(..., filter.non.conforming = TRUE,
 }
 
 # Function to merge two datasets
-merge.mappoly2.data <- function(x, y){
+merge.mappoly2.input <- function(x, y){
 
   # Identify union of markers and individuals
   union_markers <- union(names(x$dosage.p1), names(y$dosage.p1))
@@ -157,7 +160,7 @@ merge.mappoly2.data <- function(x, y){
   )
 
   # Assign class to the new object
-  class(merged_res) <- "mappoly2.data"
+  class(merged_res) <- "mappoly2.input"
 
   return(merged_res)
 }

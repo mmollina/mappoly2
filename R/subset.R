@@ -20,14 +20,14 @@
 #' @param filter.redundant Logical. If \code{TRUE} (default), removes redundant
 #' markers during map construction, keeping them annotated to export to the
 #' final map.
-#' @return A `mappoly2.data` object that contains the selected subset of individuals or markers.
+#' @return A `mappoly2.input` object that contains the selected subset of individuals or markers.
 #' @export
-subset.mappoly2.data <- function(x, type = c("marker", "individual"),
+subset.mappoly2.input <- function(x, type = c("marker", "individual"),
                                  perc = 0.1, n = NULL,
                                  select.mrk = NULL, select.ind = NULL,
                                  seed = NULL, filter.non.conforming = TRUE,
                                  filter.redundant = TRUE){
-  assert_that(is.mappoly2.data(x))
+  assert_that(has.mappoly2.data(x))
   if(!is.null(select.ind))
     type <- "individual"
   else type <- match.arg(type)

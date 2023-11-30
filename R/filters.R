@@ -61,7 +61,7 @@ filter_data <- function(x,
                         chisq.pval.thresh = NULL,
                         read.depth.thresh = c(5,1000),
                         plot.screening = TRUE) {
-  assert_that(inherits(x, "mappoly2.data"))
+  assert_that(inherits(x, "mappoly2.input"))
   op <- par(pty = "s", mfrow = c(2,2), mar = c(4,3,3,2))
   on.exit(par(op))
   chisq.val <- x$QAQC.values$markers$chisq.pval
@@ -189,14 +189,14 @@ filter_individuals <- function(x,
                                inter = TRUE,
                                type = c("Gmat", "PCA"),
                                verbose = TRUE){
-  assert_that(mappoly2:::is.mappoly2.data(x))
+  assert_that(mappoly2:::has.mappoly2.data(x))
   if(x$ploidy.p1 != x$ploidy.p2)
     stop("'filter_individuals' cannot be executed\n  on progenies with odd ploidy levels.")
   type <- match.arg(type)
   op <- par(pty="s")
   on.exit(par(op))
   D <- t(x$geno.dose)
-  if(is.mappol2.screened(x)){
+  if(has.mappoly2.screened(x)){
     D <- D[x$screened.data$ind.names, x$screened.data$mrk.names]
     D <- rbind(x$dosage.p1[x$screened.data$mrk.names],
                x$dosage.p2[x$screened.data$mrk.names],
