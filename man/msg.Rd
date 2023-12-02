@@ -2,14 +2,12 @@
 % Please edit documentation in R/utils.R
 \name{msg}
 \alias{msg}
-\title{Msg function}
+\title{Creates a formatted message with a horizontal rule
+and specified text color.}
 \usage{
 msg(text, line = 1, col = "-")
 }
-\arguments{
-\item{void}{internal function to be documented}
-}
 \description{
-Msg function
+Creates a formatted message with a horizontal rule
+and specified text color.
 }
-\keyword{internal}

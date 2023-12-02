@@ -37,14 +37,22 @@
 #' @importFrom dendextend color_branches
 #' @export group
 
-group <- function(input.seq = NULL,
+group <- function(input.data = NULL,
+                  use.genome.only = FALSE,
                   expected.groups = NULL,
                   inter = TRUE,
                   comp.mat = FALSE,
                   LODweight = FALSE)
 {
   ## checking for correct object
-  assert_that(is.pairwise.sequence(input.seq))
+  if(use.genome.only){
+
+
+    .seq_skeleton()
+
+  }
+
+  assert_that(mappoly2:::has.mappoly2.rf(input.data), )
   MSNP <- input.seq$pairwise$rec.mat[input.seq$mrk.names, input.seq$mrk.names]
   mn <- input.seq$data$chrom[input.seq$mrk.names]
   mn[is.na(mn)] <- "NoChr"

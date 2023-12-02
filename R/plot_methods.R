@@ -1,7 +1,7 @@
 #' @export
 #' @importFrom graphics barplot layout mtext image legend
 #' @importFrom grDevices colorRampPalette
-plot.mappoly2.input<-function(x, type = c("rf", "screened", "raw"))
+plot.mappoly2.data<-function(x, type = c("rf", "screened", "raw"))
 {
   opar <- par(no.readonly = TRUE)
   on.exit(par(opar))

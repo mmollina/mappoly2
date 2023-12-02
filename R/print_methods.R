@@ -1,5 +1,5 @@
 #' @export
-print.mappoly2.input <- function(x, type = c("screened", "raw"), detailed = FALSE,  ...) {
+print.mappoly2.data <- function(x, type = c("screened", "raw"), detailed = FALSE,  ...) {
   #### Raw ####
   msg("Data summary", col = "blue")
   txt <- list(

@@ -1,13 +1,17 @@
-has.mappoly2.data <- function (x)
-  inherits(x, c("mappoly2.input"))
+
+is.mappoly2.data <- function (x)
+  inherits(x, c("mappoly2.data"))
+
 has.mappoly2.screened <- function(x){
-  has.mappoly2.data(x) &
+  is.mappoly2.data(x) &
   "screened.data"%in%names(x)
 }
+
 has.chromosome.info <- function(x){
-  has.mappoly2.data(x) &
+  is.mappoly2.data(x) &
   !all(is.na(x$chrom)) & !is.null(x$chrom)
 }
+
 has.mappoly2.rf <- function(x){
   has.mappoly2.screened(x)&
   "pairwise.rf"%in%names(x)

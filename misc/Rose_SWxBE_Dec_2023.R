@@ -1,27 +1,10 @@
 rm(list = ls())
 require(mappoly2)
 setwd("~/repos/official_repos/mappoly2/")
-source("misc/simulation.R")
-ploidy.p1 = 2
-ploidy.p2 = 4
-n.mrk <- 550
-map.length = 100
-ph<-test_simulate(ploidy.p1 = ploidy.p1,
-                  ploidy.p2 = ploidy.p2,
-                  fpath = "misc/fake_data.csv",
-                  n.mrk = n.mrk,
-                  n.ind = 300,
-                  map.length = map.length,
-                  miss.perc = 5,
-                  n.chrom = 5,
-                  random = FALSE,
-                  seed = 2986)
 ####Reading Data####
-dat <- read_geno_csv(file.in = "misc/fake_data.csv",
-                   ploidy.p1 = ploidy.p1,
-                   ploidy.p2 = ploidy.p2,
-                   name.p1 = "Plant_A",
-                   name.p2 = "Plant_B")
+dat <- read_geno_csv(file.in = "misc/SWxBE.csv",
+                   ploidy.p1 = 4,
+                   ploidy.p2 = 4)
 print(dat)
 print(dat, detailed = TRUE)
 plot(dat)
@@ -41,7 +24,7 @@ x
 plot(x)
 
 #### Initial QA/QC ####
-dat <- filter_data(dat, mrk.thresh = .08, ind.thresh = 0.08)
+dat <- filter_data(dat, mrk.thresh = 0.05, ind.thresh = 0.1)
 plot(dat)
 plot(dat, type = "screened")
 dat
@@ -61,6 +44,15 @@ system.time(dat <- pairwise_rf(dat, mrk.scope = "chrom", chrom = c(1,3), ncpus =
 dat
 print(dat, detailed = TRUE)
 plot(dat)
+
+#### Grouping ####
+s <- group(s, expected.groups = 3, comp.mat = TRUE, inter = F)
+s
+plot(s)
+
+
+
+
 
 
 #### Set Initial Sequence ####

@@ -5,7 +5,8 @@
 \title{Assign Markers to Linkage Groups}
 \usage{
 group(
-  input.seq = NULL,
+  input.data = NULL,
+  use.genome.only = FALSE,
   expected.groups = NULL,
   inter = TRUE,
   comp.mat = FALSE,
@@ -13,9 +14,6 @@ group(
 )
 }
 \arguments{
-\item{input.seq}{A \code{mappoly2.sequence} object containing the markers
-to be grouped. If \code{NULL} (default), all markers in \code{input.mat} are used.}
-
 \item{expected.groups}{The number of expected linkage groups (e.g. chromosomes)
 for the species, if known.}
 
@@ -31,6 +29,9 @@ the square of the LOD score. Default is \code{FALSE}.}
 
 \item{input.mat}{A \code{mappoly2.rf.matrix} object containing the
 recombination fraction and LOD score matrices.}
+
+\item{input.seq}{A \code{mappoly2.sequence} object containing the markers
+to be grouped. If \code{NULL} (default), all markers in \code{input.mat} are used.}
 }
 \value{
 An object of class \code{mappoly2.group}, which is a list containing:

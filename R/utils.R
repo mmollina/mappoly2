@@ -1,11 +1,12 @@
-get_seq_indices <- function(input.seq){
-  match(input.seq$mrk.names, input.seq$data$mrk.names)
-}
-
+#' Given a screened data set, returns the indices of the
+#' screened markers in the corresponding raw dataset
 get_QAQCmrk_indices <- function(x){
   match(x$screened.data$mrk.names, x$mrk.names)
 }
 
+#' Given a dataset containing chromosome information,
+#' and a chromosome vector return a vector of screened
+#' markers corresponding to the chromosomes provided
 get_mrk_indices_from_chrom <- function(x, chrom){
   assert_that(mappoly2:::has.chromosome.info(x))
   ch.n.arg <- mappoly2:::embedded_to_numeric(chrom)
@@ -15,15 +16,30 @@ get_mrk_indices_from_chrom <- function(x, chrom){
   ch.id
 }
 
+#' Given a dataset x and a vector containing the name of markers
+#' w, returns metadata associated to w
+get_sequence_metadata <- function(x,w){
+  list(
+    dosage.p1 = x$dosage.p1[w],
+    dosage.p2 = x$dosage.p2[w],
+    chrom = x$chrom[w],
+    genome.pos = x$genome.pos[w],
+    ref = x$ref[w],
+    alt = x$alt[w],
+    geno.dose = x$geno.dose[w],
+    redundant = x$redundant[w],
+    QAQC.values = x$QAQC.values$markers[w,]
+  )
+}
 
+#' Removes all non-digit characters and then converts
+#' the remaining string to an integer.
 embedded_to_numeric <- function(x) {
   as.integer(gsub("[^0-9]", "", x))
 }
 
-#' Msg function
-#'
-#' @param void internal function to be documented
-#' @keywords internal
+#' Creates a formatted message with a horizontal rule
+#' and specified text color.
 #' @importFrom cli rule
 #' @importFrom magrittr %>%
 msg <- function(text, line = 1, col = "-"){
@@ -32,6 +48,8 @@ msg <- function(text, line = 1, col = "-"){
     message()
 }
 
+#' Changes the color of text in the R console, with a specific
+#' focus on compatibility with RStudio's dark and light themes.
 #' @importFrom rstudioapi isAvailable hasFun getThemeInfo
 #' @importFrom crayon white black
 text_col <- function(x, col = c("-","red", "blue")) {
