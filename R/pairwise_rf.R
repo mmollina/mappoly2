@@ -58,6 +58,7 @@ pairwise_rf <- function(input.data,
                                                    input.data$mrk.names[seq.num],
                                                    tol,
                                                    mrk.scope)
+    class(input.data) <- c(class(input.data), "pairwise.rf")
     return(input.data)
   } else if (mrk.scope == "per.chrom") {
     ch <- unique(input.data$chrom[input.data$chrom != "NoChr"])
@@ -87,7 +88,7 @@ pairwise_rf <- function(input.data,
                                    Sh.p1 = Sh.p1,
                                    Sh.p2 = Sh.p2,
                                    mrk.scope = mrk.scope)
-
+    class(input.data) <- c(class(input.data), "pairwise.rf")
     return(input.data)
   } else {
     assert_that(!is.null(chrom))
@@ -99,6 +100,7 @@ pairwise_rf <- function(input.data,
                                                    input.data$mrk.names[seq.num],
                                                    tol,
                                                    mrk.scope)
+    class(input.data) <- c(class(input.data), "pairwise.rf")
     return(input.data)
   }
 }

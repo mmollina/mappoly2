@@ -54,6 +54,11 @@ print.mappoly2.data <- function(x, type = c("screened", "raw"), detailed = FALSE
       "       chi-square pval: ",
       "       read depth: ",
       "       non full-sib: ",
+      "       LOD phase: ",
+      "       LOD rf: ",
+      "       rf: ",
+      "       prob.lower: ",
+      "       prob.upper: ",
       "    Screened mrk: ",
       "    Screened ind: ")
     n <- sapply(txt, nchar)
@@ -65,11 +70,17 @@ print.mappoly2.data <- function(x, type = c("screened", "raw"), detailed = FALSE
     cat("\n", txt[[2]], x$screened.data$thresholds$miss.mrk)
     cat("\n", txt[[3]], x$screened.data$thresholds$miss.ind)
     cat("\n", txt[[4]], format(x$screened.data$thresholds$chisq.pval, digits = 3))
-    cat("\n", txt[[5]], x$screened.data$thresholds$read.depth)
+    if(!all(is.na(x$QAQC.values$markers$read.depth)))
+      cat("\n", txt[[5]], x$screened.data$thresholds$read.depth)
     cat("\n", txt[[6]], ifelse(all(is.na(x$QAQC.values$individuals$full.sib)),
                                "-", sum(!x$QAQC.values$individuals$full.sib)))
-    cat("\n", txt[[7]], length(x$screened.data$mrk.names))
-    cat("\n", txt[[8]], length(x$screened.data$ind.names), "\n\n")
+    cat("\n", txt[[7]], x$screened.data$thresholds$LOD.ph)
+    cat("\n", txt[[8]], x$screened.data$thresholds$LOD.rf)
+    cat("\n", txt[[9]], x$screened.data$thresholds$rf)
+    cat("\n", txt[[10]], x$screened.data$thresholds$prob.lower)
+    cat("\n", txt[[11]], x$screened.data$thresholds$prob.upper)
+    cat("\n", txt[[12]], length(x$screened.data$mrk.names))
+    cat("\n", txt[[13]], length(x$screened.data$ind.names), "\n\n")
   }
   #### Detailed ####
   w <- table(x$chrom, useNA = "always")

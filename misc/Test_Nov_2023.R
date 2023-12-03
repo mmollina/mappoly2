@@ -4,7 +4,7 @@ setwd("~/repos/official_repos/mappoly2/")
 source("misc/simulation.R")
 ploidy.p1 = 2
 ploidy.p2 = 4
-n.mrk <- 550
+n.mrk <- 50
 map.length = 100
 ph<-test_simulate(ploidy.p1 = ploidy.p1,
                   ploidy.p2 = ploidy.p2,

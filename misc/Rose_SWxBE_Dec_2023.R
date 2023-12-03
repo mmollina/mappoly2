@@ -26,15 +26,20 @@ plot(x)
 #### Initial QA/QC ####
 dat <- filter_data(dat, mrk.thresh = 0.05, ind.thresh = 0.1)
 plot(dat)
-plot(dat, type = "screened")
+plot(dat, type = "density")
+plot(dat, type = "raw")
+plot(dat, type = "rf")
+
 dat
 dat <- filter_individuals(dat)
+dat <- filter_individuals(dat, type = "PCA")
 dat
 
 #### Pairwise rf ####
 system.time(dat <- pairwise_rf(dat, mrk.scope = "all", ncpus = 8))
 dat
 print(dat, detailed = TRUE)
+plot(dat)
 plot(dat, type = "raw")
 system.time(dat <- pairwise_rf(dat, mrk.scope = "per.chrom", ncpus = 8))
 dat
@@ -45,10 +50,13 @@ dat
 print(dat, detailed = TRUE)
 plot(dat)
 
+#### RF filter ####
+dat <- rf_filter(dat, probs = c(0.025, 0.975))
+dat
+
 #### Grouping ####
-s <- group(s, expected.groups = 3, comp.mat = TRUE, inter = F)
-s
-plot(s)
+g <- group(dat, expected.groups = 3, comp.mat = TRUE, inter = F)
+plot(g)
 
 
 

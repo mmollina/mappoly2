@@ -1,18 +1,28 @@
 #' @export
 #' @importFrom graphics barplot layout mtext image legend
 #' @importFrom grDevices colorRampPalette
-plot.mappoly2.data<-function(x, type = c("rf", "screened", "raw"))
+plot.mappoly2.data<-function(x, type = c("rf", "screened", "density", "raw"))
 {
   opar <- par(no.readonly = TRUE)
   on.exit(par(opar))
   type <- match.arg(type)
-  if(mappoly2:::has.mappoly2.rf(x) & type == "rf"){
+  if(has.mappoly2.rf(x) & type == "rf"){
+    assert_that(has.mappoly2.rf(x))
     plot_rf_matrix(x$pairwise.rf,
                    fact = ceiling(ncol(x$pairwise.rf$rec.mat)/1000))
-  } else if(has.mappoly2.screened(x) & type == "screened")
+  }  else if (type == "density"){
+    assert_that(has.mappoly2.screened(x))
+    assert_that(data.has.genome.info(x))
+    u <- data.frame(SNP = x$screened.data$mrk.names,
+                    Chromosome = embedded_to_numeric(x$chrom[x$screened.data$mrk.names]),
+                    Position = x$genome.pos[x$screened.data$mrk.names])
+    CMplot::CMplot(u,type = "p", plot.type = "d", file.output=FALSE)
+  } else if(((!has.mappoly2.rf(x) & has.mappoly2.screened(x)) | type == "screened") & type != "raw"){
+    assert_that(has.mappoly2.screened(x))
     plot_data(x, text = "Screened data", col = "darkblue",
               mrk.id = x$screened.data$mrk.names,
               ind.id = x$screened.data$ind.names)
+  }
   else
     plot_data(x, text = "Raw data", col = "darkred")
 }

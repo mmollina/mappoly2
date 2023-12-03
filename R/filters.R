@@ -74,6 +74,12 @@ filter_data <- function(x,
                                           chisq.pval.thresh = chisq.pval.thresh,
                                           read.depth.thresh = read.depth.thresh)
   x$screened.data <- id
+  x$screened.data$thresholds <- c(x$screened.data$thresholds,
+                                  LOD.ph = 0,
+                                  LOD.rf = 0,
+                                  rf = 0.5,
+                                  prob.lower = 0,
+                                  prob.upper = 1)
   class(x) <- c(class(x), "screened")
   pal <- c("#56B4E9","#E69F00")
   if (plot.screening) {
@@ -336,6 +342,33 @@ filter_individuals <- function(x,
 #' @export
 #' @importFrom ggplot2 ggplot geom_histogram aes scale_fill_manual xlab ggtitle
 #' @importFrom graphics hist
+
+rf_filter <- function(x,
+                      thresh.LOD.ph = 5,
+                      thresh.LOD.rf = 5,
+                      thresh.rf = 0.15,
+                      probs = c(0.05, 1),
+                      diag.markers = NULL,
+                      mrk.order = NULL,
+                      diagnostic.plot = TRUE,
+                      breaks = 100){
+  if(mappoly2:::is.mappoly2.data(x)){
+    assert_that(has.mappoly2.rf(x))
+    return(init_rf_filter(x,
+                          thresh.LOD.ph = thresh.LOD.ph,
+                          thresh.LOD.rf = thresh.LOD.rf,
+                          thresh.rf = thresh.rf,
+                          probs = probs,
+                          diag.markers = diag.markers,
+                          mrk.order = mrk.order,
+                          diagnostic.plot = diagnostic.plot,
+                          breaks = breaks))
+  }
+  ####FIXME####
+  ##Implement/fix per group
+}
+
+
 init_rf_filter <- function(x,
                            thresh.LOD.ph = 5,
                            thresh.LOD.rf = 5,
@@ -346,7 +379,7 @@ init_rf_filter <- function(x,
                            diagnostic.plot = TRUE,
                            breaks = 100)
 {
-  assert_that(inherits(x, "pairwise"))
+  assert_that(inherits(x, "pairwise.rf"))
   probs <- range(probs)
   ## Getting filtered rf matrix
   M <-mappoly2:::filter_rf_matrix(x,
@@ -375,17 +408,15 @@ init_rf_filter <- function(x,
       ggplot2::xlab(paste0("Non 'NA' values at LOD.ph = ", thresh.LOD.ph, ", LOD.rf = ", thresh.LOD.rf, ", and thresh.rf = ", thresh.rf))
     print(p)
   }
-  x$initial.screened.rf <- list(thresholds = c(thresh.LOD.ph = thresh.LOD.ph,
-                                               thresh.LOD.rf = thresh.LOD.rf,
-                                               thresh.rf = thresh.rf,
-                                               prob.lower = probs[1],
-                                               prob.upper = probs[2]),
-                                mrk.names = ids)
-  class(x) <- unique(c(class(x), "init_rf_screened"))
+  x$screened.data$thresholds$LOD.ph = thresh.LOD.ph
+  x$screened.data$thresholds$LOD.rf = thresh.LOD.rf
+  x$screened.data$thresholds$rf = thresh.rf
+  x$screened.data$thresholds$prob.lower = probs[1]
+  x$screened.data$thresholds$prob.upper = probs[2]
+  x$screened.data$mrk.names <- intersect(x$screened.data$mrk.names, ids)
   return(x)
 }
 
-#' @export
 rf_filter_per_group <- function(x,
                                 gr,
                                 thresh.LOD.ph = 5,
@@ -402,11 +433,11 @@ rf_filter_per_group <- function(x,
   probs <- range(probs)
   ## Getting filtered rf matrix
   M <- mappoly2:::filter_rf_matrix(x,
-                                  type = "rf",
-                                  thresh.LOD.ph = thresh.LOD.ph,
-                                  thresh.LOD.rf = thresh.LOD.rf,
-                                  thresh.rf = thresh.rf,
-                                  mrk.names)
+                                   type = "rf",
+                                   thresh.LOD.ph = thresh.LOD.ph,
+                                   thresh.LOD.rf = thresh.LOD.rf,
+                                   thresh.rf = thresh.rf,
+                                   mrk.names)
 
   if(!is.null(mrk.order)){
     assert_that(all(mrk.order%in%mrk.names))
@@ -449,10 +480,10 @@ filter_rf_matrix <- function(x,
                              mrk.names = NULL){
   type <- match.arg(type)
   if(is.null(mrk.names))
-    mrk.names <- colnames(x$pairwise$rec.mat)
-  lod.ph.mat <- x$pairwise$lod.ph.mat[mrk.names,mrk.names]
-  lod.mat <- x$pairwise$lod.mat[mrk.names,mrk.names]
-  rec.mat <- x$pairwise$rec.mat[mrk.names,mrk.names]
+    mrk.names <- colnames(x$pairwise.rf$rec.mat)
+  lod.ph.mat <- x$pairwise.rf$lod.ph.mat[mrk.names,mrk.names]
+  lod.mat <- x$pairwise.rf$lod.mat[mrk.names,mrk.names]
+  rec.mat <- x$pairwise.rf$rec.mat[mrk.names,mrk.names]
   id1 <- abs(lod.ph.mat) < thresh.LOD.ph
   id2 <- abs(lod.mat) < thresh.LOD.rf
   id3 <- rec.mat > thresh.rf
@@ -462,8 +493,8 @@ filter_rf_matrix <- function(x,
     if(thresh.rf < 0.5) rec.mat[id3] <- NA
     return(rec.mat)
   } else if(type == "sh"){
-    sh.p1 <- x$pairwise$Sh.p1[mrk.names,mrk.names]
-    sh.p2 <- x$pairwise$Sh.p2[mrk.names,mrk.names]
+    sh.p1 <- x$pairwise.rf$Sh.p1[mrk.names,mrk.names]
+    sh.p2 <- x$pairwise.rf$Sh.p2[mrk.names,mrk.names]
     if(thresh.LOD.ph > 0) sh.p1[id1] <- sh.p1[id1] <- NA
     if(thresh.LOD.rf > 0) sh.p1[id2] <- sh.p1[id2] <- NA
     if(thresh.rf < 0.5)  sh.p1[id3] <- sh.p1[id3] <- NA
