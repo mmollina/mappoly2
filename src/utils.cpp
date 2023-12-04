@@ -54,6 +54,7 @@
 using namespace std;
 using namespace Rcpp;
 
+/*
 //' Mendelian segregation
  //'
  //' Computes the Mendelian segregation frequencies given the ploidy level
@@ -83,7 +84,7 @@ using namespace Rcpp;
  //'
  //' @export segreg_poly
  //' @importFrom Rcpp evalCpp
-
+*/
  // [[Rcpp::export]]
  NumericVector segreg_poly(int ploidy_p1, int ploidy_p2, int d_p1, int d_p2) {
 

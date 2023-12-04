@@ -1,30 +1,51 @@
 #' @export
 #' @importFrom graphics barplot layout mtext image legend
 #' @importFrom grDevices colorRampPalette
-plot.mappoly2.data<-function(x, type = c("rf", "screened", "density", "raw"))
+plot.mappoly2.data<-function(x, type = c("rf", "screened", "density", "raw"), chrom = NULL)
 {
+  mrk.id <- NULL
+  if(!is.null(chrom)){
+    mrk.id <- x$mrk.names[mappoly2:::get_mrk_indices_from_chrom(x, chrom)]
+  }
   opar <- par(no.readonly = TRUE)
   on.exit(par(opar))
   type <- match.arg(type)
-  if(has.mappoly2.rf(x) & type == "rf"){
-    assert_that(has.mappoly2.rf(x))
+  if(mappoly2:::has.mappoly2.rf(x) & type == "rf"){
+    assert_that(mappoly2:::has.mappoly2.rf(x))
+    if(!is.null(mrk.id))
+      mrk.id <- Reduce(intersect, list(x$screened.data$mrk.names,
+                                       mrk.id, colnames(x$pairwise.rf$rec.mat)))
+    else
+      mrk.id <- Reduce(intersect, list(x$screened.data$mrk.names,
+                                       colnames(x$pairwise.rf$rec.mat)))
     plot_rf_matrix(x$pairwise.rf,
-                   fact = ceiling(ncol(x$pairwise.rf$rec.mat)/1000))
-  }  else if (type == "density"){
-    assert_that(has.mappoly2.screened(x))
+                   fact = ceiling(ncol(x$pairwise.rf$rec.mat)/1000),
+                   ord = mrk.id)
+  }
+  else if (type == "density"){
+    assert_that(mappoly2:::has.mappoly2.screened(x))
     assert_that(data.has.genome.info(x))
-    u <- data.frame(SNP = x$screened.data$mrk.names,
-                    Chromosome = embedded_to_numeric(x$chrom[x$screened.data$mrk.names]),
-                    Position = x$genome.pos[x$screened.data$mrk.names])
+    if(!is.null(mrk.id))
+      mrk.id <- intersect(x$screened.data$mrk.names, mrk.id)
+    else
+      mrk.id <- x$screened.data$mrk.names
+    u <- data.frame(SNP = mrk.id,
+                    Chromosome = embedded_to_numeric(x$chrom[mrk.id]),
+                    Position = x$genome.pos[mrk.id])
     CMplot::CMplot(u,type = "p", plot.type = "d", file.output=FALSE)
-  } else if(((!has.mappoly2.rf(x) & has.mappoly2.screened(x)) | type == "screened") & type != "raw"){
-    assert_that(has.mappoly2.screened(x))
-    plot_data(x, text = "Screened data", col = "darkblue",
-              mrk.id = x$screened.data$mrk.names,
-              ind.id = x$screened.data$ind.names)
+  }
+  else if(((!mappoly2:::has.mappoly2.rf(x) & mappoly2:::has.mappoly2.screened(x)) | type == "screened") & type != "raw"){
+    assert_that(mappoly2:::has.mappoly2.screened(x))
+    if(!is.null(mrk.id))
+      mrk.id <- intersect(x$screened.data$mrk.names, mrk.id)
+    else
+      mrk.id <- x$screened.data$mrk.names
+    mappoly2:::plot_data(x, text = "Screened data", col = "darkblue",
+                         mrk.id = mrk.id,
+                         ind.id = x$screened.data$ind.names)
   }
   else
-    plot_data(x, text = "Raw data", col = "darkred")
+    mappoly2:::plot_data(x, text = "Raw data", col = "darkred", mrk.id = mrk.id)
 }
 
 plot_data <- function(x,
@@ -173,7 +194,9 @@ plot_rf_matrix <- function(x,
     text(x = seq(0,1, length.out = ncol(w)), y = seq(0,1, length.out = ncol(w)),
          labels = colnames(w), cex = ft)
 }
-plot_group <- function(x, ...) {
+
+#' @export
+plot.mappoly2.group <- function(x, ...) {
   dend <- as.dendrogram(x$hc.snp)
   dend1 <- dendextend::color_branches(dend, k = x$expected.groups)
   plot(dend1, leaflab = "none")

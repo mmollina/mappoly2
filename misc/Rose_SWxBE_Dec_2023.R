@@ -8,8 +8,10 @@ dat <- read_geno_csv(file.in = "misc/SWxBE.csv",
 print(dat)
 print(dat, detailed = TRUE)
 plot(dat)
+plot(dat, chrom = "ch1")
 x <- subset(dat)
 plot(x)
+
 x1 <- subset(B2721, type = "marker", n = 700)
 x1 <- subset(x1, type = "individual", n = 80)
 plot(x1)
@@ -25,10 +27,16 @@ plot(x)
 
 #### Initial QA/QC ####
 dat <- filter_data(dat, mrk.thresh = 0.05, ind.thresh = 0.1)
+
 plot(dat)
+plot(dat, chrom = "chr1")
+plot(dat, type = "screened")
+plot(dat, type = "screened", chrom = "chr1")
 plot(dat, type = "density")
+plot(dat, type = "density", chrom = "chr1")
 plot(dat, type = "raw")
-plot(dat, type = "rf")
+plot(dat, type = "raw", chrom = "ch1")
+
 
 dat
 dat <- filter_individuals(dat)
@@ -37,14 +45,25 @@ dat
 
 #### Pairwise rf ####
 system.time(dat <- pairwise_rf(dat, mrk.scope = "all", ncpus = 8))
-dat
 print(dat, detailed = TRUE)
 plot(dat)
+plot(dat, chrom = "chr1")
+plot(dat, type = "screened")
+plot(dat, type = "screened", chrom = "chr1")
+plot(dat, type = "density")
+plot(dat, type = "density", chrom = "chr1")
 plot(dat, type = "raw")
+plot(dat, type = "raw", chrom = "ch1")
 system.time(dat <- pairwise_rf(dat, mrk.scope = "per.chrom", ncpus = 8))
-dat
 print(dat, detailed = TRUE)
 plot(dat)
+plot(dat, chrom = "chr1")
+plot(dat, type = "screened")
+plot(dat, type = "screened", chrom = "chr1")
+plot(dat, type = "density")
+plot(dat, type = "density", chrom = "chr1")
+plot(dat, type = "raw")
+plot(dat, type = "raw", chrom = "ch1")
 system.time(dat <- pairwise_rf(dat, mrk.scope = "chrom", chrom = c(1,3), ncpus = 8))
 dat
 print(dat, detailed = TRUE)
@@ -53,9 +72,18 @@ plot(dat)
 #### RF filter ####
 dat <- rf_filter(dat, probs = c(0.025, 0.975))
 dat
+plot(dat)
+plot(dat, chrom = "chr1")
+plot(dat, type = "screened")
+plot(dat, type = "screened", chrom = "chr1")
+plot(dat, type = "density")
+plot(dat, type = "density", chrom = "chr1")
+plot(dat, type = "raw")
+plot(dat, type = "raw", chrom = "ch1")
 
 #### Grouping ####
-g <- group(dat, expected.groups = 3, comp.mat = TRUE, inter = F)
+g <- group(dat, expected.groups = 7, comp.mat = TRUE, inter = TRUE)
+g
 plot(g)
 
 

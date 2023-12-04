@@ -5,7 +5,7 @@
 \title{Assign Markers to Linkage Groups}
 \usage{
 group(
-  input.data = NULL,
+  x = NULL,
   use.genome.only = FALSE,
   expected.groups = NULL,
   inter = TRUE,

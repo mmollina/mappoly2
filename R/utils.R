@@ -1,6 +1,6 @@
 #' Given a screened data set, returns the indices of the
 #' screened markers in the corresponding raw dataset
-get_QAQCmrk_indices <- function(x){
+get_screened_mrk_indices <- function(x){
   match(x$screened.data$mrk.names, x$mrk.names)
 }
 
@@ -12,7 +12,9 @@ get_mrk_indices_from_chrom <- function(x, chrom){
   ch.n.arg <- mappoly2:::embedded_to_numeric(chrom)
   assert_that(!any(is.na(ch.n.arg)), msg = "provide a valid chromosome identifier")
   ch.n.dat <- mappoly2:::embedded_to_numeric(x$chrom)
-  ch.id <- intersect(which(ch.n.dat%in%ch.n.arg), mappoly2:::get_QAQCmrk_indices(x))
+  ch.id <- which(ch.n.dat%in%ch.n.arg)
+  if(has.mappoly2.screened(x))
+    ch.id <- intersect(ch.id, get_screened_mrk_indices(x))
   ch.id
 }
 
@@ -119,33 +121,6 @@ find_flanking_markers <- function(A, B1, B2) {
 
   names(flanking_letters) <- B2
   flanking_letters
-}
-
-print_matrix <- function(mat, spaces = 5, zero.print = ".", row.names = TRUE){
-  mat[mat==0]<-zero.print
-  txt1 <- NULL
-  for(i in 1:ncol(mat))
-    txt1 <- c(txt1, colnames(mat)[i], mat[,i])
-  n1 <- nchar(txt1)
-  for (i in 1:length(txt1))
-    txt1[i] <- paste(txt1[i], paste0(rep(" ", max(n1) - n1[i]), collapse = ""))
-  dim(txt1) <- c(nrow(mat)+1, ncol(mat))
-  txt2 <- rownames(mat)
-  n2 <- nchar(txt2)
-  for (i in 1:length(txt2))
-    txt2[i] <- paste(txt2[i], paste0(rep(" ", max(n2) - n2[i]), collapse = ""))
-  txt2 <- c(paste0(rep(" ", (nchar(max(n2))+1)), collapse = ""), txt2)
-  for (i in 1:length(txt2))
-    txt2[i] <- paste0(paste0(rep(" ", spaces), collapse = ""), txt2[i])
-  cat(txt2[1], txt1[1,], "\n")
-  cat(paste0(paste0(rep(" ", spaces), collapse = ""),
-             paste0(rep("-", sum(nchar(c(txt2[1], txt1[1,])))+ncol(mat)-spaces), collapse = "")), "\n")
-  for(i in 2:nrow(txt1)){
-    if(row.names) cat(txt2[i], txt1[i,], "\n")
-    else cat(paste0(rep(" ", nchar(txt2[i])), collapse = ""), txt1[i,], "\n")
-  }
-  cat(paste0(paste0(rep(" ", spaces), collapse = ""),
-             paste0(rep("-", sum(nchar(c(txt2[1], txt1[1,])))+ncol(mat)-spaces), collapse = "")), "\n")
 }
 
 get_markers_from_chromosome <- function(x, arg){

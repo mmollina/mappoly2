@@ -50,7 +50,7 @@ pairwise_rf <- function(input.data,
   mrk.scope <- match.arg(mrk.scope)
 
   if(mrk.scope == "all"){
-    seq.num <- mappoly2:::get_QAQCmrk_indices(input.data)
+    seq.num <- mappoly2:::get_screened_mrk_indices(input.data)
     mrk.pairs <- combn(sort(seq.num), 2) - 1
     input.data$pairwise.rf <- pairwise_rf_full_mat(input.data,
                                                    ncpus,

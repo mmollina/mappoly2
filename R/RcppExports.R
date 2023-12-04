@@ -49,9 +49,6 @@ est_hmm_map_biallelic_log_implementation <- function(PH, G, pedigree, rf, err, v
     .Call('_mappoly2_est_hmm_map_biallelic_log_implementation', PACKAGE = 'mappoly2', PH, G, pedigree, rf, err, verbose, detailed_verbose, tol, ret_H0)
 }
 
-#' Mendelian segregation
-NULL
-
 segreg_poly <- function(ploidy_p1, ploidy_p2, d_p1, d_p2) {
     .Call('_mappoly2_segreg_poly', PACKAGE = 'mappoly2', ploidy_p1, ploidy_p2, d_p1, d_p2)
 }
