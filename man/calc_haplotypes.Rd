@@ -2,23 +2,36 @@
 % Please edit documentation in R/haplotypes.R
 \name{calc_haplotypes}
 \alias{calc_haplotypes}
-\title{Conditional probabilities computation using Hidden Markov Models}
+\title{Calculate Haplotype probabilities using Hidden Markov Models}
 \usage{
 calc_haplotypes(
-  input.seq,
-  phase.conf = c("best", "all"),
-  verbose = FALSE,
-  tol = 0.001,
-  compute.both.parents = TRUE
+  x,
+  lg = NULL,
+  type = c("mds", "genome"),
+  phase.conf = "all",
+  verbose = TRUE,
+  ncpus = 1
 )
 }
 \arguments{
-\item{void}{internal function}
+\item{x}{An object representing genetic mapping data.}
+
+\item{lg}{Optional; a vector of linkage group indices to process. If NULL, all linkage groups in \code{x} are processed.}
+
+\item{type}{The type of map to process, either "mds" or "genome".}
+
+\item{phase.conf}{A configuration parameter for phase calculation.}
+
+\item{verbose}{Logical; if TRUE, progress messages will be printed.}
+
+\item{ncpus}{The number of CPU cores to use for parallel processing.}
+}
+\value{
+The input object \code{x} with haplotypes calculated for the specified linkage groups.
 }
 \description{
-Conditional probabilities computation using Hidden Markov Models
+This function calculates haplotypes for each linkage group in a genetic mapping dataset. It supports both sequential and parallel processing.
 }
 \author{
 Marcelo Mollinari, \email{mmollin@ncsu.edu}
 }
-\keyword{internal}

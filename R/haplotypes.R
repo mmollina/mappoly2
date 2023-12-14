@@ -1,77 +1,111 @@
-#' Conditional probabilities computation using Hidden Markov Models
+#' Calculate Haplotype probabilities using Hidden Markov Models
 #'
-#' @param void internal function
-#' @keywords internal
+#' This function calculates haplotypes for each linkage group in a genetic mapping dataset. It supports both sequential and parallel processing.
+#'
+#' @param x An object representing genetic mapping data.
+#' @param lg Optional; a vector of linkage group indices to process. If NULL, all linkage groups in `x` are processed.
+#' @param type The type of map to process, either "mds" or "genome".
+#' @param phase.conf A configuration parameter for phase calculation.
+#' @param verbose Logical; if TRUE, progress messages will be printed.
+#' @param ncpus The number of CPU cores to use for parallel processing.
+#' @return The input object `x` with haplotypes calculated for the specified linkage groups.
+#' @importFrom parallel detectCores makeCluster parLapply stopCluster
 #' @author Marcelo Mollinari, \email{mmollin@ncsu.edu}
 #' @export
-calc_haplotypes <- function(input.seq,
-                            phase.conf = c("best","all"),
-                            verbose = FALSE,
-                            tol = 10e-4,
-                            compute.both.parents = TRUE)
+calc_haplotypes <- function(x,
+                            lg = NULL,
+                            type = c("mds", "genome"),
+                            phase.conf = "all",
+                            verbose = TRUE,
+                            ncpus = 1)
 {
-  assert_that(is.mappoly2.sequence(input.seq))
-  mrk.id <- rownames(input.seq$phases[[1]]$p1)
-  g <- input.seq$data$geno.dose[mrk.id, ]
+  y <- mappoly2:::parse_lg_and_type(x,lg,type)
+  g <- x$data$geno.dose
   g[is.na(g)] <- -1
-  phase.conf <- match.arg(phase.conf)
-
-  if(phase.conf == "all")
-    phase.conf <- 1:length(input.seq$phases)
-
-  if(phase.conf == "best")
-    phase.conf <- 1
-
-  output.seq <- input.seq
-
-  cat("Computing haplotype probabilities\n")
-  cat("   Number of phase configurations: ", length(phase.conf), "\n")
-  if (detect_info_par(input.seq) == "both" || compute.both.parents){
-    for(i in 1: length(phase.conf)){
-      cat("   Conf.", i,":")
-      pedigree <- matrix(rep(c(1,
-                               2,
-                               input.seq$data$ploidy.p1,
-                               input.seq$data$ploidy.p2, 1),
-                             input.seq$data$n.ind),
-                         nrow = input.seq$data$n.ind,
-                         byrow = TRUE)
-      output.seq$phases[[phase.conf[i]]]$haploprob <- calc_haploprob_biallelic(PH = list(input.seq$phases[[i]]$p1,
-                                                                                        input.seq$phases[[i]]$p2),
-                                                                              G = g,
-                                                                              pedigree = pedigree,
-                                                                              rf = input.seq$phases[[phase.conf[i]]]$rf,
-                                                                              err = input.seq$phases[[phase.conf[i]]]$error)
-      cat("\n")
-    }
-    cat("Done with haplotype probabilities\n")
-    return(output.seq)
-  } else if(detect_info_par(input.seq) == "p1"){
-    id <- which(input.seq$data$ploidy.p2 == input.seq$data$dosage.p2[mrk.id])
-    g[id, ] <- g[id, ] - input.seq$data$ploidy.p2/2
-    for(i in phase.conf){
-      cat("   Conf.", i,":")
-      output.seq$phases[[phase.conf[i]]]$haploprob <- calc_haploprob_biallelic_single(PH = input.seq$phases[[i]]$p1,
-                                                                                     G = g,
-                                                                                     rf = input.seq$phases[[phase.conf[i]]]$rf,
-                                                                                     err = input.seq$phases[[phase.conf[i]]]$error)
-      cat("\n")
-    }
-    cat("Done with haplotype probabilities\n")
-    return(output.seq)
-  } else if(detect_info_par(input.seq) == "p2") {
-    id <- which(input.seq$data$ploidy.p1 == input.seq$data$dosage.p1[mrk.id])
-    g[id, ] <- g[id, ] - input.seq$data$ploidy.p1/2
-    for(i in phase.conf){
-      cat("   Conf.", i,":")
-      output.seq$phases[[phase.conf[i]]]$haploprob <- calc_haploprob_biallelic_single(PH = input.seq$phases[[i]]$p2,
-                                                                                   G = g,
-                                                                                   rf = input.seq$phases[[phase.conf[i]]]$rf,
-                                                                                   err = input.seq$phases[[phase.conf[i]]]$error)
-    }
-    cat("Done with haplotype probabilities\n")
-    return(output.seq)
-  } else {
-    stop("it should not get here")
+  ploidy.p1 <- x$data$ploidy.p1
+  ploidy.p2 <- x$data$ploidy.p2
+  ind.names <- x$data$screened.data$ind.names
+  g <- g[,ind.names]
+  haplotypeData <- lapply(y$lg, function(i) {
+    ph <- x$maps[[i]][[y$type]]$phase
+    list(g = g, ph = ph, ploidy.p1 = ploidy.p1, ploidy.p2 = ploidy.p2,
+         phase.conf = phase.conf, verbose = verbose, type = type)
+  })
+  haplotypeFunc <- function(data) {
+    if(data$verbose) cat("Processing linkage group\n")
+    return(mappoly2:::calc_haplotypes_one(data$g, data$ph, data$ploidy.p1,
+                               data$ploidy.p2, data$phase.conf,
+                               parent.info = "both", verbose = data$verbose))
   }
+  if(ncpus > 1) {
+    cl <- makeCluster(ncpus)
+    results <- parLapply(cl, haplotypeData, haplotypeFunc)
+    stopCluster(cl)
+  } else {
+    results <- lapply(haplotypeData, haplotypeFunc)
+  }
+  for(i in seq_along(y$lg))
+    x$maps[[y$lg[i]]][[y$type]]$phase <- results[[i]]
+
+  return(x)
+}
+
+
+calc_haplotypes_one <- function(g, ph, ploidy.p1, ploidy.p2,
+                                phase.conf = "all",
+                                parent.info = c("both", "p1", "p2"),
+                                verbose = TRUE){
+  if(all(phase.conf == "all"))
+    phase.conf <- 1:length(ph)
+  assert_that(all(phase.conf%in%1:length(ph)),
+              msg = "invalid phases specified in 'phase.conf'")
+  n.ind <- ncol(g)
+  mrk.id <- rownames(ph[[1]]$p1)
+  g <- g[mrk.id,]
+  if (parent.info == "both"){ ###FIXME: include detect_parent_info
+    for(i in phase.conf){
+      cat("   Conf.", i,":")
+      pedigree <- matrix(rep(c(1,2,ploidy.p1,ploidy.p2, 1),n.ind),
+                         nrow = n.ind,
+                         byrow = TRUE)
+      w <- calc_haploprob_biallelic(PH = list(ph[[i]]$p1,
+                                              ph[[i]]$p2),
+                                    G = g,
+                                    pedigree = pedigree,
+                                    rf = ph[[i]]$rf,
+                                    err = ph[[i]]$error)
+      ph[[i]]$haploprob <- cbind(rep(c(rep(1, ploidy.p1), rep(2, ploidy.p2)), n.ind), w)
+    }
+    cat("Done with haplotype probabilities\n")
+    return(ph)
+  }
+  else if(parent.info == "p1"){
+    id <- which(ploidy.p2 == dosage.p2[mrk.id])
+    g[id, ] <- g[id, ] - ploidy.p2/2
+    for(i in phase.conf){
+      cat("   Conf.", i,":")
+      w <- calc_haploprob_biallelic_single(PH = ph[[i]]$p1,
+                                           G = g,
+                                           rf = ph[[i]]$rf,
+                                           err = ph[[i]]$error)
+      ph[[i]]$haploprob <- cbind(rep(1, ploidy.p1*n.ind), w)
+    }
+    cat("Done with haplotype probabilities\n")
+    return(ph)
+  }
+  else if(parent.info == "p2") {
+    id <- which(ploidy.p1 == dosage.p1[mrk.id])
+    g[id, ] <- g[id, ] - ploidy.p1/2
+    for(i in phase.conf){
+      cat("   Conf.", i,":")
+      w <- calc_haploprob_biallelic_single(PH = ph[[i]]$p2,
+                                           G = g,
+                                           rf = ph[[i]]$rf,
+                                           err = ph[[i]]$error)
+      ph[[i]]$haploprob <- cbind(rep(2, ploidy.p2*n.ind), w)
+    }
+    cat("Done with haplotype probabilities\n")
+    return(ph)
+  }
+  else {stop("it should not get here")}
 }

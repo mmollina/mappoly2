@@ -2,25 +2,56 @@
 % Please edit documentation in R/map.R
 \name{mapping}
 \alias{mapping}
-\title{Multipoint analysis using Hidden Markov Models}
+\title{Multi-Locus Map Estimation}
 \usage{
 mapping(
-  input.seq,
+  x,
+  lg = NULL,
+  type = c("mds", "genome", "custom"),
   phase.conf = "all",
   rf = NULL,
   error = 0,
-  verbose = FALSE,
+  ncpus = 1,
+  verbose = TRUE,
   tol = 0.001,
   ret_H0 = FALSE
 )
 }
 \arguments{
-\item{void}{internal function}
+\item{x}{An object representing mappoly2 data, typically containing genetic information
+and maps for linkage groups.}
+
+\item{lg}{Optional; a vector of linkage group indices to be processed. If NULL, all
+linkage groups in the data object are considered.}
+
+\item{type}{Character vector indicating the type of mapping to perform. Options include
+"mds" (multi-dimensional scaling) and "genome". Default is c("mds", "genome").}
+
+\item{phase.conf}{A configuration parameter for phase determination.}
+
+\item{rf}{Recombination fraction, used in the mapping calculations.}
+
+\item{error}{Error tolerance in the mapping process.}
+
+\item{ncpus}{Integer; specifies the number of cores to use for parallel processing}
+
+\item{verbose}{Logical; if TRUE, detailed progress information will be printed during
+processing. Default is TRUE.}
+
+\item{tol}{Tolerance level for the mapping algorithm.}
+
+\item{ret_H0}{Logical; if TRUE, some hypothesis testing result is returned.}
+}
+\value{
+Returns an updated mappoly2 data object with mapped linkage groups.
 }
 \description{
-Multipoint analysis using Hidden Markov Models
+Performs multi-locus map estimation on mappoly2 data objects. This function supports
+both sequential and parallel processing for handling large datasets efficiently.
+}
+\seealso{
+\link[mappoly2]{mapping_one} for the function used in mapping calculations.
 }
 \author{
 Marcelo Mollinari, \email{mmollin@ncsu.edu}
 }
-\keyword{internal}

@@ -5,7 +5,7 @@
 #' the package \code{MDSmap}, available under the GNU General Public License,
 #' Version 3, at \url{https://CRAN.R-project.org/package=MDSMap}.
 #'
-#' @param input.seq$pairwise an object of class \code{mappoly.input.seq$pairwiserix}.
+#' @param x$pairwise an object of class \code{mappoly.x$pairwiserix}.
 #'
 #' @param p integer. The smoothing parameter for the principal curve.
 #'   If \code{NULL} (default), this will be determined using leave-one-out cross validation.
@@ -51,21 +51,16 @@
 #' @importFrom smacof smacofSym
 #' @importFrom princurve principal.curve
 #' @importFrom stats runif
-#' @importFrom utils read.csv write.csv
-#' @export mds
-mds <- function(input.seq,
-                lg,
-                ch = NULL,
+mds <- function(x,
+                mrk.id,
                 p = NULL,
                 n = NULL,
                 ndim = 2,
                 weight.exponent = 2,
                 verbose = TRUE)
 {
-  assert_that(is.pairwise.sequence(input.seq))
-  mrk.id <- get_markers_from_grouped_and_chromosome(input.seq, lg, ch)
-  rf.mat <- input.seq$pairwise$rec.mat[mrk.id, mrk.id]
-  lod.mat <- input.seq$pairwise$lod.mat[mrk.id, mrk.id]
+  rf.mat <- x$data$pairwise.rf$rec.mat[mrk.id, mrk.id]
+  lod.mat <- x$data$pairwise.rf$lod.mat[mrk.id, mrk.id]
   o <- is.na(rf.mat)
   rf.mat[o] <- 1e-07
   lod.mat[o] <- 1e-07
@@ -111,8 +106,37 @@ mds <- function(input.seq,
   } else {
     removedloci <- n
   }
-  input.seq$order$mds <- list(smacofsym = smacofsym,pc = pc1,distmap = distmap,lodmap = lodmap,locimap = locimap,length = max(estpos),removed = n,locikey = locikey,meannnfit = nnfit$meanfit)
-  input.seq
+  ord.obj <- list(smacofsym = smacofsym,
+                  pc = pc1,
+                  distmap = distmap,
+                  lodmap = lodmap,
+                  locimap = locimap,
+                  length = max(estpos),
+                  removed = n,
+                  locikey = locikey,
+                  meannnfit = nnfit$meanfit)
+  return(ord.obj)
+}
+
+#' @export
+order_sequence <- function(x,
+                           lg = NULL,
+                           type = c("mds", "genome"),
+                           p = NULL,
+                           n = NULL,
+                           ndim = 2,
+                           weight.exponent = 2,
+                           verbose = TRUE){
+  y <- mappoly2:::parse_lg_and_type(x,lg,type)
+  for(i in y$lg){
+    if(verbose) cat("  -->", i)
+    if(y$type == "mds")
+      x$maps[[i]][[y$type]]$order <- mds(x, x$maps[[i]][[y$type]]$mkr.names,p,n,ndim,weight.exponent,verbose)
+    else
+      x$maps[[i]][[y$type]]$order <- genome_order(x, x$maps[[i]][[y$type]]$mkr.names, verbose = TRUE)
+    if(verbose) cat("\n")
+  }
+  return(x)
 }
 
 
@@ -256,25 +280,24 @@ get.nearest.informative <- function (loci, lodmap){
 #'
 #' This functions gets the genomic position of markers in a sequence and
 #' return an ordered data frame with the name and position of each marker
-#' @param input.seq a sequence object of class \code{mappoly.sequence}
+#' @param x a sequence object of class \code{mappoly.sequence}
 #' @param verbose if \code{TRUE} (default), the current progress is shown; if
 #'     \code{FALSE}, no output is produced
 #' @param x 	an object of the class mappoly.geno.ord
 #' @param ... 	currently ignored
 #'
 #' @author Marcelo Mollinari, \email{mmollin@ncsu.edu}
-#' @export get_genome_order
 #' @importFrom utils head
-get_genome_order <- function(input.seq, verbose = TRUE){
-  assert_that(is.mappoly2.sequence(input.seq))
-  genome.pos <- input.seq$data$genome.pos[input.seq$mrk.names]
-  chrom <- input.seq$data$chrom[input.seq$mrk.names]
+genome_order <- function(x, mrk.names, verbose = TRUE){
+  assert_that(is.mappoly2.sequence(x))
+  genome.pos <- x$data$genome.pos[mrk.names]
+  chrom <- x$data$chrom[mrk.names]
   if(all(is.na(genome.pos))){
     if(all(is.na(chrom)))
       stop("No sequence or sequence position information found.")
     else{
       if (verbose) message("Ordering markers based on chromosome information")
-      M <- data.frame(seq = chrom, row.names = input.seq$mrk.names)
+      M <- data.frame(seq = chrom, row.names = mrk.names)
       M.out <- M[order(embedded_to_numeric(M[,1])),]
     }
   } else if(all(is.na(chrom))){
@@ -282,26 +305,24 @@ get_genome_order <- function(input.seq, verbose = TRUE){
       stop("No sequence or sequence position information found.")
     else{
       if (verbose) message("Ordering markers based on sequence position information")
-      M <- data.frame(seq.pos = genome.pos, row.names = input.seq$mrk.names)
+      M <- data.frame(seq.pos = genome.pos, row.names = mrk.names)
       M.out <- M[order(embedded_to_numeric(M[,1])),]
     }
   } else{
     M <- data.frame(seq = chrom,
                     seq.pos = genome.pos,
-                    row.names = input.seq$mrk.names)
+                    row.names = mrk.names)
     M.out <- M[order(embedded_to_numeric(M[, "seq"]),
                      embedded_to_numeric(M[, "seq.pos"])),]
   }
-  structure(list(data = input.seq$data, ord = M.out), class = "mappoly2.geno.ord")
+  return(M.out)
 }
 
-#' @rdname get_genome_order
 #' @export
 print.mappoly2.geno.ord <- function(x, ...){
   print(head(x$ord))
 }
 
-#' @rdname get_genome_order
 #' @export
 #' @importFrom ggplot2 ggplot aes geom_point xlab ylab theme
 plot.mappoly2.geno.ord <- function(x, ...){

@@ -348,6 +348,8 @@ rf_filter <- function(x,
                       thresh.LOD.rf = 5,
                       thresh.rf = 0.15,
                       probs = c(0.05, 1),
+                      lg = NULL,
+                      type = c("mds", "genome"),
                       diag.markers = NULL,
                       mrk.order = NULL,
                       diagnostic.plot = TRUE,
@@ -355,17 +357,35 @@ rf_filter <- function(x,
   if(mappoly2:::is.mappoly2.data(x)){
     assert_that(has.mappoly2.rf(x))
     return(init_rf_filter(x,
-                          thresh.LOD.ph = thresh.LOD.ph,
-                          thresh.LOD.rf = thresh.LOD.rf,
-                          thresh.rf = thresh.rf,
-                          probs = probs,
-                          diag.markers = diag.markers,
-                          mrk.order = mrk.order,
-                          diagnostic.plot = diagnostic.plot,
+                          thresh.LOD.ph,
+                          thresh.LOD.rf,
+                          thresh.rf,
+                          probs,
+                          diag.markers,
+                          mrk.order,
+                          diagnostic.plot,
                           breaks = breaks))
+  } else if(is.mappoly2.sequence(x)){
+    lg.temp <- c(1 : length(x$maps))
+    if(is.null(lg)){
+      lg <-lg.temp
+      diagnostic.plot <- FALSE
+    }
+    assert_that(all(lg %in% lg.temp), msg = "Provide a valid group set")
+    for(i in lg){
+      x <- rf_filter_per_group(x,
+                                 i,
+                                 type,
+                                 thresh.LOD.ph,
+                                 thresh.LOD.rf,
+                                 thresh.rf,
+                                 probs,
+                                 diag.markers,
+                                 diagnostic.plot,
+                                 breaks)
+    }
+    return(x)
   }
-  ####FIXME####
-  ##Implement/fix per group
 }
 
 
@@ -418,31 +438,27 @@ init_rf_filter <- function(x,
 }
 
 rf_filter_per_group <- function(x,
-                                gr,
+                                lg,
+                                type = c("mds", "genome"),
                                 thresh.LOD.ph = 5,
                                 thresh.LOD.rf = 5,
                                 thresh.rf = 0.15,
                                 probs = c(0.05, 1),
                                 diag.markers = NULL,
-                                mrk.order = NULL,
                                 diagnostic.plot = TRUE,
                                 breaks = 100)
 {
-  assert_that(inherits(x, "ws"))
-  mrk.names <- x$working.sequences[[gr]]$mrk.names
+  y <- mappoly2:::parse_lg_and_type(x,lg,type)
+  assert_that(length(y$lg) ==1 & is.numeric(lg))
   probs <- range(probs)
   ## Getting filtered rf matrix
-  M <- mappoly2:::filter_rf_matrix(x,
-                                   type = "rf",
-                                   thresh.LOD.ph = thresh.LOD.ph,
-                                   thresh.LOD.rf = thresh.LOD.rf,
-                                   thresh.rf = thresh.rf,
-                                   mrk.names)
-
-  if(!is.null(mrk.order)){
-    assert_that(all(mrk.order%in%mrk.names))
-    M <- M[mrk.order, mrk.order]
-  }
+  mrk.names <- x$maps[[lg]][[y$type]]$mkr.names
+  M <-mappoly2:::filter_rf_matrix(x$data,
+                                  type = "rf",
+                                  thresh.LOD.ph = thresh.LOD.ph,
+                                  thresh.LOD.rf = thresh.LOD.rf,
+                                  thresh.rf = thresh.rf,
+                                  mrk.names = mrk.names)
   if(!is.null(diag.markers))
     M[abs(col(M) - row(M)) > diag.markers] <- NA
   z <- apply(M, 1, function(x) sum(!is.na(x)))
@@ -450,24 +466,19 @@ rf_filter_per_group <- function(x,
   th <- quantile(z, probs = probs)
   rem <- c(which(z < th[1]), which(z > th[2]))
   ids <- names(which(z >= th[1] & z <= th[2]))
-  value <- type <- NULL
+  value <- marker <- NULL
   if(diagnostic.plot){
-    d <- rbind(data.frame(type = "original", value = z),
-               data.frame(type = "filtered", value = z[ids]))
+    d <- rbind(data.frame(marker = "original", value = z),
+               data.frame(marker = "filtered", value = z[ids]))
     p <- ggplot2::ggplot(d, ggplot2::aes(value)) +
-      ggplot2::geom_histogram(ggplot2::aes(fill = type),
+      ggplot2::geom_histogram(ggplot2::aes(fill = marker),
                               alpha = 0.4, position = "identity", binwidth = diff(w$mids)[1]) +
       ggplot2::scale_fill_manual(values = c("#00AFBB", "#E7B800")) +
       ggplot2::ggtitle( paste0("Filtering probs: [", probs[1], " : ", probs[2], "] - Non NA values by row in rf matrix - b width: ", diff(w$mids)[1])) +
       ggplot2::xlab(paste0("Non 'NA' values at LOD.ph = ", thresh.LOD.ph, ", LOD.rf = ", thresh.LOD.rf, ", and thresh.rf = ", thresh.rf))
     print(p)
   }
-  x$working.sequences[[gr]]$screened.rf <- list(thresholds = c(thresh.LOD.ph = thresh.LOD.ph,
-                                                               thresh.LOD.rf = thresh.LOD.rf,
-                                                               thresh.rf = thresh.rf,
-                                                               prob.lower = probs[1],
-                                                               prob.upper = probs[2]),
-                                                mrk.names = ids)
+  x$maps[[lg]][[y$type]]$mkr.names <- intersect(x$maps[[lg]][[y$type]]$mkr.names, ids)
   return(x)
 }
 
@@ -495,9 +506,9 @@ filter_rf_matrix <- function(x,
   } else if(type == "sh"){
     sh.p1 <- x$pairwise.rf$Sh.p1[mrk.names,mrk.names]
     sh.p2 <- x$pairwise.rf$Sh.p2[mrk.names,mrk.names]
-    if(thresh.LOD.ph > 0) sh.p1[id1] <- sh.p1[id1] <- NA
-    if(thresh.LOD.rf > 0) sh.p1[id2] <- sh.p1[id2] <- NA
-    if(thresh.rf < 0.5)  sh.p1[id3] <- sh.p1[id3] <- NA
+    if(thresh.LOD.ph > 0) sh.p2[id1] <- sh.p1[id1] <- NA
+    if(thresh.LOD.rf > 0) sh.p2[id2] <- sh.p1[id2] <- NA
+    if(thresh.rf < 0.5)  sh.p2[id3] <- sh.p1[id3] <- NA
     return(list(Sh.p1 = sh.p1,
                 Sh.p2 = sh.p2))
   }

@@ -1,3 +1,17 @@
+#' @export
+rev_map <- function(x, lg, type = c("mds", "genome", "custom")){
+  y <- mappoly2:::parse_lg_and_type(x,lg,type)
+  for(i in y$lg){
+    z<- x$maps[[i]][[y$type]]$phase[[1]]
+    z$p1 <- z$p1[nrow(z$p1):1,]
+    z$p2 <- z$p1[nrow(z$p1):1,]
+    z$rf <- rev(z$rf)
+    z$haploprob <- cbind(z$haploprob[,1:3], z$haploprob[,ncol(z$haploprob):4])
+    x$maps[[i]][[y$type]]$phase[[1]] <- z
+  }
+  return(x)
+}
+
 #' Drop marker(s) from a sequence
 #'
 #' @param void internal function

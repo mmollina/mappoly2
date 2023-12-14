@@ -7,7 +7,7 @@ genetic map, circumventing the need for complete
 HMM-based map recomputation.}
 \usage{
 augment_phased_map(
-  input.seq,
+  x,
   input.twopt,
   thresh.LOD.ph = 5,
   thresh.LOD.rf = 5,

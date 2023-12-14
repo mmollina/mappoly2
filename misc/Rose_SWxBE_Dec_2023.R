@@ -3,15 +3,16 @@ require(mappoly2)
 setwd("~/repos/official_repos/mappoly2/")
 ####Reading Data####
 dat <- read_geno_csv(file.in = "misc/SWxBE.csv",
-                   ploidy.p1 = 4,
-                   ploidy.p2 = 4)
+                     ploidy.p1 = 4,
+                     ploidy.p2 = 4)
 print(dat)
 print(dat, detailed = TRUE)
 plot(dat)
 plot(dat, chrom = "ch1")
-x <- subset(dat)
-plot(x)
-
+#dat <- subset(dat, perc = .5) ##FIXME
+#dat
+#plot(dat)
+#### Subset and Merge ####
 x1 <- subset(B2721, type = "marker", n = 700)
 x1 <- subset(x1, type = "individual", n = 80)
 plot(x1)
@@ -27,8 +28,9 @@ plot(x)
 
 #### Initial QA/QC ####
 dat <- filter_data(dat, mrk.thresh = 0.05, ind.thresh = 0.1)
-
 plot(dat)
+dat
+
 plot(dat, chrom = "chr1")
 plot(dat, type = "screened")
 plot(dat, type = "screened", chrom = "chr1")
@@ -44,6 +46,7 @@ dat <- filter_individuals(dat, type = "PCA")
 dat
 
 #### Pairwise rf ####
+### 100 seconds
 system.time(dat <- pairwise_rf(dat, mrk.scope = "all", ncpus = 8))
 print(dat, detailed = TRUE)
 plot(dat)
@@ -70,7 +73,7 @@ print(dat, detailed = TRUE)
 plot(dat)
 
 #### RF filter ####
-dat <- rf_filter(dat, probs = c(0.025, 0.975))
+dat <- rf_filter(dat, probs = c(0.035, 0.975))
 dat
 plot(dat)
 plot(dat, chrom = "chr1")
@@ -85,57 +88,64 @@ plot(dat, type = "raw", chrom = "ch1")
 g <- group(dat, expected.groups = 7, comp.mat = TRUE, inter = TRUE)
 g
 plot(g)
-
-
-
-
-
-
-#### Set Initial Sequence ####
-s <- make_sequence(x, "all")
-#### FIXME ####
-print(s, detailed = TRUE)
-#### FIXME ####
-plot(s)
-system.time(s <- pairwise_rf(s, ncpus = 1))
-system.time(s <- pairwise_rf(s, ncpus = 8))
+#### Sequence ####
+g
+s <- make_sequence(g)
 s
-plot(s, type = "rf", fact = 2)
-s
-plot(s, type = "rf", fact = 2)
+s1 <- make_sequence(g, ch = list(1,2,3,4,5,6,7))
+s1
+s2 <- make_sequence(g, ch = list(2,4,6,5,1,3,7), lg = list(1,2,3,4,5,6,7))
+s2
+bla<-mappoly2:::get_markers_from_grouped_and_chromosome(g, lg = c(1,5), ch = c("Chr_2", "Chr_7", "NoChr"))
+g1 <- group(dat, expected.groups = 10, comp.mat = TRUE, inter = FALSE)
+g1
+s3 <- make_sequence(g1, ch = list(2,6,4,5,1,3,7), lg = list(c(1,3),2,4,c(5,6),7,8,9))
+s3
+## From data
+s4 <- make_sequence(dat, mrk.id.list = 1:100)
+mrk.names <- dat$screened.data$mrk.names[200:230]
+s5 <- make_sequence(dat, mrk.id.list = mrk.names)
+### FIXME: print and plot sequence ###
+#print(s, detailed = TRUE)
+#plot(s)
+#### Order ######
+so <- order_sequence(s2, lg = c(1,3), type = "mds")
+so <- order_sequence(so, lg = c(1,3), type = "genome")
+so <- order_sequence(so, lg = c(2,4,5,6,7), type = "mds")
+so <- order_sequence(so, lg = c(2,4,5,6,7), type = "genome")
+so <- order_sequence(s2, type = "mds")
+so <- order_sequence(so, type = "genome")
+#### Pairwise Phasing ####
+so <- pairwise_phasing(so, type = "mds")
+so <- pairwise_phasing(so, type = "genome")
 
-#### Grouping ####
-s <- group(s, expected.groups = 3, comp.mat = TRUE, inter = F)
-s
-plot(s)
-#### Ordering ####
-s$pairwise$Sh.p1
-
-
-#### CH1 ####
-s.ch1.p1 <- pairwise_phasing(input.seq = s,
-                             lg = 1,
-                             info.parent = c("both", "p1", "p2"),
-                             thresh.LOD.ph = 3,
-                             max.conf.btnk.p1 = 10)
 
 
 
 
-#### Select parent 1####
-s.ch1.p1 <- make_sequence(s.ch1.filt, info.parent = "p1")
-s.ch1.p1
-# Phasing #
-s.ch1.p1 <- pairwise_phasing(input.seq = s.ch1.p1,
-                             input.twopt = tpt,
-                             thresh.LOD.ph = 3,
-                             max.conf.btnk.p1 = 10)
-# Mapping #
-s.ch1.p1 <- mapping(input.seq = s.ch1.p1,
+
+
+
+
+
+s.ch1.p1 <- mapping(input.seq = ch1.mds,
                     verbose = TRUE,
                     error = 0.00,# error = 0.0
                     tol = 10e-4)
+
+
+
 plot_map(s.ch1.p1, mrk.names = TRUE)
+
+
+
+
+
+
+
+
+
+
 #### Select parent 2####
 s.ch1.p2 <- make_sequence(s.ch1.all, info.parent = "p2")
 s.ch1.p2

@@ -158,6 +158,7 @@ table_to_mappoly <- function(dat,
 
   # Get chromosome info
   chrom <- as.character(dat[, 4, drop = TRUE])
+  chrom[mappoly2:::embedded_to_numeric(chrom) == 0] <- "NoChr"
   chrom[is.na(chrom)] <- "NoChr"
 
   # Get sequence position info

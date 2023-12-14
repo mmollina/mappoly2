@@ -5,12 +5,14 @@
 \title{Phasing based on pairwise recombination fraction estimation}
 \usage{
 pairwise_phasing(
-  input.seq,
-  thresh.LOD.ph = 3,
-  thresh.LOD.rf = 3,
+  x,
+  lg = NULL,
+  type = c("mds", "genome"),
+  thresh.LOD.ph = 5,
+  thresh.LOD.rf = 5,
   thresh.rf = 0.5,
-  max.conf.btnk.p1 = 1,
-  max.conf.btnk.p2 = max.conf.btnk.p1,
+  max.search.expansion.p1 = 10,
+  max.search.expansion.p2 = max.search.expansion.p1,
   verbose = TRUE
 )
 }

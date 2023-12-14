@@ -103,14 +103,18 @@ group <- function(x = NULL,
                                    dimnames = list(1:expected.groups, na.omit(unique(mn))))
       for(i in 1:expected.groups)
       {
-        x <- table(names(which(groups.snp == i)))
-        seq.vs.grouped.snp[i,names(x)] <- x
+        u <- table(names(which(groups.snp == i)))
+        seq.vs.grouped.snp[i,names(u)] <- u
       }
       idtemp2 <- unique(apply(seq.vs.grouped.snp, 1, which.max))
       idtemp2 <- c(idtemp2, setdiff(1:(ncol(seq.vs.grouped.snp)-1), idtemp2))
       seq.vs.grouped.snp <- cbind(seq.vs.grouped.snp[,idtemp2])
       cnm <- colnames(seq.vs.grouped.snp)
       colnames(seq.vs.grouped.snp) <- cnm
+      seq.vs.grouped.snp <- cbind(seq.vs.grouped.snp, apply(seq.vs.grouped.snp, 1, sum))
+      seq.vs.grouped.snp <- rbind(seq.vs.grouped.snp, apply(seq.vs.grouped.snp, 2, sum))
+      colnames(seq.vs.grouped.snp)[ncol(seq.vs.grouped.snp)] <- "Total"
+      rownames(seq.vs.grouped.snp)[nrow(seq.vs.grouped.snp)] <- "Total"
     } else {
       seq.vs.grouped.snp <- NULL
     }
@@ -118,7 +122,8 @@ group <- function(x = NULL,
     return(structure(list(hc.snp = hc.snp,
                           expected.groups = expected.groups,
                           groups.snp = groups.snp,
-                          seq.vs.grouped.snp = seq.vs.grouped.snp), class = "mappoly2.group"))
+                          seq.vs.grouped.snp = seq.vs.grouped.snp,
+                          data = x), class = "mappoly2.group"))
   #}
 }
 

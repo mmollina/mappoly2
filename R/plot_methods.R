@@ -1,6 +1,29 @@
-#' @export
+#' Plot Data from mappoly2.data Object
+#'
+#' Visualizes data from a `mappoly2.data` object, which may also have "screened" and "pairwise.rf" classes. This function provides various plotting options including recombination frequency matrices, screened data, marker density, and raw data, depending on the type of data available in the object and the selected options.
+#'
+#' @param x A `mappoly2.data` object containing genetic mapping data. The object can also be of class "screened" and "pairwise.rf".
+#' @param type A character string specifying the type of plot to generate. It can be one of "rf" (recombination frequency), "screened", "density", or "raw". Default is "rf".
+#' @param chrom Optional; a vector of chromosome numbers or names to subset the data before plotting. If `NULL`, all chromosomes are considered.
+#'
+#' @details
+#' The function can visualize data in four different ways based on the `type` parameter:
+#' - "rf": Plots a recombination frequency matrix, available for objects with the "pairwise.rf" class.
+#' - "screened": Shows screened data for objects with the "screened" class.
+#' - "density": Generates a density plot of markers, requiring genome position information.
+#' - "raw": Displays raw data from the `mappoly2.data` object.
+#' The function handles data selection based on the provided chromosome information (`chrom`).
+#'
+#' @return The function does not return a value but generates a plot.
+#'
+#' @examples
+#' # Assuming `mappoly_data` is a pre-existing mappoly2.data object
+#' plot.mappoly2.data(mappoly_data, type = "rf")
+#' plot.mappoly2.data(mappoly_data, type = "density", chrom = 1)
+#'
 #' @importFrom graphics barplot layout mtext image legend
 #' @importFrom grDevices colorRampPalette
+#' @export
 plot.mappoly2.data<-function(x, type = c("rf", "screened", "density", "raw"), chrom = NULL)
 {
   mrk.id <- NULL
@@ -18,9 +41,9 @@ plot.mappoly2.data<-function(x, type = c("rf", "screened", "density", "raw"), ch
     else
       mrk.id <- Reduce(intersect, list(x$screened.data$mrk.names,
                                        colnames(x$pairwise.rf$rec.mat)))
-    plot_rf_matrix(x$pairwise.rf,
-                   fact = ceiling(ncol(x$pairwise.rf$rec.mat)/1000),
-                   ord = mrk.id)
+    plot_rf_matrix_one(x$pairwise.rf,
+                       fact = ceiling(ncol(x$pairwise.rf$rec.mat)/1000),
+                       ord = mrk.id)
   }
   else if (type == "density"){
     assert_that(mappoly2:::has.mappoly2.screened(x))
@@ -128,13 +151,43 @@ plot_data <- function(x,
   par(mfrow = c(1,1))
 }
 
+
+optimal_layout <- function(n) {
+  # Start with a square layout as close as possible
+  rows <- floor(sqrt(n))
+  cols <- ceiling(n / rows)
+
+  # Adjust rows and cols if necessary
+  while (rows * cols < n) {
+    rows <- rows + 1
+  }
+
+  return(c(rows, cols))
+}
+
 plot_rf_matrix <- function(x,
-                           type = c("rf", "lod"),
-                           ord = NULL,
-                           rem = NULL,
-                           main.text = NULL,
-                           index = FALSE,
-                           fact = 1, ...){
+                           lg = NULL,
+                           type = c("mds", "genome", "custom"),
+                           fact = 1){
+  y <- mappoly2:::parse_lg_and_type(x,lg,type)
+  mrk.id <- mappoly2:::get_markers_from_ordered_sequence(x, y$lg, y$type)
+  op <- par(mfrow = mappoly2:::optimal_layout(length(y$lg)), pty = "s")
+  on.exit(par(op))
+  for(i in 1:length(mrk.id)){
+    mappoly2:::plot_rf_matrix_one(s$data$pairwise.rf,
+                                  ord = mrk.id[[i]],
+                                  main.text = paste(names(x$maps[i]), y$type, sep = "-"),
+                                  fact = fact)
+  }
+}
+
+plot_rf_matrix_one <- function(x,
+                               type = c("rf", "lod"),
+                               ord = NULL,
+                               rem = NULL,
+                               main.text = NULL,
+                               index = FALSE,
+                               fact = 1, ...){
   type <- match.arg(type)
   if(type  ==  "rf"){
     w <- x$rec.mat
@@ -208,3 +261,376 @@ plot.mappoly2.group <- function(x, ...) {
   text(x = xt, y = yt, labels = pmatch(xy, table(x$groups.snp, useNA = "ifany")), adj = .5)
 }
 
+
+#' prepare maps for plot
+#' @param void internal function to be documented
+#' @keywords internal
+prepare_map <- function(x,
+                        ploidy.p1, ploidy.p2,
+                        name.p1, name.p2,
+                        dosage.p1, dosage.p2,
+                        alt=NULL, ref=NULL){
+  ## Gathering marker positions
+  map <- cumsum(imf_h(c(0, x$phase[[1]]$rf)))
+  names(map) <- rownames(x$phase[[1]]$p1)
+  ## Gathering phases
+  ph.p1 <- x$phase[[1]]$p1
+  ph.p2 <- x$phase[[1]]$p2
+  colnames(ph.p1) <- paste0("p1.", 1:ploidy.p1)
+  colnames(ph.p2) <- paste0("p2.", 1:ploidy.p2)
+  if(is.null(ref))
+  {
+    ph.p1[ph.p1 == 1] <- ph.p2[ph.p2 == 1] <- "A"
+    ph.p1[ph.p1 == 0] <- ph.p2[ph.p2 == 0] <- "B"
+  } else {
+    for(i in names(map)){
+      ph.p1[i, ph.p1[i,] == 1] <- alt[i]
+      ph.p1[i, ph.p1[i,] == 0] <- ref[i]
+      ph.p2[i, ph.p2[i,] == 1] <- alt[i]
+      ph.p2[i, ph.p2[i,] == 0] <- ref[i]
+    }
+  }
+  d.p1 <- dosage.p1[names(map)]
+  d.p2 <- dosage.p2[names(map)]
+  list(ploidy.p1 = ploidy.p1,
+       ploidy.p2 = ploidy.p2,
+       name.p1 = name.p1,
+       name.p2 = name.p2,
+       map = map,
+       ph.p1 = ph.p1,
+       ph.p2 = ph.p2,
+       d.p1 = d.p1,
+       d.p2 = d.p2)
+}
+
+
+
+#' @importFrom grDevices rgb
+#' @importFrom graphics rect
+#' @export
+plot_map <- function(x, lg = 1, type = c("mds", "genome"),
+                     left.lim = 0, right.lim = Inf,
+                     phase = TRUE, mrk.names = FALSE,
+                     plot.dose = TRUE, homolog.names.adj = 3,
+                     cex = 1, xlim = NULL, main = "",...) {
+  y <- mappoly2:::parse_lg_and_type(x,lg,type)
+  assert_that(length(y$lg) ==1 & is.numeric(lg))
+  old.par <- par(no.readonly = TRUE)
+  on.exit(par(old.par))
+  map.info <- mappoly2:::prepare_map(x$maps[[y$lg]][[y$type]],
+                                       x$data$ploidy.p1, x$data$ploidy.p2,
+                                       x$data$name.p1, x$data$name.p2,
+                                       x$data$dosage.p1, x$data$dosage.p2,
+                                       x$data$alt, x$data$ref)
+  if(any(map.info$ph.p1 == "B")){
+    var.col <- c(A = "black", B = "darkgray")
+  } else {
+    var.col <- c(A = "#008000", T = "#FF0000", C = "#0000FF", G = "#FFFF00")
+  }
+  ploidy <- max(c(map.info$ploidy.p1, map.info$ploidy.p2))
+  x <- map.info$map
+  lab <- names(x)
+  zy <- seq(0, 0.6, by = 0.12)
+  zy.p1 <- zy[1:map.info$ploidy.p1] +1.8 + (0.3 * ((map.info$ploidy.p2/2)-1))
+  zy.p2 <- zy[1:map.info$ploidy.p2] + 1.1
+  pp <- map.info$ph.p1
+  pq <- map.info$ph.p2
+  d.p1 <- map.info$d.p1
+  d.p2 <- map.info$d.p2
+  x1 <- abs(left.lim - x)
+  x2 <- abs(right.lim - x)
+  id.left <- which(x1 == min(x1))[1]
+  id.right <- rev(which(x2 == min(x2)))[1]
+  par(mai = c(1,0.15,0,0), mar = c(4.5,homolog.names.adj,1,2))
+  curx <- x[id.left:id.right]
+  layout(mat  = matrix(c(2,4,1,3), ncol = 2), heights = c(10, 1), widths = c(1, 10))
+  #layout(mat  = matrix(c(4,2,3, 1), ncol = 2), heights = c(2, 10), widths = c(1, 10))
+  if(is.null(xlim)){
+    xlim <- range(curx)
+  }
+  max.y <- 4.0
+  plot(x = curx,
+       y = rep(.5,length(curx)),
+       type = "n" ,
+       ylim = c(.25, max.y),
+       axes = FALSE,
+       xlab = "Distance (cM)",
+       ylab = "",
+       xlim = xlim)
+  lines(c(x[id.left], x[id.right]), c(.5, .5), lwd = 15, col = "gray")
+  points(x = curx,
+         y = rep(.5,length(curx)),
+         xlab = "", ylab = "",
+         pch = "|", cex = 1.5,
+         ylim = c(0,2))
+  axis(side = 1)
+  ####Parent 2#####
+  x1 <- seq(x[id.left], x[id.right], length.out = length(curx))
+  x.control <- diff(x1[1:2])/2
+  if(length(x1) < 150)
+    x.control <- x.control * .8
+  if(length(x1) < 100)
+    x.control <- x.control * .8
+  if(length(x1) < 75)
+    x.control <- x.control * .8
+  if(length(x1) < 50)
+    x.control <- x.control * .8
+  if(length(x1) < 25)
+    x.control <- x.control * .8
+  for(i in 1:map.info$ploidy.p2)
+  {
+    lines(range(x1), c(zy.p2[i], zy.p2[i]), lwd = 12, col = "gray")
+    y1 <- rep(zy.p2[i], length(curx))
+    pal <- var.col[pq[id.left:id.right,i]]
+    rect(xleft = x1 - x.control,
+         ybottom = y1 -.035,
+         xright = x1 + x.control,
+         ytop = y1 +.035,
+         col = pal,
+         border = NA)
+  }
+  #connecting allelic variants to markers
+  for(i in 1:length(x1))
+    lines(c(curx[i], x1[i]), c(0.575, zy.p2[1]-.05), lwd = 0.2)
+  ####
+  if(plot.dose){
+    y <- zy.p2[map.info$ploidy.p2]+0.1 - ((map.info$ploidy.p2/2 - 1)*0.005)+d.p2[id.left:id.right]/20
+    y.l <- zy.p2[map.info$ploidy.p2]+0.1 - ((map.info$ploidy.p2/2 - 1)*0.005)+ c(0:map.info$ploidy.p2)[id.left:id.right]/20
+    #text(x = min(x1) - 1, y = mean(y.l), "doses", srt = 90)
+    for(i in 1:length(y.l)){
+      text(x = min(x1)-1,y=y.l[i],i-1, cex = .7)
+      lines(range(x1), c(y.l[i], y.l[i]), lwd = .5, col = "gray")
+    }
+
+    points(x = x1,
+           y = y,
+           col = "darkgray",
+           #col = d.col[as.character(d.p2[id.left:id.right])],
+           pch = 19, cex = .7)
+  }
+  ####Parent 1#####
+  for(i in 1:map.info$ploidy.p1)
+  {
+    lines(range(x1), c(zy.p1[i], zy.p1[i]), lwd = 12, col = "gray")
+    y1 <- rep(zy.p1[i], length(curx))
+    pal <- var.col[pp[id.left:id.right,i]]
+    rect(xleft = x1 - x.control,
+         ybottom = y1 -.035,
+         xright = x1 + x.control,
+         ytop = y1 +.035,
+         col = pal,
+         border = NA)
+  }
+  ####
+  if(plot.dose){
+    y <- zy.p1[map.info$ploidy.p1]+0.1 -((map.info$ploidy.p1/2 - 1)*0.005)+d.p1[id.left:id.right]/20
+    y.l <- zy.p1[map.info$ploidy.p1]+0.1 -((map.info$ploidy.p1/2 - 1)*0.005)+c(0:map.info$ploidy.p1)[id.left:id.right]/20
+    #text(x = min(x1) - 1, y = mean(y.l), "doses", srt = 90)
+    for(i in 1:length(y.l)){
+      text(x = min(x1)-1,y=y.l[i],i-1, cex = .7)
+      lines(range(x1), c(y.l[i], y.l[i]), lwd = .5, col = "gray")
+    }
+    points(x = x1,
+           y = y,
+           col = "darkgray",
+           #col = d.col[as.character(d.p1[id.left:id.right])],
+           pch = 19, cex = .7)
+  }
+  if(mrk.names)
+    text(x = x1,
+         y = rep(max(y)+.1, length(x1)),
+         labels = names(curx),
+         srt = 90, adj = 0, cex = cex *.6)
+  par(mar = c(4.5,1,1,0), xpd = TRUE)
+  plot(x = 0,
+       y = 0,
+       type = "n" ,
+       axes = FALSE,
+       ylab = "",
+       xlab = "",
+       ylim = c(.25, max.y))
+
+  mtext(text = main, side = 2, at = mean(c(zy.p2, zy.p2)), line = -1, font = 4, cex = cex , adj = c(0,0))
+  mtext(text = map.info$name.p2, side = 4, at = mean(zy.p2), line = -1, font = 4)
+  for(i in 1:map.info$ploidy.p2)
+    mtext(colnames(map.info$ph.p2)[i], line = 1, at = zy.p2[i], side = 4, las = 2, cex = 0.7 * cex)
+  mtext(text = map.info$name.p1, side = 4, at = mean(zy.p1), line = -1, font = 4)
+  for(i in 1:map.info$ploidy.p1)
+    mtext(colnames(map.info$ph.p1)[i],  line = 1, at = zy.p1[i], side = 4, las = 2, cex = 0.7 * cex)
+  par(mar = c(0,0,0,0), xpd = FALSE)
+  plot(x = curx,
+       y = rep(.5,length(curx)),
+       type = "n" ,
+       axes = FALSE,
+       xlab = "",
+       ylab = "")
+  if(any(map.info$ph.p1 == "B")){
+    legend("topleft", legend = c("A", "B"),
+           fill  = c(var.col), #title = "Variants",
+           box.lty = 0, bg = "transparent", ncol = 6)
+  } else {
+    legend("topleft", legend = c("A", "T", "C", "G", "-"),
+           fill  = c(var.col, "white"),# title = "Nucleotides",
+           box.lty = 0, bg = "transparent", ncol = 6)
+  }
+}
+
+#' Physical versus genetic distance
+#'
+#' This function plots scatterplot(s) of physical distance (in Mbp) versus the genetic
+#' distance (in cM). Map(s) should be passed as a single object or a list of objects
+#' of class \code{mappoly.map}.
+#'
+#' @param  w A list or a single object of class \code{mappoly.map}
+#'
+#' @param phase.config A vector containing which phase configuration should be
+#'  plotted. If \code{'best'} (default), plots the configuration
+#'  with the highest likelihood for all elements in \code{'w'}
+#'
+#' @param same.ch.lg Logical. If \code{TRUE} displays only the scatterplots between the
+#'   chromosomes and linkage groups with the same number. Default is \code{FALSE}.
+#'
+#' @param alpha transparency factor for SNPs points
+#'
+#' @param size size of the SNP points
+#'
+#' @author Marcelo Mollinari, \email{mmollin@ncsu.edu}
+#'
+#' @export plot_genome_vs_map
+plot_genome_vs_map <- function(x,
+                               type = c("mds", "genome"),
+                               same.ch.lg = FALSE,
+                               alpha = 1/5,
+                               size = 3){
+  type <- match.arg(type)
+  w <- lapply(x$maps, function(y) y[[type]])
+  geno.vs.map <- NULL
+  for(i in 1:length(w)){
+    LG <- genomic.pos <- map.pos <- NULL
+    mrk.names <- rownames(w[[i]]$phase[[1]]$p1)
+    geno.vs.map <- rbind(geno.vs.map,
+                         data.frame(mrk.names = mrk.names,
+                                    map.pos = cumsum(imf_h(c(0, w[[i]]$phase[[1]]$rf))),
+                                    genomic.pos = x$data$genome.pos[mrk.names]/1e6,
+                                    LG = as.factor(i),
+                                    chr = as.factor(x$data$chrom[mrk.names])))
+  }
+  geno.vs.map$chr <- factor(geno.vs.map$chr, levels = sort(levels(geno.vs.map$chr)))
+  if(same.ch.lg){
+    p <- ggplot2::ggplot(geno.vs.map, ggplot2::aes(genomic.pos, map.pos)) +
+      ggplot2::geom_point(alpha = alpha, ggplot2::aes(colour = LG), size = size) +
+      ggplot2::facet_wrap(~LG, nrow = floor(sqrt(length(w)))) +
+      ggplot2::labs(subtitle = "Linkage group", x = "Genome position (Mbp)", y = "Map position (cM)") +
+      ggplot2::theme_bw() +
+      ggplot2::theme(axis.text.x = ggplot2::element_text(angle = 45, hjust = 1),
+                     legend.position = "none", plot.subtitle = ggplot2::element_text(hjust = 0.5))
+  } else {
+    p <- ggplot2::ggplot(geno.vs.map, ggplot2::aes(genomic.pos, map.pos)) +
+      ggplot2::geom_point(alpha = alpha, ggplot2::aes(colour = LG), size = size) +
+      ggplot2::facet_grid(LG~chr) +
+      ggplot2::labs(x = "Genome position (Mbp)", y = "Map position (cM)") +
+      ggplot2::theme_bw() +
+      ggplot2::theme(axis.text.x = ggplot2::element_text(angle = 45, hjust = 1), legend.position = "none")
+  }
+  p
+}
+
+
+
+
+plot_map_list <- function(x, horiz = TRUE,
+                          type = c("mds", "genome"),
+                          col = "lightgray"){
+  type <- match.arg(type)
+  w <- lapply(x$maps, function(y) y[[type]])
+  if(length(col) == 1)
+    col <- rep(col, length(w))
+  z <- NULL
+  max.dist <- max(sapply(w, function(x) sum(imf_h(x$phase[[1]]$rf))))
+  if(horiz){
+    plot(0,
+         xlim = c(0, max.dist),
+         ylim = c(0,length(w)+1),
+         type = "n", axes = FALSE,
+         xlab = "Map position (cM)",
+         ylab = "Linkage groups")
+    axis(1)
+    for(i in 1:length(w)){
+      d <- cumsum(imf_h(c(0, w[[i]]$phase[[1]]$rf)))
+      z <- rbind(z, data.frame(mrk = rownames(w[[i]]$phase[[1]]$p1),
+                               LG = names(w)[i], pos = d))
+      plot_one_map(d, i = i, horiz = TRUE, col = col[i])
+    }
+    axis(2, at = 1:length(w), labels = names(w), lwd = 0, las = 2)
+  } else{
+    plot(0,
+         ylim = c(-max.dist, 0),
+         xlim = c(0,length(w)+1),
+         type = "n", axes = FALSE,
+         ylab = "Map position (cM)",
+         xlab = "Linkage groups")
+    x <- axis(2, labels = FALSE, lwd = 0)
+    axis(2, at = x, labels = abs(x))
+    for(i in 1:length(w)){
+      d <- cumsum(imf_h(c(0, w[[i]]$phase[[1]]$rf)))
+      z <- rbind(z, data.frame(mrk = rownames(w[[i]]$phase[[1]]$p1),
+                               LG = names(w)[i], pos = d))
+      plot_one_map(d, i = i, horiz = FALSE, col = col[i])
+    }
+    axis(3, at = 1:length(w), labels = names(w), lwd = 0, las = 2)
+  }
+  invisible(z)
+}
+
+
+plot_one_map<-function(x, i = 0, horiz = FALSE, col = "lightgray")
+{
+  if(horiz)
+  {
+    rect(xleft = x[1], ybottom = i-0.25,
+         xright = tail(x,1), ytop = i+0.25,
+         col = col)
+    for(j in 1:length(x))
+      lines(x = c(x[j], x[j]), y = c(i-0.25, i+0.25), lwd = .5)
+  } else {
+    x <- -rev(x)
+    rect(xleft = i-0.25, ybottom = x[1],
+         xright = i+0.25, ytop = tail(x,1),
+         col = col)
+    for(j in 1:length(x))
+      lines(y = c(x[j], x[j]), x = c(i-0.25, i+0.25), lwd = .5)
+  }
+}
+
+#' Plot MDS vs. Genome
+#'
+#' This function generates a plot comparing MDS (Multi-Dimensional Scaling) positions to genome positions for genetic markers in a `mappoly2.sequence` object. It uses functions from the `mappoly2` package to extract marker data and `ggplot2` for visualization.
+#'
+#' @param x A `mappoly2.sequence` object containing marker and map data. This object typically results from mapping or marker analysis processes in the `mappoly2` package.
+#' @param alpha The transparency level of the points in the plot, with 1 being fully opaque and 0 being fully transparent. Defaults to 1/2.
+#' @param size The size of the points in the plot. Defaults to 2.
+#'
+#' @return A ggplot object representing the MDS versus genome position plot. Each linkage group is displayed in a separate panel.
+#'
+#' @importFrom ggplot2 ggplot geom_point facet_wrap labs theme_bw theme element_text
+#'
+#' @export
+plot_mds_vs_genome <- function(x,
+                               alpha = 1/2,
+                               size = 2){
+  x.mds <- mappoly2:::get_markers_from_ordered_sequence(x, lg = seq_along(x$maps), "mds")
+  x.genome <- mappoly2:::get_markers_from_ordered_sequence(x, lg = seq_along(x$maps), type = "genome")
+  d <- NULL
+  for(i in 1:length(x.mds)){
+    a <- match(x.genome[[i]],x.mds[[i]])
+    d <- rbind(d, data.frame(lg = names(x$maps)[i], x = seq_along(a), y = a))
+  }
+  p <- ggplot2::ggplot(d, ggplot2::aes(x, y)) +
+    ggplot2::geom_point(alpha = alpha, ggplot2::aes(colour = lg), size = size) +
+    ggplot2::facet_wrap(~lg, nrow = floor(sqrt(length((x$maps)))), scales="free") +
+    ggplot2::labs(subtitle = "Linkage group", x = "Genome position", y = "MDS position") +
+    ggplot2::theme_bw() +
+    ggplot2::theme(axis.text.x = ggplot2::element_text(angle = 45, hjust = 1),
+                   legend.position = "none", plot.subtitle = ggplot2::element_text(hjust = 0.5))
+  p
+}

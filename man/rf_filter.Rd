@@ -10,6 +10,8 @@ rf_filter(
   thresh.LOD.rf = 5,
   thresh.rf = 0.15,
   probs = c(0.05, 1),
+  lg = NULL,
+  type = c("mds", "genome"),
   diag.markers = NULL,
   mrk.order = NULL,
   diagnostic.plot = TRUE,

@@ -3,39 +3,72 @@
 #' @param void internal function
 #' @author Marcelo Mollinari, \email{mmollin@ncsu.edu}
 #' @export
-pairwise_phasing <- function(input.seq,
-                             thresh.LOD.ph = 3,
-                             thresh.LOD.rf = 3,
+pairwise_phasing <- function(x,
+                             lg = NULL,
+                             type = c("mds", "genome"),
+                             thresh.LOD.ph = 5,
+                             thresh.LOD.rf = 5,
                              thresh.rf = 0.5,
-                             max.conf.btnk.p1 = 1,
-                             max.conf.btnk.p2 = max.conf.btnk.p1,
+                             max.search.expansion.p1 = 10,
+                             max.search.expansion.p2 = max.search.expansion.p1,
                              verbose = TRUE){
-  mrk.id <- input.seq$mrk.names
-  {
-    if(verbose)
-      cat("Phasing parent", input.seq$data$name.p1, "\n")
-    Ph.p1 <- mappoly2:::twopt_phasing_cpp(mrk_id = mrk.id,
-                                          ploidy = input.seq$data$ploidy.p1,
-                                          dose_vec = input.seq$data$dosage.p1,
-                                          S = input.seq$pairwise$Sh.p1[mrk.id, mrk.id],
-                                          max_conf_number = max.conf.btnk.p1,
-                                          verbose = verbose)
-    for(i in 1:length(Ph.p1$phase_configs))
-      rownames(Ph.p1$phase_configs[[i]]) <- Ph.p1$marker_names
-    if(verbose)
-      cat("Phasing parent", input.seq$data$name.p2, "\n")
-    Ph.p2 <- mappoly2:::twopt_phasing_cpp(mrk_id = mrk.id,
-                                          ploidy = input.seq$data$ploidy.p2,
-                                          dose_vec = input.seq$data$dosage.p2,
-                                          S = m$Sh.p2[mrk.id, mrk.id],
-                                          max_conf_number = max.conf.btnk.p2,
-                                          verbose = verbose)
-    for(i in 1:length(Ph.p2$phase_configs))
-      rownames(Ph.p2$phase_configs[[i]]) <- Ph.p2$marker_names
+  y <- mappoly2:::parse_lg_and_type(x,lg,type)
+  assert_that(has.mappoly2.screened(x$data))
+  mrk.id <- mappoly2:::get_markers_from_ordered_sequence(x, y$lg, y$type)
+  for(i in 1:length(mrk.id)){
+    if(verbose) cat("  -->", i)
+    x$maps[[i]][[y$type]]$phase <- pairwise_phasing_one(x,
+                                                     mrk.id[[i]],
+                                                     thresh.LOD.ph,
+                                                     thresh.LOD.rf,
+                                                     thresh.rf,
+                                                     max.search.expansion.p1,
+                                                     max.search.expansion.p2,
+                                                     verbose)
+    if(verbose) cat("\n")
   }
+  return(x)
+}
 
+pairwise_phasing_one <- function(x,
+                                 mrk.id,
+                                 thresh.LOD.ph = 3,
+                                 thresh.LOD.rf = 3,
+                                 thresh.rf = 0.5,
+                                 max.search.expansion.p1,
+                                 max.search.expansion.p2 = max.search.expansion.p1,
+                                 verbose = TRUE){
+  assert_that(!is.null(mrk.id), msg = "Provide an ordered sequence.")
+  assert_that(has.mappoly2.screened(x$data))
+  assert_that(all(mrk.id %in% dat$screened.data$mrk.names))
+  M <- mappoly2:::filter_rf_matrix(x$data,
+                                   type = "sh",
+                                   thresh.LOD.ph,
+                                   thresh.LOD.rf,
+                                   thresh.rf,
+                                   mrk.names = mrk.id)
+  if(verbose)
+    cat("Phasing parent", x$data$name.p1, "\n")
+  Ph.p1 <- mappoly2:::twopt_phasing_cpp(mrk_id = mrk.id,
+                                        ploidy = x$data$ploidy.p1,
+                                        dose_vec = x$data$dosage.p1[mrk.id],
+                                        S = M$Sh.p1,
+                                        max_conf_number = max.search.expansion.p1,
+                                        verbose = verbose)
+  for(i in 1:length(Ph.p1$phase_configs))
+    rownames(Ph.p1$phase_configs[[i]]) <- Ph.p1$marker_names
+  if(verbose)
+    cat("Phasing parent", x$data$name.p2, "\n")
+  Ph.p2 <- mappoly2:::twopt_phasing_cpp(mrk_id = mrk.id,
+                                        ploidy = x$data$ploidy.p2,
+                                        dose_vec = x$data$dosage.p2[mrk.id],
+                                        S = M$Sh.p2,
+                                        max_conf_number = max.search.expansion.p2,
+                                        verbose = verbose)
+  for(i in 1:length(Ph.p2$phase_configs))
+    rownames(Ph.p2$phase_configs[[i]]) <- Ph.p2$marker_names
   mrks <- intersect(Ph.p1$marker_names, Ph.p2$marker_names)
-  n1 <- length(input.seq$mrk.names)
+  n1 <- length(mrk.id)
   n2 <- length(mrks)
   if(verbose){
     cat(n2, " phased markers out of ", n1, ": (",  round(100*n2/n1,1), "%)",sep = "")
@@ -53,10 +86,5 @@ pairwise_phasing <- function(input.seq,
       cte <- cte + 1
     }
   }
-  input.seq$phases = unique(Ph)
-  return(input.seq)
+  return(unique(Ph))
 }
-
-
-
-

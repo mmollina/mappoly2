@@ -51,13 +51,13 @@ pairwise_rf <- function(input.data,
 
   if(mrk.scope == "all"){
     seq.num <- mappoly2:::get_screened_mrk_indices(input.data)
-    mrk.pairs <- combn(sort(seq.num), 2) - 1
-    input.data$pairwise.rf <- pairwise_rf_full_mat(input.data,
-                                                   ncpus,
-                                                   mrk.pairs,
-                                                   input.data$mrk.names[seq.num],
-                                                   tol,
-                                                   mrk.scope)
+    mrk.pairs <- combn(sort(seq.num), 2)
+    input.data$pairwise.rf <- pairwise_rf_full_mat(input.data = input.data,
+                                                   ncpus = ncpus,
+                                                   mrk.pairs = mrk.pairs,
+                                                   seq.mrk.names = input.data$mrk.names[seq.num],
+                                                   tol = tol,
+                                                   mrk.scope = mrk.scope)
     class(input.data) <- c(class(input.data), "pairwise.rf")
     return(input.data)
   } else if (mrk.scope == "per.chrom") {

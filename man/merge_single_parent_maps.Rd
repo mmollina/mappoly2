@@ -6,12 +6,7 @@
 informative in isolated parents, facilitating unified analysis and visualization
 of distinct genetic data.}
 \usage{
-merge_single_parent_maps(
-  input.seq.all,
-  input.seq.p1,
-  input.seq.p2,
-  input.twopt
-)
+merge_single_parent_maps(x.all, x.p1, x.p2, input.twopt)
 }
 \arguments{
 \item{void}{internal function}
