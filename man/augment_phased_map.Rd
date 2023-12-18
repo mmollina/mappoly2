@@ -8,7 +8,8 @@ HMM-based map recomputation.}
 \usage{
 augment_phased_map(
   x,
-  input.twopt,
+  lg = NULL,
+  type = c("mds", "genome"),
   thresh.LOD.ph = 5,
   thresh.LOD.rf = 5,
   thresh.rf = 0.5,

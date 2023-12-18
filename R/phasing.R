@@ -6,6 +6,7 @@
 pairwise_phasing <- function(x,
                              lg = NULL,
                              type = c("mds", "genome"),
+                             parent = c("p1p2","p1","p2"),
                              thresh.LOD.ph = 5,
                              thresh.LOD.rf = 5,
                              thresh.rf = 0.5,
@@ -14,17 +15,36 @@ pairwise_phasing <- function(x,
                              verbose = TRUE){
   y <- mappoly2:::parse_lg_and_type(x,lg,type)
   assert_that(has.mappoly2.screened(x$data))
-  mrk.id <- mappoly2:::get_markers_from_ordered_sequence(x, y$lg, y$type)
+  parent <- match.arg(parent)
+  mrk.id <- get_markers_from_ordered_sequence(x, y$lg, y$type, parent)
   for(i in 1:length(mrk.id)){
-    if(verbose) cat("  -->", i)
-    x$maps[[i]][[y$type]]$phase <- pairwise_phasing_one(x,
-                                                     mrk.id[[i]],
-                                                     thresh.LOD.ph,
-                                                     thresh.LOD.rf,
-                                                     thresh.rf,
-                                                     max.search.expansion.p1,
-                                                     max.search.expansion.p2,
-                                                     verbose)
+    if(verbose) cat("  -->", y$lg[i], "\n")
+    x$maps[[y$lg[i]]][[y$type]][[parent]]$rf.phase <- pairwise_phasing_one(x,
+                                                                        mrk.id[[i]],
+                                                                        thresh.LOD.ph,
+                                                                        thresh.LOD.rf,
+                                                                        thresh.rf,
+                                                                        max.search.expansion.p1,
+                                                                        max.search.expansion.p2,
+                                                                        verbose)
+    if(parent == "p1p2"){
+      ## attributing phase to p1 informative markers
+      temp <- x$maps[[y$lg[i]]][[y$type]][[parent]]$rf.phase
+      idx <- get_info_markers(rownames(temp[[1]]$p1), x, "p1")
+      for(j in 1:length(temp)){
+        temp[[j]]$p1 <- temp[[j]]$p1[idx,]
+        temp[[j]]$p2 <- temp[[j]]$p2[idx,]
+      }
+      x$maps[[y$lg[i]]][[y$type]][["p1"]]$rf.phase <- temp
+      ## attributing phase to p1 informative markers
+      temp <- x$maps[[y$lg[i]]][[y$type]][[parent]]$rf.phase
+      idx <- get_info_markers(rownames(temp[[1]]$p1), x, "p2")
+      for(j in 1:length(temp)){
+        temp[[j]]$p1 <- temp[[j]]$p1[idx,]
+        temp[[j]]$p2 <- temp[[j]]$p2[idx,]
+      }
+      x$maps[[y$lg[i]]][[y$type]][["p2"]]$rf.phase <- temp
+    }
     if(verbose) cat("\n")
   }
   return(x)
@@ -78,11 +98,7 @@ pairwise_phasing_one <- function(x,
   for(i in 1:length(Ph.p1$phase_configs)){
     for(j in 1:length(Ph.p2$phase_configs)){
       Ph[[cte]] <- list(p1 = Ph.p1$phase_configs[[i]][mrks,],
-                        p2 = Ph.p2$phase_configs[[j]][mrks,],
-                        loglike = NULL,
-                        rf = NULL,
-                        error = NULL,
-                        haploprob = NULL)
+                        p2 = Ph.p2$phase_configs[[j]][mrks,])
       cte <- cte + 1
     }
   }

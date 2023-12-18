@@ -6,7 +6,18 @@
 informative in isolated parents, facilitating unified analysis and visualization
 of distinct genetic data.}
 \usage{
-merge_single_parent_maps(x.all, x.p1, x.p2, input.twopt)
+merge_single_parent_maps(
+  x,
+  lg = NULL,
+  type = c("mds", "genome", "custom"),
+  hmm.reconstruction = TRUE,
+  rf = NULL,
+  error = 0,
+  ncpus = 1,
+  verbose = TRUE,
+  tol = 0.001,
+  ret_H0 = FALSE
+)
 }
 \arguments{
 \item{void}{internal function}

@@ -271,11 +271,11 @@ prepare_map <- function(x,
                         dosage.p1, dosage.p2,
                         alt=NULL, ref=NULL){
   ## Gathering marker positions
-  map <- cumsum(imf_h(c(0, x$phase[[1]]$rf)))
-  names(map) <- rownames(x$phase[[1]]$p1)
+  map <- cumsum(imf_h(c(0, x$hmm.phase[[1]]$rf)))
+  names(map) <- rownames(x$hmm.phase[[1]]$p1)
   ## Gathering phases
-  ph.p1 <- x$phase[[1]]$p1
-  ph.p2 <- x$phase[[1]]$p2
+  ph.p1 <- x$hmm.phase[[1]]$p1
+  ph.p2 <- x$hmm.phase[[1]]$p2
   colnames(ph.p1) <- paste0("p1.", 1:ploidy.p1)
   colnames(ph.p2) <- paste0("p2.", 1:ploidy.p2)
   if(is.null(ref))
@@ -309,15 +309,20 @@ prepare_map <- function(x,
 #' @importFrom graphics rect
 #' @export
 plot_map <- function(x, lg = 1, type = c("mds", "genome"),
+                     parent = c("p1p2", "p1", "p2"),
                      left.lim = 0, right.lim = Inf,
                      phase = TRUE, mrk.names = FALSE,
                      plot.dose = TRUE, homolog.names.adj = 3,
                      cex = 1, xlim = NULL, main = "",...) {
+  type <- match.arg(type)
   y <- mappoly2:::parse_lg_and_type(x,lg,type)
+  parent <- match.arg(parent)
+  assert_that(is.mapped.sequence(x, y$lg, y$type, parent),
+              msg = "Requested map is not estimated")
   assert_that(length(y$lg) ==1 & is.numeric(lg))
   old.par <- par(no.readonly = TRUE)
   on.exit(par(old.par))
-  map.info <- mappoly2:::prepare_map(x$maps[[y$lg]][[y$type]],
+  map.info <- mappoly2:::prepare_map(x$maps[[y$lg]][[y$type]][[parent]],
                                        x$data$ploidy.p1, x$data$ploidy.p2,
                                        x$data$name.p1, x$data$name.p2,
                                        x$data$dosage.p1, x$data$dosage.p2,
@@ -535,18 +540,18 @@ plot_genome_vs_map <- function(x,
   p
 }
 
-
-
-
+#' @export
 plot_map_list <- function(x, horiz = TRUE,
                           type = c("mds", "genome"),
+                          parent = c("p1p2", "p1", "p2"),
                           col = "lightgray"){
   type <- match.arg(type)
+  parent <- match.arg(parent)
   w <- lapply(x$maps, function(y) y[[type]])
   if(length(col) == 1)
     col <- rep(col, length(w))
   z <- NULL
-  max.dist <- max(sapply(w, function(x) sum(imf_h(x$phase[[1]]$rf))))
+  max.dist <- max(sapply(w, function(x) sum(imf_h(x[[parent]]$hmm.phase[[1]]$rf))))
   if(horiz){
     plot(0,
          xlim = c(0, max.dist),
@@ -556,8 +561,8 @@ plot_map_list <- function(x, horiz = TRUE,
          ylab = "Linkage groups")
     axis(1)
     for(i in 1:length(w)){
-      d <- cumsum(imf_h(c(0, w[[i]]$phase[[1]]$rf)))
-      z <- rbind(z, data.frame(mrk = rownames(w[[i]]$phase[[1]]$p1),
+      d <- cumsum(imf_h(c(0, w[[i]][[parent]]$hmm.phase[[1]]$rf)))
+      z <- rbind(z, data.frame(mrk = rownames(w[[i]][[parent]]$hmm.phase[[1]]$p1),
                                LG = names(w)[i], pos = d))
       plot_one_map(d, i = i, horiz = TRUE, col = col[i])
     }
@@ -572,8 +577,8 @@ plot_map_list <- function(x, horiz = TRUE,
     x <- axis(2, labels = FALSE, lwd = 0)
     axis(2, at = x, labels = abs(x))
     for(i in 1:length(w)){
-      d <- cumsum(imf_h(c(0, w[[i]]$phase[[1]]$rf)))
-      z <- rbind(z, data.frame(mrk = rownames(w[[i]]$phase[[1]]$p1),
+      d <- cumsum(imf_h(c(0, w[[i]][[parent]]$hmm.phase[[1]]$rf)))
+      z <- rbind(z, data.frame(mrk = rownames(w[[i]][[parent]]$hmm.phase[[1]]$p1),
                                LG = names(w)[i], pos = d))
       plot_one_map(d, i = i, horiz = FALSE, col = col[i])
     }

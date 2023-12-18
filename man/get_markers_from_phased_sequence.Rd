@@ -4,7 +4,13 @@
 \alias{get_markers_from_phased_sequence}
 \title{Extract Markers from Mapped Sequence}
 \usage{
-get_markers_from_phased_sequence(x, lg, type = c("mds", "genome", "custom"))
+get_markers_from_phased_sequence(
+  x,
+  lg,
+  type = c("mds", "genome", "custom"),
+  parent = c("p1p2", "p1", "p2"),
+  phase = c("rf.phase", "hmm.phase")
+)
 }
 \arguments{
 \item{x}{An object containing marker maps.}

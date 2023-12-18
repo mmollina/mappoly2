@@ -38,7 +38,6 @@
 #' @export group
 
 group <- function(x = NULL,
-                  use.genome.only = FALSE,
                   expected.groups = NULL,
                   inter = TRUE,
                   comp.mat = FALSE,

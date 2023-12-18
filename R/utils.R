@@ -151,6 +151,27 @@ parse_lg_and_type <- function(x, lg = NULL, type = c("mds", "genome", "custom"))
   return(list(lg = lg, type = type))
 }
 
+#' @export
+get_info_markers <- function(mrk.names, x, parent = c("p1p2","p1","p2")){
+  parent <- match.arg(parent)
+  mrk.names <- intersect(mrk.names, x$data$screened.data$mrk.names)
+  if(parent == "p1")
+    return(mrk.names[x$data$dosage.p2[mrk.names] == 0 | x$data$dosage.p2[mrk.names] == x$data$ploidy.p2])
+  else if(parent == "p2")
+    return(mrk.names[x$data$dosage.p1[mrk.names] == 0 | x$data$dosage.p1[mrk.names] == x$data$ploidy.p1])
+  else if (parent == "p1p2")
+    return(mrk.names)
+}
+
+#' @export
+detect_info_parent <- function(mrk.names, x){
+  if(all(x$data$dosage.p2[mrk.names] == 0 | x$data$dosage.p2[mrk.names] == x$data$ploidy.p2))
+    return("p1")
+  else if(all(x$data$dosage.p1[mrk.names] == 0 | x$data$dosage.p1[mrk.names] == x$data$ploidy.p1))
+    return("p2")
+  else
+    return("p1p2")
+}
 
 #' Extract Markers from Ordered Sequence
 #'
@@ -160,14 +181,18 @@ parse_lg_and_type <- function(x, lg = NULL, type = c("mds", "genome", "custom"))
 #' @param lg Either a character vector naming the maps or a numeric vector indicating map indices.
 #' @param type The type of sequence to consider (either "mds", "genome", or "custom").
 #' @return Markers based on the specified type.
-get_markers_from_ordered_sequence <- function(x, lg, type = c("mds", "genome", "custom")){
+get_markers_from_ordered_sequence <- function(x, lg, type = c("mds", "genome", "custom"),
+                                              parent = c("p1p2","p1","p2")){
   y <- mappoly2:::parse_lg_and_type(x,lg,type)
+  parent <- match.arg(parent)
   if(y$type == "mds")
-    return(lapply(x$maps[y$lg], function(z, type) intersect(z[[type]]$order$locimap$locus,
-                                                   z[[type]]$mkr.names), y$type))
+    w <-lapply(x$maps[y$lg], function(z, type) intersect(z[[type]]$order$locimap$locus,
+                                                         z[[type]]$mkr.names), y$type)
   else if(y$type == "genome")
-    return(lapply(x$maps[y$lg], function(z, type) intersect(rownames(z[[type]]$order),
-                                                     z[[type]]$mkr.names), y$type))
+    w <- lapply(x$maps[y$lg], function(z, type) intersect(rownames(z[[type]]$order),
+                                                          z[[type]]$mkr.names), y$type)
+  w <- lapply(w, get_info_markers, x, parent)
+  return(w)
 }
 
 #' Extract Markers from Mapped Sequence
@@ -178,10 +203,16 @@ get_markers_from_ordered_sequence <- function(x, lg, type = c("mds", "genome", "
 #' @param lg Either a character vector naming the maps or a numeric vector indicating map indices.
 #' @param type The type of sequence to consider (either "mds", "genome", or "work").
 #' @return Markers based on the specified type for mapped sequences.
-get_markers_from_phased_sequence <- function(x, lg, type = c("mds", "genome", "custom")){
+get_markers_from_phased_sequence <- function(x, lg,
+                                             type = c("mds", "genome", "custom"),
+                                             parent = c("p1p2","p1","p2"),
+                                             phase = c("rf.phase", "hmm.phase")){
   y <- mappoly2:::parse_lg_and_type(x,lg,type)
-  lapply(x$maps[y$lg], function(z, type) intersect(rownames(z[[type]]$phase[[1]]$p1),
-                                                   z[[type]]$mkr.names), y$type)
+  parent <- match.arg(parent)
+  return(lapply(x$maps[y$lg], function(z, type) intersect(rownames(z[[type]][[parent]][[phase]][[1]]$p1),
+                                                          z[[type]]$mkr.names), y$type))
+
+
 }
 
 #' Determine Dosage Type of Markers
@@ -225,13 +256,19 @@ get_dosage_type <- function(x, mrk.names){
   for(i in 1:n.lg){
     maps[[i]] <- list(mds = list(mkr.names = mrk.id.list[[i]],
                                  order = NULL,
-                                 phase = NULL),
+                                 p1 = list(rf.phase = NULL, hmm.phase = NULL),
+                                 p2 = list(rf.phase = NULL, hmm.phase = NULL),
+                                 p1p2 = list(rf.phase = NULL, hmm.phase = NULL)),
                       genome = list(mkr.names = mrk.id.list[[i]],
                                     order = NULL,
-                                    phase = NULL),
+                                    p1 = list(rf.phase = NULL, hmm.phase = NULL),
+                                    p2 = list(rf.phase = NULL, hmm.phase = NULL),
+                                    p1p2 = list(rf.phase = NULL, hmm.phase = NULL)),
                       custom = list(mkr.names = mrk.id.list[[i]],
                                     order = NULL,
-                                    phase = NULL))
+                                    p1 = list(rf.phase = NULL, hmm.phase = NULL),
+                                    p2 = list(rf.phase = NULL, hmm.phase = NULL),
+                                    p1p2 = list(rf.phase = NULL, hmm.phase = NULL)))
   }
   structure(list(maps = maps, data = x), class = "mappoly2.sequence")
 }

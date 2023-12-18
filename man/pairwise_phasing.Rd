@@ -8,6 +8,7 @@ pairwise_phasing(
   x,
   lg = NULL,
   type = c("mds", "genome"),
+  parent = c("p1p2", "p1", "p2"),
   thresh.LOD.ph = 5,
   thresh.LOD.rf = 5,
   thresh.rf = 0.5,

@@ -8,6 +8,7 @@ calc_haplotypes(
   x,
   lg = NULL,
   type = c("mds", "genome"),
+  parent = c("p1p2", "p1", "p2"),
   phase.conf = "all",
   verbose = TRUE,
   ncpus = 1

@@ -139,7 +139,7 @@ pad_strings <- function(vec, n) {
 }
 
 print_matrix <- function(mat, spaces = 5, zero.print = ".", row.names = TRUE,
-                         header = FALSE, equal.space = TRUE, footer = FALSE){
+                         header = FALSE, equal.space = TRUE, footer = FALSE, title=NULL){
   mat[mat==0]<-zero.print
   txt1 <- NULL
   for(i in 1:ncol(mat))
@@ -158,69 +158,97 @@ print_matrix <- function(mat, spaces = 5, zero.print = ".", row.names = TRUE,
   txt2 <- c(paste0(rep(" ", (max(n2)+1)), collapse = ""), txt2)
   for (i in 1:length(txt2))
     txt2[i] <- paste0(paste0(rep(" ", spaces), collapse = ""), txt2[i])
+  txt3 <- paste0(paste0(rep(" ", spaces), collapse = ""),
+                 paste0(rep("-", sum(nchar(c(txt2[1], txt1[1,])))+ncol(mat)-spaces), collapse = ""))
+  if(!is.null(title)){
+    cat(paste0(paste0(rep(" ", spaces), collapse = ""),
+               paste0(rep("-", 10), collapse = ""),
+               paste0(" ", title, " "),
+               paste0(rep("-", nchar(txt3) - 12 - nchar(title)), collapse = "")), "\n")
+  }
   cat(txt2[1], txt1[1,], "\n")
-  cat(paste0(paste0(rep(" ", spaces), collapse = ""),
-             paste0(rep("-", sum(nchar(c(txt2[1], txt1[1,])))+ncol(mat)-spaces), collapse = "")), "\n")
+  cat(txt3, "\n")
   for(i in 2:nrow(txt1)){
     if(header & i == 3)
-      cat(paste0(paste0(rep(" ", spaces), collapse = ""),
-                 paste0(rep("-", sum(nchar(c(txt2[1], txt1[1,])))+ncol(mat)-spaces), collapse = "")), "\n")
+      cat(txt3, "\n")
     if(row.names) cat(txt2[i], txt1[i,], "\n")
     else cat(paste0(rep(" ", nchar(txt2[i])), collapse = ""), txt1[i,], "\n")
     if(footer & (i == (nrow(txt1)-1))){
-      cat(paste0(paste0(rep(" ", spaces), collapse = ""),
-                 paste0(rep("-", sum(nchar(c(txt2[1], txt1[1,])))+ncol(mat)-spaces), collapse = "")), "\n")
+      cat(txt3, "\n")
     }
   }
-  cat(paste0(paste0(rep(" ", spaces), collapse = ""),
-             paste0(rep("-", sum(nchar(c(txt2[1], txt1[1,])))+ncol(mat)-spaces), collapse = "")), "\n")
+
+  cat(txt3, "\n")
+  invisible(nchar(txt3))
 }
 
-get_sequence_mat <- function(x){
-  dn <- list(c("", names(x$maps)),
-             c("MDS", "", "", "", "", "", "Genome","","","","", ""))
-  l1 <- c("chrom","n.mrk", "ord", "phase", "map (cM)", "haplo", "chrom", "n.mrk", "ord", "phase", "map (cM)", "haplo")
-  M <- NULL
-  for(i in 1:2){
-    Chrom <- sapply(x$maps, function(y) paste0(mappoly2:::embedded_to_numeric(unique(x$data$chrom[y[[i]]$mkr.names])), collapse = "/"))
-    n.mrk <- sapply(x$maps, function(y) length(y[[i]]$mkr.names))
-    ord <- sapply(x$maps, function(y) ifelse(is.null(y[[i]]$order), "N", "Y"))
-    u1 <- sapply(x$maps, function(z) ifelse(is.null(z[[i]]$phase), 0,
-                                             length(z[[i]]$phase)))
-    u2 <- sapply(x$maps, function(z) ifelse(is.null(z[[i]]$phase), 0,
-                                             nrow(z[[i]]$phase[[1]]$p1)))
-    u2 <- round((100*u2/n.mrk), 1)
-    phase <- paste0(u1, "/", paste0(u2,"%"), sep = "")
-    map.len <- sapply(x$maps, function(z) ifelse(is.null(z[[i]]$phase[[1]]$rf), 0,
-                                             round(sum(imf_h(z[[i]]$phase[[1]]$rf)),1)))
-    haplo <- sapply(x$maps, function(z) ifelse(is.null(z[[i]]$phase[[1]]$haploprob), "N", "Y"))
-    M <- cbind(M, Chrom, n.mrk, ord, phase, map.len, haplo)
-  }
-  M <- rbind(l1, M)
+get_sequence_mat <- function(x, type, parent){
+  dn <- list(c(names(x$maps)),
+             c("Ch","n.mrk", "ord", "phase", "map (cM)", "haplo"))
+  Chrom <- sapply(x$maps, function(y) paste0(mappoly2:::embedded_to_numeric(unique(x$data$chrom[y[[type]]$mkr.names])), collapse = "/"))
+  n.mrk <- sapply(x$maps, function(y) length(y[[type]]$mkr.names))
+  ord <- sapply(x$maps, function(y) ifelse(is.null(y[[type]]$order), "N", "Y"))
+  u1 <- sapply(x$maps, function(z) ifelse(is.null(z[[type]][[parent]][["rf.phase"]]), 0,
+                                          length(z[[type]][[parent]][["rf.phase"]])))
+  u2 <- sapply(x$maps, function(z) ifelse(is.null(z[[type]][[parent]][["rf.phase"]]), 0,
+                                          nrow(z[[type]][[parent]][["rf.phase"]][[1]]$p1)))
+  u2 <- round((100*u2/n.mrk), 1)
+  phase <- paste0(u1, "/", paste0(u2,"%"), sep = "")
+  map.len <- sapply(x$maps, function(z) ifelse(is.null(z[[type]][[parent]][["hmm.phase"]][[1]]$rf), 0,
+                                               round(sum(imf_h(z[[type]][[parent]][["hmm.phase"]][[1]]$rf)),1)))
+  map.len <- format(map.len, digits = 2)
+  haplo <- sapply(x$maps, function(z) ifelse(is.null(z[[type]][[parent]][["hmm.phase"]][[1]]$haploprob), "N", "Y"))
+  M <- cbind(Chrom, n.mrk, ord, phase, map.len, haplo)
   dimnames(M) <- dn
   return(M)
 }
 
 #' @export
-print.mappoly2.sequence <- function(x){
-  mat <- mappoly2:::get_sequence_mat(x)
-  mappoly2:::print_matrix(mat, spaces = 0, zero.print = ".", row.names = TRUE, header = TRUE, equal.space = FALSE)
+print.mappoly2.sequence <- function(x, type = c("mds", "genome")){
+  type <- match.arg(type)
+  mat.p1 <- mappoly2:::get_sequence_mat(x, type, "p1")
+  mat.p2 <- mappoly2:::get_sequence_mat(x, type, "p2")[,4:6]
+  mat.p1p2 <- mappoly2:::get_sequence_mat(x, type, "p1p2")[,4:6]
+  mat<-cbind(mat.p1,mat.p2,mat.p1p2)
+  mat <- rbind(colnames(mat), mat)
+  colnames(mat) <- c("", "", "", "p1","","", "p2", "", "", "p1p2","", "")
+  {
+    if(type == "mds")
+      print_matrix(mat, spaces = 0, zero.print = ".",
+                   row.names = TRUE,  equal.space = FALSE,
+                   header = TRUE, title = "MDS")
+    else if(type == "genome" )
+      print_matrix(mat, spaces = 0, zero.print = ".",
+                   row.names = TRUE,  equal.space = FALSE,
+                   header = TRUE, title = "Genome")
+
+  }
 }
 
-
-map_summary <- function(x, type = c("mds", "genome")){
+#' @export
+map_summary <- function(x, type = c("mds", "genome"), parent = c("p1p2", "p1", "p2")){
   type <- match.arg(type)
+  parent <- match.arg(parent)
   w <- lapply(x$maps, function(y) y[[type]])
-  mg <- suppressWarnings(sapply(w, function(y) round(max(imf_h(y$phase[[1]]$rf)), 1)))
-  mg[is.infinite(mg)]<-0
-  ml <- sapply(w, function(y) round(sum(imf_h(y$phase[[1]]$rf)), 1))
-  mn <- sapply(w, function(y) length(y$mkr.names))
-  md <- sapply(w, function(y,x) sapply(mappoly2:::get_dosage_type(x, mrk.names = y$mkr.names), length), x)
+  mrk.id <- m <- vector("list", length(w))
+  names(mrk.id) <- names(m) <- names(w)
+  for(i in names(w)){
+    mrk.id[[i]] <- rownames(w[[i]][[parent]]$hmm.phase[[1]]$p1)
+    if(mappoly2:::is.mapped.sequence(x, i, type, parent)){
+      m[[i]] <- round(imf_h(w[[i]][[parent]]$hmm.phase[[1]]$rf), 1)
+    } else {
+      m[[i]] <- 0
+    }
+  }
+  mg <- sapply(m, max)
+  ml <- sapply(m, sum)
+  mn <- sapply(mrk.id, function(y) length(y))
+  md <- sapply(mrk.id, function(y,x) sapply(mappoly2:::get_dosage_type(x, mrk.names = y), length), x)
   md <- cbind(md, apply(md,1, sum))
   y <- c(round(mn/ml,3), round(sum(mn/sum(ml))))
   y[is.infinite(y)] <- 0
-  results = data.frame("LG" = c(names(w), "Total"),
-                       "Chrom" = c(sapply(w, function(y) paste0(mappoly2:::embedded_to_numeric(unique(x$data$chrom[y$mkr.names])), collapse = "/")), ""),
+  mat = data.frame("LG" = c(names(w), "Total"),
+                       "Chrom" = c(sapply(mrk.id, function(y) paste0(mappoly2:::embedded_to_numeric(unique(x$data$chrom[y])), collapse = "/")), ""),
                        "Map_length_(cM)" = c(ml, sum(ml)),
                        "Markers/cM" = y,
                        "Simplex_P1" = md[1,],
@@ -229,8 +257,17 @@ map_summary <- function(x, type = c("mds", "genome")){
                        "Multiplex" = md[4,],
                        "Total" = c(mn,sum(mn)),
                        "Max_gap" = c(mg, max(mg)),
-                       check.names = FALSE, stringsAsFactors = F)
-  mappoly2:::print_matrix(results, equal.space = F, row.names = F, spaces = 0, footer = TRUE)
+                       check.names = FALSE, stringsAsFactors = FALSE)
+  p <- c(x$data$name.p1, x$data$name.p2, paste(x$data$name.p1, x$data$name.p2, sep = " x "))
+  names(p) <- c("p1", "p2", "p1p2")
+  if(type == "mds")
+    mappoly2:::print_matrix(mat, spaces = 0, zero.print = ".",
+                 row.names = FALSE,  equal.space = FALSE,
+                 header = FALSE, footer = TRUE, title = paste0("MDS --- ", p[parent]))
+  else if(type == "genome" )
+    mappoly2:::print_matrix(mat, spaces = 0, zero.print = ".",
+                            row.names = FALSE,  equal.space = FALSE,
+                            header = FALSE, footer = TRUE, title = paste0("Genome --- ", p[parent]))
 }
 
 

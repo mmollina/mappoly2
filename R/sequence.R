@@ -1,94 +1,9 @@
-#' Create a sequence of markers
-#'
-#' Makes a sequence of markers based on an object of another class.
-#'
-#' @param x an object of one of the following classes:
-#'     \code{mappoly.data}, \code{mappoly.map}, \code{mappoly.sequence},
-#'     \code{mappoly.group},
-#'     \code{mappoly.pcmap}, \code{mappoly.pcmap3d}, or \code{mappoly.geno.ord}
-#'
-#' @param arg one of the following input types:
-#' \enumerate{
-#' \item A string 'all': Generates a sequence with all markers from the raw data.
-#' \item A string or a vector of strings 'chrX': Specifies a chromosome (with 'X'
-#'       being the chromosome number). For unassigned markers, use 'chr0'.
-#' \item A vector of integers: Indicates the position of markers in the original
-#'       data set to be included in the sequence.
-#' \item A vector of strings: Indicates the names or identifiers of the genetic
-#'       markers
-#' \item An integer: Represents a linkage group when xect is of class
-#'       \code{mappoly.group}.
-#' \item NULL: Applicable when \code{xect} belongs to one of the following
-#'       classes: \code{mappoly.pcmap}, \code{mappoly.pcmap3d},
-#'       \code{mappoly.unique.seq}, or \code{mappoly.geno.ord}.
-#' }
-#'
-#' @param info.parent one of the following options:
-#' \enumerate{
-#' \item \code{'all'}{select all dosage combinations in both parents (default)}
-#' \item \code{'P1'}{select informative markers parent 1}
-#' \item \code{'P2'}{select informative markers parent 2}
-#' }
-#'
-#' @param genomic.info An optional argument applicable only to \code{mappoly.group}
-#' objects, which can be either NULL or a numeric combination of sequences
-#' from genomic information used to create the sequences:
-#' \enumerate{
-#' \item NULL (default): Returns a sequence containing all markers as defined by
-#' the grouping function.
-#' \item 1: Returns a sequence with markers that match the intersection between
-#' the grouping function and genomic information, considering the genomic information
-#' sequence with the maximum number of matching markers for the group.
-#' \item c(1, 2): Returns a sequence with markers that match the intersection between
-#' the grouping function and genomic information, considering the two genomic
-#' information sequences with the maximum number of matching markers for the group,
-#' and so on.
-#' }
-#'
-#' @param x an object of the class \code{mappoly.sequence}
-#'
-#' @param thresh.line position of a threshold line for p values of the segregation test (default = \code{0.05/n.mrk})
-#'
-#' @param ... currently ignored
-#'
-#' @return An object of class \code{mappoly2.sequence}, which is a
-#'     list containing the following components:
-#'     \item{mrk.names}{}
-#'     \item{phases}{}
-#'     \item{redundant}{}
-#'     \item{data}{}
-#'
-#' @author Marcelo Mollinari (\email{mmollin@ncsu.edu}) and
-#'         Gabriel Gesteira, (\email{gdesiqu@ncsu.edu})
+
 #' @export
-#' @importFrom assertthat assert_that
-#'
-# make_sequence <- function(input.data,
-#                           grouping.scope = c("lg.grouping",
-#                                              "chrom",
-#                                              "mrk.seq"),
-#                           genomic.info = NULL)
-#   assert_that(has.mappoly2.rf(input.data))
-#
-# #### Grouping ####
-# x <- group(x, expected.groups = 13)
-# plot(x, what = "group")
-# print(x)
-# #### Set Working Sequences ####
-# x <- set_working_sequence(x,
-#                           lg = list(c(1,4),
-#                                     c(2,3),
-#                                     c(5,6)),
-#                           ch = list(c(1,3),
-#                                     2,
-#                                     c(4,5)))
 make_sequence <- function(x,
                           lg = NULL,
                           ch = NULL,
-                          mrk.id.list = NULL,
-                          ind.names = NULL,
-                          seq.names = NULL,
-                          seq.order = NULL){
+                          mrk.id.list = NULL){
   assert_that(inherits(x, "screened") | inherits(g, "mappoly2.group"))
   ## If there is marker information, initiate a sequence with it
   ## It over hides lg and ch
@@ -101,13 +16,11 @@ make_sequence <- function(x,
     if(inherits(x, "mappoly2.group")){ # If grouped, use the data within group object
       if(!all(unlist(mrk.id.list) %in% x$data$screened.data$mrk.names))
         stop("Some markers names are not on the screened data")
-      if(is.null(seq.order)) seq.order <- 1:length(mrk.id.list)
-      return(mappoly2:::.map_skeleton(x$data, mrk.id.list[seq.order]))
+      return(mappoly2:::.map_skeleton(x$data, mrk.id.list))
     } else { # If not, use data
       if(!all(unlist(mrk.id.list) %in% x$screened.data$mrk.names))
         stop("Some markers names are not on the screened data")
-      if(is.null(seq.order)) seq.order <- 1:length(mrk.id.list)
-      return(mappoly2:::.map_skeleton(x, mrk.id.list[seq.order]))
+      return(mappoly2:::.map_skeleton(x, mrk.id.list))
     }
   }
   ## If lg and ch are null, use the results only of the UPGMA
@@ -127,16 +40,14 @@ make_sequence <- function(x,
     for(i in 1:length(lg)){
       mrk.id.list[[i]] <- mappoly2:::get_markers_from_grouped_and_chromosome(x, lg[[i]], ch[[i]])
     }
-    if(is.null(seq.order)) seq.order <- 1:length(mrk.id.list)
-    return(mappoly2:::.map_skeleton(x$data, mrk.id.list[seq.order]))
+    return(mappoly2:::.map_skeleton(x$data, mrk.id.list))
   } else if(!is.null(lg) & is.null(ch)){
     assert_that(is.list(lg), msg = "'lg' should be a list")
     mrk.id.list <- vector("list", length(lg))
     for(i in 1:length(lg)){
       mrk.id.list[[i]] <- mappoly2:::get_markers_from_grouped_sequence(x, lg[[i]])
     }
-    if(is.null(seq.order)) seq.order <- 1:length(mrk.id.list)
-    return(mappoly2:::.map_skeleton(x$data, mrk.id.list[seq.order]))
+    return(mappoly2:::.map_skeleton(x$data, mrk.id.list))
   } else if(is.null(lg) & !is.null(ch)){
     mrk.id.list <- vector("list", length(ch))
     assert_that(is.list(ch), msg = "'ch' should be a list")
@@ -148,8 +59,7 @@ make_sequence <- function(x,
         mrk.id.list[[i]] <- intersect(mrk.names[[i]], x$screened.data$mrk.names)
       }
     }
-    if(is.null(seq.order)) seq.order <- 1:length(mrk.id.list)
-    return(mappoly2:::.map_skeleton(x$data, mrk.id.list[seq.order]))
+    return(mappoly2:::.map_skeleton(x$data, mrk.id.list))
   }
 }
 

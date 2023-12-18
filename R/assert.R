@@ -25,4 +25,19 @@ is.phased.sequence <- function(x){
     !is.null(x$phases[[1]]$p1) && !is.null(x$phases[[1]]$p2)
 }
 
+is.phased.sequence <- function(x, lg, type, parent, phase.type){
+  assert_that(length(lg) == 1)
+  assert_that(length(type) == 1)
+  assert_that(length(parent) == 1)
+  assert_that(length(phase.type) == 1)
+  !is.null(x$maps[[lg]][[type]][[parent]][[phase.type]][[1]]$p1)
+}
+
+is.mapped.sequence <- function(x, lg, type, parent){
+  assert_that(length(lg) == 1)
+  assert_that(length(type) == 1)
+  assert_that(length(parent) == 1)
+  !is.null(x$maps[[lg]][[type]][[parent]]$hmm.phase[[1]]$loglike)
+}
+
 

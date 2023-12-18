@@ -6,7 +6,6 @@
 \usage{
 group(
   x = NULL,
-  use.genome.only = FALSE,
   expected.groups = NULL,
   inter = TRUE,
   comp.mat = FALSE,

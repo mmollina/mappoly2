@@ -4,7 +4,12 @@
 \alias{get_markers_from_ordered_sequence}
 \title{Extract Markers from Ordered Sequence}
 \usage{
-get_markers_from_ordered_sequence(x, lg, type = c("mds", "genome", "custom"))
+get_markers_from_ordered_sequence(
+  x,
+  lg,
+  type = c("mds", "genome", "custom"),
+  parent = c("p1p2", "p1", "p2")
+)
 }
 \arguments{
 \item{x}{An object containing marker maps.}

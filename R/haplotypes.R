@@ -15,27 +15,54 @@
 calc_haplotypes <- function(x,
                             lg = NULL,
                             type = c("mds", "genome"),
+                            parent = c("p1p2","p1","p2"),
                             phase.conf = "all",
                             verbose = TRUE,
                             ncpus = 1)
 {
   y <- mappoly2:::parse_lg_and_type(x,lg,type)
+  parent <- match.arg(parent)
   g <- x$data$geno.dose
   g[is.na(g)] <- -1
   ploidy.p1 <- x$data$ploidy.p1
   ploidy.p2 <- x$data$ploidy.p2
+  dosage.p1 <- x$data$dosage.p1
+  dosage.p2 <- x$data$dosage.p2
   ind.names <- x$data$screened.data$ind.names
-  g <- g[,ind.names]
-  haplotypeData <- lapply(y$lg, function(i) {
-    ph <- x$maps[[i]][[y$type]]$phase
-    list(g = g, ph = ph, ploidy.p1 = ploidy.p1, ploidy.p2 = ploidy.p2,
-         phase.conf = phase.conf, verbose = verbose, type = type)
-  })
+
+  # Assessing multi-point map availability
+  has.hmm.map <- sapply(x$maps[y$lg], function(x) sapply(x[[y$type]][3:5], function(x) !is.null(x$hmm.phase[[1]]$loglike)))
+
+  # Checking for minimal phase information
+  if(all(!has.hmm.map))
+    stop("Provide a hmm estimated map.")
+
+  ## Selecting markers based on input
+  u <- t(has.hmm.map[parent, , drop = FALSE])
+  v <- apply(u, 1, any)
+  if(all(!v))
+    stop(paste("Provide a pre-phased sequence for groups", paste(names(v), collapse = " ")))
+  if(any(!v))
+    warning(paste("Provide a pre-phased sequence for groups", paste(names(v[!v]), collapse = " ")))
+  p <- apply(u[v,,drop = FALSE], 1, function(x) ifelse(x[1], "hmm.phase", NA))
+  haplotypeData <- vector("list", length(p))
+  names(haplotypeData) <- names(p)
+  for(i in names(p)){
+    ph <- x$maps[[i]][[y$type]][[parent]][[p[i]]]
+    gtemp <- g[rownames(ph[[1]]$p1), ind.names]
+    haplotypeData[[i]] <- list(g = gtemp,
+                               ph = ph,
+                               ploidy.p1 = ploidy.p1,
+                               ploidy.p2 = ploidy.p2,
+                               phase.conf = phase.conf,
+                               parent.info = parent,
+                               verbose = verbose)
+  }
   haplotypeFunc <- function(data) {
-    if(data$verbose) cat("Processing linkage group\n")
     return(mappoly2:::calc_haplotypes_one(data$g, data$ph, data$ploidy.p1,
-                               data$ploidy.p2, data$phase.conf,
-                               parent.info = "both", verbose = data$verbose))
+                                          data$ploidy.p2, data$phase.conf,
+                                          parent.info = data$parent.info,
+                                          verbose = data$verbose))
   }
   if(ncpus > 1) {
     cl <- makeCluster(ncpus)
@@ -44,16 +71,14 @@ calc_haplotypes <- function(x,
   } else {
     results <- lapply(haplotypeData, haplotypeFunc)
   }
-  for(i in seq_along(y$lg))
-    x$maps[[y$lg[i]]][[y$type]]$phase <- results[[i]]
-
+  for(i in names(p))
+    x$maps[[i]][[y$type]][[parent]][["hmm.phase"]] <- results[[i]]
   return(x)
 }
 
-
 calc_haplotypes_one <- function(g, ph, ploidy.p1, ploidy.p2,
                                 phase.conf = "all",
-                                parent.info = c("both", "p1", "p2"),
+                                parent.info = c("p1p2", "p1", "p2"),
                                 verbose = TRUE){
   if(all(phase.conf == "all"))
     phase.conf <- 1:length(ph)
@@ -62,7 +87,7 @@ calc_haplotypes_one <- function(g, ph, ploidy.p1, ploidy.p2,
   n.ind <- ncol(g)
   mrk.id <- rownames(ph[[1]]$p1)
   g <- g[mrk.id,]
-  if (parent.info == "both"){ ###FIXME: include detect_parent_info
+  if (parent.info == "p1p2"){ ###FIXME: include detect_parent_info
     for(i in phase.conf){
       cat("   Conf.", i,":")
       pedigree <- matrix(rep(c(1,2,ploidy.p1,ploidy.p2, 1),n.ind),

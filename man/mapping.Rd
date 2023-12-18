@@ -8,6 +8,8 @@ mapping(
   x,
   lg = NULL,
   type = c("mds", "genome", "custom"),
+  parent = c("p1p2", "p1", "p2"),
+  recompute.from.pairwise = FALSE,
   phase.conf = "all",
   rf = NULL,
   error = 0,
