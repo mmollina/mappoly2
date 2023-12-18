@@ -93,6 +93,12 @@ system.time(s <- mapping(s,
                          tol = 10e-4,
                          error = 0.0,
                          ncpus = 8))
+system.time(s <- mapping(s,
+                         type = "mds",
+                         parent = "p1p2",
+                         tol = 10e-4,
+                         error = 0.05,
+                         ncpus = 8))
 plot_map_list(s, parent = "p1")
 plot_map_list(s, parent = "p2")
 plot_map_list(s, parent = "p1p2")
@@ -126,6 +132,11 @@ s <- calc_haplotypes(s, type = "mds", ncpus = 1)
 s <- calc_haplotypes(s, type = "genome", ncpus = 1, parent = "p1")
 s <- calc_haplotypes(s, type = "genome", ncpus = 1, parent = "p2")
 print(s, type = "genome")
+
+x1<-s$maps$lg1$mds$p1p2$hmm.phase[[1]]$haploprob
+x1[1:10, 1:10]
+image(t(as.matrix(x1[1:8,-c(1:3)])))
+
 #### Merging P1 and P2 (will overwrite p1p2 slot) ####
 s <- merge_single_parent_maps(s, type = "genome", ncpus = 8)
 print(s, "genome")
