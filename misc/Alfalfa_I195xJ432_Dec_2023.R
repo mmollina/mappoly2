@@ -2,9 +2,16 @@ rm(list = ls())
 require(mappoly2)
 setwd("~/repos/official_repos/mappoly2/")
 ####Reading Data####
-dat <- read_geno_csv(file.in = "misc/I195xJ432.csv",
+#dat <- read_geno_csv(file.in = "misc/I195xJ432.csv",
+#                     ploidy.p1 = 4,
+#                     ploidy.p2 = 4)
+
+dat <- read_geno_csv(file.in = "misc/fake_data.csv",
                      ploidy.p1 = 4,
-                     ploidy.p2 = 4)
+                     ploidy.p2 = 4,
+                     name.p1 = "Plant_A",
+                     name.p2 = "Plant_B")
+
 print(dat)
 plot(dat)
 
@@ -22,12 +29,12 @@ system.time(dat <- pairwise_rf(dat, mrk.scope = "all", ncpus = 8))
 dat
 plot(dat)
 #### RF-based filter ####
-dat <- rf_filter(dat, probs = c(0.025, 0.975))
+dat <- rf_filter(dat, probs = c(0.001, 0.999))
 dat
 #plot(dat)
 
 #### Grouping ####
-g <- group(x = dat, expected.groups = 8, comp.mat = TRUE, inter = FALSE)
+g <- group(x = dat, expected.groups = 3, comp.mat = TRUE, inter = FALSE)
 g
 #### Sequence ####
 s <- make_sequence(g,
@@ -48,6 +55,7 @@ s
 #                              c(12,13)))
 #s
 #s <- make_sequence(g, lg = list(1,3,2,4,6,7,5,8))
+s <- make_sequence(g)
 
 #### Order ######
 s <- order_sequence(s, type = "mds")
@@ -98,7 +106,7 @@ system.time(s <- mapping(s,
                          parent = "p1p2",
                          tol = 10e-4,
                          error = 0.05,
-                         ncpus = 8))
+                         ncpus = 1))
 plot_map_list(s, parent = "p1")
 plot_map_list(s, parent = "p2")
 plot_map_list(s, parent = "p1p2")
@@ -121,6 +129,14 @@ system.time(s <- mapping(s,
                          tol = 10e-4,
                          error = 0.0,
                          ncpus = 1))
+system.time(st <- mapping(s,
+                         type = "genome",
+                         parent = "p1p2",
+                         tol = 10e-3,
+                         error = 0.0,
+                         ncpus = 1))
+plot_map(st, lg = 1, type = "genome",parent = "p1p2")
+
 plot_map_list(s, type = "genome",parent = "p1")
 plot_map_list(s, type = "genome",parent = "p2")
 plot_map(s, type = "genome", parent = "p1", lg = 6)
@@ -133,9 +149,9 @@ s <- calc_haplotypes(s, type = "genome", ncpus = 1, parent = "p1")
 s <- calc_haplotypes(s, type = "genome", ncpus = 1, parent = "p2")
 print(s, type = "genome")
 
-x1<-s$maps$lg1$mds$p1p2$hmm.phase[[1]]$haploprob
-x1[1:10, 1:10]
-image(t(as.matrix(x1[1:8,-c(1:3)])))
+a<-s$maps$lg1$mds$p1p2$hmm.phase[[1]]$haploprob
+a[1:10, 1:10]
+image(t(as.matrix(a[1:8,-c(1:3)])))
 
 #### Merging P1 and P2 (will overwrite p1p2 slot) ####
 s <- merge_single_parent_maps(s, type = "genome", ncpus = 8)
@@ -147,23 +163,50 @@ plot_map_list(s, type = "genome",parent = "p1p2", col = viridis::turbo(8, begin 
 s <- calc_haplotypes(s, type = "genome", ncpus = 1, parent = "p1p2")
 print(s, "genome")
 map_summary(s, "genome")
-plot_map(s, lg = 1, type = "genome")
+plot_map(s, lg = 1, type = "genome", mrk.names = TRUE)
 #### Augment maps ####
 
+s1<-make_sequence(g)
+s1 <- order_sequence(s1, type = "mds")
+s1 <- order_sequence(s1, type = "genome")
+s1 <- pairwise_phasing(s1, type = "mds", parent = "p1")
+s1 <- pairwise_phasing(s1, type = "mds", parent = "p2")
+s1 <- pairwise_phasing(s1, type = "genome", parent = "p1")
+s1 <- pairwise_phasing(s1, type = "genome", parent = "p2")
+s1 <- mapping(s1, parent = "p1", type = "mds")
+s1 <- mapping(s1, parent = "p2", type = "mds")
+s1 <- mapping(s1, parent = "p1", type = "genome")
+s1 <- mapping(s1, parent = "p2", type = "genome")
+plot_map_list(s1, parent = "p1", type = "mds")
+plot_map_list(s1, parent = "p2", type = "mds")
+plot_map_list(s1, parent = "p1", type = "genome")
+plot_map_list(s1, parent = "p2", type = "genome")
+s1 <- merge_single_parent_maps(s1, type = "mds")
+s1 <- merge_single_parent_maps(s1, type = "genome")
+plot_map_list(s1, parent = "p1p2", type = "mds")
+plot_map_list(s1, parent = "p1p2", type = "genome")
+s1 <- calc_haplotypes(s1, type = "mds")
+s1 <- calc_haplotypes(s1, type = "genome")
+st<-augment_phased_map(s1, type = "mds", thresh.rf.to.insert = .1)
+st<-augment_phased_map(s1, type = "genome", thresh.rf.to.insert = .1)
+st <- mapping(st, parent = "p1p2", type = "mds", error = 0.05, ncpus = 3)
+st <- mapping(st, parent = "p1p2", type = "genome", error = 0.05, ncpus = 3)
+plot_map_list(s1, parent = "p1p2", type = "mds")
+plot_map_list(s1, parent = "p1p2", type = "genome")
 
+map_summary(s1, type = "mds")
+map_summary(st, type = "mds")
 
-
-
-
-
+map_summary(s1, type = "genome")
+map_summary(st, type = "genome")
 
 plot_genome_vs_map(s)
 plot_genome_vs_map(s, same.ch.lg = T, alpha = 1, size = 2)
 plot_genome_vs_map(s, same.ch.lg = T, alpha = 1, size = 2, type = "genome")
 
-x1<-s$maps$lg1$mds$phase[[1]]$haploprob
-x1[1:10, 1:10]
-image(t(as.matrix(x1[1:8,-c(1:3)])))
+a<-s$maps$lg1$mds$phase[[1]]$haploprob
+a[1:10, 1:10]
+image(t(as.matrix(a[1:8,-c(1:3)])))
 
 x2<-s$maps$lg1$genome$phase[[1]]$haploprob
 round(x2[1:10, 1:10],2)

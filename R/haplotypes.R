@@ -54,13 +54,16 @@ calc_haplotypes <- function(x,
                                ph = ph,
                                ploidy.p1 = ploidy.p1,
                                ploidy.p2 = ploidy.p2,
+                               dosage.p1 = dosage.p1,
+                               dosage.p2 = dosage.p2,
                                phase.conf = phase.conf,
                                parent.info = parent,
                                verbose = verbose)
   }
   haplotypeFunc <- function(data) {
     return(mappoly2:::calc_haplotypes_one(data$g, data$ph, data$ploidy.p1,
-                                          data$ploidy.p2, data$phase.conf,
+                                          data$ploidy.p2, dat$dosage.p1,
+                                          dat$dosage.p2, data$phase.conf,
                                           parent.info = data$parent.info,
                                           verbose = data$verbose))
   }
@@ -76,7 +79,12 @@ calc_haplotypes <- function(x,
   return(x)
 }
 
-calc_haplotypes_one <- function(g, ph, ploidy.p1, ploidy.p2,
+calc_haplotypes_one <- function(g,
+                                ph,
+                                ploidy.p1,
+                                ploidy.p2,
+                                dosage.p1,
+                                dosage.p2,
                                 phase.conf = "all",
                                 parent.info = c("p1p2", "p1", "p2"),
                                 verbose = TRUE){
