@@ -232,152 +232,205 @@ augment_phased_map <- function(x,
                                thresh.rf.to.insert = NULL,
                                tol = 10e-4,
                                verbose = TRUE){
-  y <- mappoly2:::parse_lg_and_type(x,lg,type)
+  # Extract the linkage group and type information from the input object
+  y <- mappoly2:::parse_lg_and_type(x, lg, type)
+
+  # Get all markers for the specified linkage group and type
   mrk.all.lg <- mappoly2:::get_markers_from_ordered_sequence(x, y$lg, y$type, "p1p2")
-  p1p2.map <- lapply(x$maps[y$lg], function(x) x[[y$type]]$p1p2$hmm.phase[[1]])
-  ##FIXME
-  #check if haploprob available
+
+  # Generate a list of phased map information for each linkage group
+  p1p2.map <- lapply(x$maps[y$lg], function(map_item) map_item[[y$type]]$p1p2$hmm.phase[[1]])
+
+  # Check if haploprob is available in the phased map
+  assert_that(!is.null(p1p2.map[[i]]$haploprob),
+              msg = "Compute haplotype probability for initial sequence")
+
+  # Extract individual names from the screened data
   ind.names <- x$data$screened.data$ind.names
-  n.ind <- length(ind.names)
+  n.ind <- length(ind.names)  # Number of individuals
+
+  # Extract genotype dosage information and replace NA values with -1
   g <- x$data$geno.dose
-  g[is.na(g)] <- -1
+  g[is.na(g)] <- -1  # Handling missing data in genotype dosages
+
+  # Get ploidy and dosage information for both parent 1 and parent 2
   ploidy.p1 <- x$data$ploidy.p1
   ploidy.p2 <- x$data$ploidy.p2
   dosage.p1 <- x$data$dosage.p1
   dosage.p2 <- x$data$dosage.p2
+
+  # Retrieving how many alternate alleles share homologs based
+  # on pairwise linkage analysis
+  M <- lapply(mrk.all.lg,
+              function(mrk.seq) filter_rf_matrix(x$data,
+                                                 type = "sh",
+                                                 thresh.LOD.ph,
+                                                 thresh.LOD.rf,
+                                                 thresh.rf,
+                                                 mrk.names = mrk.seq))
+  # splitting data into linkage groups
+  g <- lapply(mrk.all.lg, function(x) g[x, ])
+
   for(i in names(mrk.all.lg)){
-    M <- mappoly2:::filter_rf_matrix(x$data,
-                                     type = "sh",
-                                     thresh.LOD.ph,
-                                     thresh.LOD.rf,
-                                     thresh.rf,
-                                     mrk.names = mrk.all.lg[[i]])
-    mrk.pos <- rownames(p1p2.map[[i]]$p1) # positioned markers
-    mrk.id <- setdiff(mrk.all.lg[[i]], mrk.pos) # markers to be positioned
-    if(length(mrk.id) == 0)
-      return(p1p2.map[[i]]) #### FIXME
-    ## two-point phasing parent 1
-    dose.vec <- x$data$dosage.p1[mrk.id]
-    InitPh1 <- p1p2.map[[i]]$p1
-    S1 <- M$Sh.p1[mrk.id, mrk.pos]
-    L1 <- mappoly2:::phasing_one(mrk.id, dose.vec, S1, InitPh1, verbose = FALSE)
-    ## two-point phasing parent 2
-    dose.vec <- x$data$dosage.p2[mrk.id]
-    InitPh2 <- p1p2.map[[i]]$p2
-    S2 <- M$Sh.p2[mrk.id, mrk.pos]
-    L2 <- mappoly2:::phasing_one(mrk.id, dose.vec, S2, InitPh2, verbose = FALSE)
-    ## Selecting phase configurations
+
+    # Extract positioned and unpositioned markers
+    mrk.pos <- rownames(p1p2.map[[i]]$p1)  # Positioned markers
+    mrk.id <- setdiff(mrk.all.lg[[i]], mrk.pos)  # Markers to be positioned
+
+    # Check if there are any markers to be positioned
+    if(length(mrk.id) == 0) {
+      return(p1p2.map[[i]])  # No unpositioned markers found
+    }
+
+    # Function to perform two-point phasing for a parent
+    perform_phasing <- function(dosage, map, M, parent) {
+      dose.vec <- dosage[mrk.id]
+      InitPh <- map
+      S <- M[[paste0("Sh.", parent)]][mrk.id, mrk.pos]
+      mappoly2:::phasing_one(mrk.id, dose.vec, S, InitPh, verbose = FALSE)
+    }
+
+    # Two-point phasing for both parents
+    L1 <- perform_phasing(dosage.p1, p1p2.map[[i]]$p1, M[[i]], "p1")
+    L2 <- perform_phasing(dosage.p2, p1p2.map[[i]]$p2, M[[i]], "p2")
+
+    # Selecting phase configurations
     n.conf <- sapply(L1, nrow) * sapply(L2, nrow)
-    if(verbose){
-      cat("Distribution of phase configurations.\n")
+    if(verbose) {
+      cat("Distribution of phase configurations:\n")
       temp <- as.data.frame(table(n.conf))
       colnames(temp) <- c("n. phase. conf.", "frequency")
       print(temp)
     }
+
+    # Handle cases with no selected markers
     mrk.sel <- which(n.conf <= max.phases)
-    if(length(mrk.sel) == 0)
+    if(length(mrk.sel) == 0) {
       stop("No markers were selected for 'max.phases' = ", max.phases,
            "\n'max.phases' should be at least ", min(n.conf))
-    L1 <- L1[n.conf <= max.phases]
-    L2 <- L2[n.conf <= max.phases]
-    mrk.id <- mrk.id[n.conf <= max.phases]
-    pedigree <- matrix(rep(c(1,2,ploidy.p1,
-                             ploidy.p2, 1),n.ind),
-                       nrow = n.ind,
-                       byrow = TRUE)
+    }
+
+    # Update phase information for selected markers
+    L1 <- L1[mrk.sel]
+    L2 <- L2[mrk.sel]
+    mrk.id <- mrk.id[mrk.sel]
+
+    # Create pedigree matrix
+    pedigree <- matrix(rep(c(1, 2, ploidy.p1, ploidy.p2, 1), n.ind),
+                       nrow = n.ind, byrow = TRUE)
+
+    # Find flanking markers
     flanking <- mappoly2:::find_flanking_markers(mrk.all.lg[[i]], mrk.pos, mrk.id)
     phasing_results <- vector("list", length(flanking))
     names(phasing_results) <- names(flanking)
+
+    # Initialize progress bar if verbose mode is enabled
     if(verbose) pb <- txtProgressBar(min = 0, max = length(L1), style = 3)
-    for(j in 1:length(L1)){
-      G <- g[mrk.id[j], ,drop = TRUE]
+
+    # Iterating over each set of phasing results
+    for(j in 1:length(L1)) {
+      # Extract genotype data for the current marker
+      G <- g[[i]][mrk.id[j], , drop = TRUE]
       u <- match(unlist(flanking[[mrk.id[j]]]), mrk.pos)
-      if(is.na(u)[1]){ # Marker inserted at the beginning of the linkage group
-        homolog_prob <- as.matrix(p1p2.map[[i]]$haploprob[,c(na.omit(u), na.omit(u)+1)+3])
-        idx <- c(1,0,2)
-      } else if(is.na(u)[2]){ # Marker inserted at the end of the linkage group
-        homolog_prob <- as.matrix(p1p2.map[[i]]$haploprob[,c(na.omit(u)-1, na.omit(u))+3])
-        idx <- c(0,2,1)
-      } else { # Marker inserted in the middle of the linkage group
-        homolog_prob <- as.matrix(p1p2.map[[i]]$haploprob[,u+3])
-        idx <- c(0,1,2)
+
+      # Determine the position of the marker and set homolog probabilities
+      if(is.na(u)[1]) {  # Marker at the beginning of the linkage group
+        homolog_prob <- as.matrix(p1p2.map[[i]]$haploprob[, c(na.omit(u), na.omit(u) + 1) + 3])
+        idx <- c(1, 0, 2)
+      } else if(is.na(u)[2]) {  # Marker at the end of the linkage group
+        homolog_prob <- as.matrix(p1p2.map[[i]]$haploprob[, c(na.omit(u) - 1, na.omit(u)) + 3])
+        idx <- c(0, 2, 1)
+      } else {  # Marker in the middle of the linkage group
+        homolog_prob <- as.matrix(p1p2.map[[i]]$haploprob[, u + 3])
+        idx <- c(0, 1, 2)
       }
-      w2<-w1<-NULL
-      z<-vector("list", nrow(L1[[j]]) * nrow(L2[[j]]))
+
+      # Initialize variables for phasing computations
+      w2 <- w1 <- NULL
+      z <- vector("list", nrow(L1[[j]]) * nrow(L2[[j]]))
       count <- 1
-      for(l in 1:nrow(L1[[j]])){
-        for(k in 1:nrow(L2[[j]])){
-          PH <- list(L1[[j]][l,], L2[[j]][k,])
-          z[[count]]<-mappoly2:::est_hmm_map_biallelic_insert_marker(PH,
-                                                                     G,
-                                                                     pedigree,
-                                                                     homolog_prob,
-                                                                     rf = c(0.01,0.01),
-                                                                     idx,
-                                                                     verbose = FALSE,
-                                                                     detailed_verbose = FALSE,
-                                                                     tol = tol,
-                                                                     ret_H0 = FALSE)
-          w1 <- rbind(w1, L1[[j]][l,])
-          w2 <- rbind(w2, L2[[j]][k,])
+
+      # Nested loops for computing phasing results
+      for(l in 1:nrow(L1[[j]])) {
+        for(k in 1:nrow(L2[[j]])) {
+          PH <- list(L1[[j]][l, ], L2[[j]][k, ])
+          z[[count]] <- mappoly2:::est_hmm_map_biallelic_insert_marker(PH, G, pedigree, homolog_prob,
+                                                                       rf = c(0.01, 0.01), idx, verbose = FALSE,
+                                                                       detailed_verbose = FALSE, tol = tol, ret_H0 = FALSE)
+          w1 <- rbind(w1, L1[[j]][l, ])
+          w2 <- rbind(w2, L2[[j]][k, ])
           count <- count + 1
         }
       }
+
+      # Process the phasing results
       v <- sapply(z, function(x) x[[1]])
       v <- max(v) - v
       id <- order(v)
       phasing_results[[mrk.id[j]]] <- list(loglike = v[id],
-                                           rf.vec = t(sapply(z[id],
-                                                             function(x) x[[2]])),
-                                           phases = list(p1 = w1[id,,drop=FALSE],
-                                                         p2 = w2[id,,drop=FALSE]))
-      if(verbose) setTxtProgressBar(pb, j)
+                                           rf.vec = t(sapply(z[id], function(x) x[[2]])),
+                                           phases = list(p1 = w1[id, , drop = FALSE],
+                                                         p2 = w2[id, , drop = FALSE]))
 
+      # Update progress bar if verbose mode is enabled
+      if(verbose) setTxtProgressBar(pb, j)
     }
+
+    # Close the progress bar if verbose mode is enabled
     if(verbose) close(pb)
 
-    selected.list<-phasing_results[sapply(phasing_results,
-                                          function(x) length(x$loglike)==1 ||
-                                            x$loglike[2] > thresh.LOD.ph.to.insert)]
-    if(is.null(thresh.rf.to.insert))
-      thresh.rf.to.insert <- max(p1p2.map[[i]]$rf)
-    if(thresh.rf.to.insert < 0 || thresh.rf.to.insert >= 0.5)
-      stop("'thresh.rf.to.insert' parameter must be between 0 and 0.5")
-    selected.list <- phasing_results[sapply(phasing_results,
-                                            function(x) max(x$rf.vec[1,]) <= thresh.rf.to.insert)]
-    for(j in names(selected.list)){
-      cur.mrk <- rownames(p1p2.map[[i]]$p1)
-      pos <- mappoly2:::find_flanking_markers(mrk.all.lg[[i]],
-                                              cur.mrk,
-                                              j)
-      #print(pos)
-      if(length(unlist(pos)) == 0)
-        next()
 
-      if(is.na(pos[[1]]$preceding))# beginning
-      {
+    # Selecting the list of phasing results based on loglike criteria
+    selected.list <- phasing_results[sapply(phasing_results, function(x) {
+      length(x$loglike) == 1 || x$loglike[2] > thresh.LOD.ph.to.insert
+    })]
+
+    # Set default value for thresh.rf.to.insert if it is NULL
+    if(is.null(thresh.rf.to.insert)) {
+      thresh.rf.to.insert <- max(p1p2.map[[i]]$rf)
+    }
+
+    # Validate thresh.rf.to.insert value
+    if(thresh.rf.to.insert < 0 || thresh.rf.to.insert >= 0.5) {
+      stop("'thresh.rf.to.insert' parameter must be between 0 and 0.5")
+    }
+
+    # Further filtering of phasing results based on recombination frequency
+    selected.list <- phasing_results[sapply(phasing_results, function(x) {
+      max(x$rf.vec[1,]) <= thresh.rf.to.insert
+    })]
+
+    # Iterate over selected list to update map information
+    for(j in names(selected.list)) {
+      cur.mrk <- rownames(p1p2.map[[i]]$p1)
+      pos <- mappoly2:::find_flanking_markers(mrk.all.lg[[i]], cur.mrk, j)
+
+      # Skip if no flanking markers are found
+      if(length(unlist(pos)) == 0) {
+        next()
+      }
+
+      # Inserting markers at the beginning, end, or middle of the linkage group
+      if(is.na(pos[[1]]$preceding)) {  # Beginning
         p1p2.map[[i]]$p1 <- rbind(selected.list[[j]]$phases$p1[1,], p1p2.map[[i]]$p1)
         p1p2.map[[i]]$p2 <- rbind(selected.list[[j]]$phases$p2[1,], p1p2.map[[i]]$p2)
         rownames(p1p2.map[[i]]$p1) <- rownames(p1p2.map[[i]]$p2) <- c(j, cur.mrk)
-      }
-      else if (is.na(pos[[1]]$succeeding)){ #end
+      } else if(is.na(pos[[1]]$succeeding)) {  # End
         p1p2.map[[i]]$p1 <- rbind(p1p2.map[[i]]$p1, selected.list[[j]]$phases$p1[1,])
         p1p2.map[[i]]$p2 <- rbind(p1p2.map[[i]]$p2, selected.list[[j]]$phases$p2[1,])
         rownames(p1p2.map[[i]]$p1) <- rownames(p1p2.map[[i]]$p2) <- c(cur.mrk, j)
-      }
-      else {
+      } else {  # Middle
         preceding <- cur.mrk[1:match(pos[[1]]$preceding, cur.mrk)]
-        succeeding <- cur.mrk[(match(pos[[1]]$succeeding, cur.mrk)): length(cur.mrk)]
-        p1p2.map[[i]]$p1 <- rbind(p1p2.map[[i]]$p1[preceding,],
-                                  selected.list[[j]]$phases$p1[1,],
-                                  p1p2.map[[i]]$p1[succeeding,])
-        p1p2.map[[i]]$p2 <- rbind(p1p2.map[[i]]$p2[preceding,],
-                                  selected.list[[j]]$phases$p2[1,],
-                                  p1p2.map[[i]]$p2[succeeding,])
+        succeeding <- cur.mrk[(match(pos[[1]]$succeeding, cur.mrk)):length(cur.mrk)]
+        p1p2.map[[i]]$p1 <- rbind(p1p2.map[[i]]$p1[preceding,], selected.list[[j]]$phases$p1[1,], p1p2.map[[i]]$p1[succeeding,])
+        p1p2.map[[i]]$p2 <- rbind(p1p2.map[[i]]$p2[preceding,], selected.list[[j]]$phases$p2[1,], p1p2.map[[i]]$p2[succeeding,])
         rownames(p1p2.map[[i]]$p1) <- rownames(p1p2.map[[i]]$p2) <- c(preceding, j, succeeding)
       }
     }
+
+    # Update the hmm phase in the original x$maps object
     x$maps[[i]][[y$type]]$p1p2$hmm.phase[[1]] <- p1p2.map[[i]]
+
   }
   return(x)
 }
