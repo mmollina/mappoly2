@@ -1,32 +1,41 @@
-#' Subsets mappoly2.data Object
+#' Subset mappoly2.data Object
 #'
-#' This function selects a subset of either individuals or markers from an object of the `mappoly2.data` class.
+#' This function creates a subset of either individuals or markers from an object
+#' of the `mappoly2.data` class, based on specified criteria.
 #'
 #' @param x A `mappoly2.data` object from which the subset is to be selected.
-#' @param n An integer specifying the number of individuals or markers to be sampled. If NULL, `percentage` must be specified.
-#' @param percentage A numeric value between 0 and 1 indicating the proportion of individuals or markers to be sampled.
-#' This parameter is considered only if `n` is set to NULL.
-#' @param type A character string, either "marker" or "individual", indicating whether markers or individuals should be subset.
-#' @param selected.ind A character vector containing the names of the individuals to select.
-#' This parameter takes effect only if `type = "individual"`, and both `n` and `percentage` are NULL.
-#' @param selected.mrk A character vector containing the names of the markers to select.
-#' This parameter takes effect only if `type = "marker"`, and both `n` and `percentage` are NULL.
-#' @param seed a single value, interpreted as an integer, or \code{NULL}.
-#' See the \code{\link[base]{set.seed}} function for information.
-#' @param filter.non.conforming If \code{TRUE} (default), data points with
-#' unexpected genotypes (e.g., double reduction) are converted to 'NA'.
-#' See the \code{\link[mappoly]{segreg_poly}} function for information on
-#' expected classes and their respective frequencies.
-#' @param filter.redundant Logical. If \code{TRUE} (default), removes redundant
-#' markers during map construction, keeping them annotated to export to the
-#' final map.
+#' @param type Character string, either "marker" or "individual", indicating whether
+#'             markers or individuals should be subset. Default is "marker".
+#' @param perc Numeric; the proportion of individuals or markers to be sampled.
+#'             This is used only if `n` is NULL. Default is 0.1.
+#' @param n Integer; the number of individuals or markers to be sampled.
+#'           If NULL, `perc` must be specified.
+#' @param select.ind Character vector containing the names of the individuals to select.
+#'                   Effective only if `type = "individual"`, and both `n` and `perc` are NULL.
+#' @param select.mrk Character vector containing the names of the markers to select.
+#'                   Effective only if `type = "marker"`, and both `n` and `perc` are NULL.
+#' @param seed Integer or NULL; sets the seed for random number generation for reproducible sampling.
+#' @param filter.non.conforming Logical; if TRUE (default), data points with unexpected genotypes
+#'                              (e.g., double reduction) are converted to 'NA'.
+#' @param filter.redundant Logical; if TRUE (default), removes redundant markers during map construction,
+#'                         keeping them annotated to export to the final map.
+#' @param ... Additional arguments, currently not used.
+#'
 #' @return A `mappoly2.data` object that contains the selected subset of individuals or markers.
+#'
+#' @details The function allows for flexible subsetting of `mappoly2.data` objects based on
+#'          the number or proportion of individuals or markers. It supports random sampling
+#'          and specific selection based on provided lists. Additional filtering options are
+#'          available to handle non-conforming data and redundant markers.
+#'
+#'
+#' @importFrom assertthat assert_that
 #' @export
 subset.mappoly2.data <- function(x, type = c("marker", "individual"),
                                  perc = 0.1, n = NULL,
                                  select.mrk = NULL, select.ind = NULL,
                                  seed = NULL, filter.non.conforming = TRUE,
-                                 filter.redundant = TRUE){
+                                 filter.redundant = TRUE, ...){
   assert_that(is.mappoly2.data(x))
   if(!is.null(select.ind))
     type <- "individual"
@@ -60,43 +69,37 @@ subset.mappoly2.data <- function(x, type = c("marker", "individual"),
   }
 }
 
-subset_data <- function(input.data,
+subset_data <- function(x,
                         select.ind = NULL,
                         select.mrk = NULL,
                         filter.non.conforming = TRUE,
                         filter.redundant = TRUE){
   assert_that(!is.null(select.ind) | !is.null(select.mrk))
-  assert_that(all(select.mrk%in%input.data$mrk.names))
-  assert_that(all(select.ind%in%input.data$ind.names))
+  assert_that(all(select.mrk%in%x$mrk.names))
+  assert_that(all(select.ind%in%x$ind.names))
   if(is.null(select.ind))
-    select.ind <- input.data$ind.names
+    select.ind <- x$ind.names
   if(is.null(select.mrk))
-    select.mrk <- input.data$mrk.names
-  input.data$n.ind <- length(select.ind)
-  input.data$n.mrk <- length(select.mrk)
-  input.data$ind.names <- select.ind
-  input.data$mrk.names <- select.mrk
-  input.data$dosage.p1 <- input.data$dosage.p1[select.mrk]
-  input.data$dosage.p2 <- input.data$dosage.p2[select.mrk]
-  input.data$chrom <- input.data$chrom[select.mrk]
-  input.data$genome.pos <- input.data$genome.pos[select.mrk]
-  input.data$ref <- input.data$ref[select.mrk]
-  input.data$alt <- input.data$alt[select.mrk]
-  input.data$all.mrk.depth <- input.data$all.mrk.depth[select.mrk]
-  input.data$geno.dose <- input.data$geno.dose[select.mrk,select.ind]
-  res <- input.data
+    select.mrk <- x$mrk.names
+  x$n.ind <- length(select.ind)
+  x$n.mrk <- length(select.mrk)
+  x$ind.names <- select.ind
+  x$mrk.names <- select.mrk
+  x$dosage.p1 <- x$dosage.p1[select.mrk]
+  x$dosage.p2 <- x$dosage.p2[select.mrk]
+  x$chrom <- x$chrom[select.mrk]
+  x$genome.pos <- x$genome.pos[select.mrk]
+  x$ref <- x$ref[select.mrk]
+  x$alt <- x$alt[select.mrk]
+  x$all.mrk.depth <- x$all.mrk.depth[select.mrk]
+  x$geno.dose <- x$geno.dose[select.mrk,select.ind]
+  res <- x
   # Screening non-conforming markers
   if (filter.non.conforming) {
     res <- filter_non_conforming_classes(res)
   }
-  # Screening redundant markers
   if(filter.redundant){
-    redundant <- filter_redundant(res)
-    if(all(is.na(redundant))) res$redundant <- NA
-    else{
-      res <- subset_data(res, select.mrk = setdiff(res$mrk.names, redundant$removed))
-    }
-    res$redundant <- redundant
+    res <- filter_redundant(res)
   }
   res$QAQC.values <- .setQAQC(id.mrk = res$mrk.names,
                               id.ind = res$ind.names,

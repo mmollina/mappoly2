@@ -1,29 +1,39 @@
-#' Multi-Locus Map Estimation
+#' Multi-Locus Map Estimation for mappoly2 Data Objects
 #'
-#' Performs multi-locus map estimation on mappoly2 data objects. This function supports
-#' both sequential and parallel processing for handling large datasets efficiently.
+#' This function performs multi-locus map estimation on mappoly2 data objects, supporting
+#' both sequential and parallel processing. It is designed to efficiently handle large
+#' datasets, making it suitable for complex genetic mapping tasks.
 #'
-#' @param x An object representing mappoly2 data, typically containing genetic information
-#'          and maps for linkage groups.
-#' @param lg Optional; a vector of linkage group indices to be processed. If NULL, all
-#'           linkage groups in the data object are considered.
-#' @param type Character vector indicating the type of mapping to perform. Options include
-#'             "mds" (multi-dimensional scaling) and "genome". Default is c("mds", "genome").
+#' @param x An object of class \code{mappoly2.sequence}, representing the genetic map data.
+#' @param lg Optional vector specifying linkage group indices to be processed. If NULL,
+#'           all linkage groups in the data object are considered.
+#' @param type A character vector indicating the type of mapping to perform. Options
+#'             include "mds" (multi-dimensional scaling), "genome", and "custom".
+#'             Default is c("mds", "genome", "custom").
+#' @param parent A character vector specifying the parent or parents to be considered
+#'               in the mapping process. Options are "p1p2" (both parents), "p1" (first parent),
+#'               and "p2" (second parent). Default is c("p1p2", "p1", "p2").
+#' @param recompute.from.pairwise A logical value indicating whether to recompute the
+#'                                map from pairwise data.
 #' @param phase.conf A configuration parameter for phase determination.
 #' @param rf Recombination fraction, used in the mapping calculations.
 #' @param error Error tolerance in the mapping process.
-#' @param verbose Logical; if TRUE, detailed progress information will be printed during
+#' @param ncpus Integer specifying the number of CPU cores for parallel processing.
+#'              Default is 1 (sequential processing).
+#' @param verbose Logical value; if TRUE, detailed progress information is printed during
 #'                processing. Default is TRUE.
 #' @param tol Tolerance level for the mapping algorithm.
-#' @param ret_H0 Logical; if TRUE, some hypothesis testing result is returned.
-#' @param ncpus Integer; specifies the number of cores to use for parallel processing
+#' @param ret_H0 Logical; if TRUE, hypothesis testing results are returned.
 #'
-#' @return Returns an updated mappoly2 data object with mapped linkage groups.
+#' @return Returns an updated \code{mappoly2.sequence} data object with mapped linkage groups.
+#'
+#' @details The function processes each specified linkage group, performing phase determination
+#'          and map estimation based on the provided parameters. It can utilize parallel
+#'          processing to enhance performance on large datasets.
+#'
 #' @author Marcelo Mollinari, \email{mmollin@ncsu.edu}
-#' @export
-#'
 #' @importFrom parallel makeCluster stopCluster detectCores
-#' @seealso \link[mappoly2]{mapping_one} for the function used in mapping calculations.
+#' @export
 mapping <- function(x,
                     lg = NULL,
                     type = c("mds", "genome", "custom"),
@@ -37,7 +47,8 @@ mapping <- function(x,
                     tol = 10e-4,
                     ret_H0 = FALSE)
 {
-  y <- mappoly2:::parse_lg_and_type(x,lg,type)
+  y <- parse_lg_and_type(x,lg,type)
+  assert_that(is.mappoly2.sequence(x))
   parent <- match.arg(parent)
   g <- x$data$geno.dose
   g[is.na(g)] <- -1
@@ -60,10 +71,11 @@ mapping <- function(x,
 
   ## Selecting markers based on input
   if(recompute.from.pairwise){
-    u <- t(has.rf.phase[parent, , drop = FALSE])
+    u <- t(has.rf.phase[parent, ,drop = FALSE])
   } else {
     u <- cbind(has.rf.phase[parent,],
                has.hmm.phase[parent,])
+    rownames(u) <- colnames(has.hmm.phase)
   }
   v <- apply(u, 1, any)
   if(all(!v))
@@ -73,13 +85,13 @@ mapping <- function(x,
   if(recompute.from.pairwise)
     p <- apply(u[v,,drop= FALSE], 1, function(x) ifelse(x[1], "rf.phase", NA))
   else
-    p <- apply(u[v,], 1, function(x) ifelse(x[2], "hmm.phase", "rf.phase"))
+    p <- apply(u[v,,drop= FALSE], 1, function(x) ifelse(x[2], "hmm.phase", "rf.phase"))
 
   ## Gathering data for parallel processing
   mapData <- vector("list", length(p))
   names(mapData) <- names(p)
   for(i in names(p)){
-    mrk.id <- mappoly2:::get_markers_from_phased_sequence(x, i, y$type, parent, phase = p[i])
+    mrk.id <- get_markers_from_phased_sequence(x, i, y$type, parent, phase = p[i])
     mrk.id <- get_info_markers(mrk.id[[i]], x, parent) ## Double checking marker information
     gtemp <- g[mrk.id, ind.names]
     ph <- x$maps[[i]][[y$type]][[parent]][[p[i]]]
@@ -99,19 +111,19 @@ mapping <- function(x,
   }
   mapFunc <- function(data) {
     if(data$verbose) cat("Processing linkage group\n")
-    return(mappoly2:::mapping_one(g = data$gtemp,
-                                  ph = data$ph,
-                                  ploidy.p1 = data$ploidy.p1,
-                                  ploidy.p2 = data$ploidy.p2,
-                                  dosage.p1 = data$dosage.p1,
-                                  dosage.p2 = data$dosage.p2,
-                                  info.parent = data$info.parent,
-                                  phase.conf = data$phase.conf,
-                                  rf = data$rf,
-                                  error = data$error,
-                                  verbose = data$verbose,
-                                  tol = data$tol,
-                                  ret_H0 = data$ret_H0))
+    return(mapping_one(g = data$gtemp,
+                       ph = data$ph,
+                       ploidy.p1 = data$ploidy.p1,
+                       ploidy.p2 = data$ploidy.p2,
+                       dosage.p1 = data$dosage.p1,
+                       dosage.p2 = data$dosage.p2,
+                       info.parent = data$info.parent,
+                       phase.conf = data$phase.conf,
+                       rf = data$rf,
+                       error = data$error,
+                       verbose = data$verbose,
+                       tol = data$tol,
+                       ret_H0 = data$ret_H0))
   }
   if(ncpus > 1) {
     cl <- makeCluster(ncpus)
@@ -153,16 +165,16 @@ mapping_one <- function(g,
       pedigree <- matrix(rep(c(1,2,ploidy.p1,ploidy.p2, 1),n.ind),
                          nrow = n.ind,
                          byrow = TRUE)
-      w <- mappoly2:::est_hmm_map_biallelic(PH = list(ph[[i]]$p1[mrk.id, ],
-                                                      ph[[i]]$p2[mrk.id, ]),
-                                            G = g,
-                                            pedigree = pedigree,
-                                            rf = rf,
-                                            err = error,
-                                            verbose = verbose,
-                                            detailed_verbose = FALSE,
-                                            tol = tol,
-                                            ret_H0 = ret_H0)
+      w <- est_hmm_map_biallelic(PH = list(ph[[i]]$p1[mrk.id, ],
+                                           ph[[i]]$p2[mrk.id, ]),
+                                 G = g,
+                                 pedigree = pedigree,
+                                 rf = rf,
+                                 err = error,
+                                 verbose = verbose,
+                                 detailed_verbose = FALSE,
+                                 tol = tol,
+                                 ret_H0 = ret_H0)
       ph[[i]]$loglike <- w[[1]]
       ph[[i]]$rf <- w[[2]]
       ph[[i]]$error <- error
@@ -176,14 +188,14 @@ mapping_one <- function(g,
     g[id, ] <- g[id, ] - ploidy.p2/2
     for(i in phase.conf){
       cat("   Conf.", i,":")
-      w <- mappoly2:::est_hmm_map_biallelic_single(PH = ph[[i]]$p1[mrk.id, ],
-                                                   G = g,
-                                                   rf = rf,
-                                                   err = error,
-                                                   verbose = verbose,
-                                                   detailed_verbose = FALSE,
-                                                   tol = tol,
-                                                   ret_H0 = ret_H0)
+      w <- est_hmm_map_biallelic_single(PH = ph[[i]]$p1[mrk.id, ],
+                                        G = g,
+                                        rf = rf,
+                                        err = error,
+                                        verbose = verbose,
+                                        detailed_verbose = FALSE,
+                                        tol = tol,
+                                        ret_H0 = ret_H0)
       ph[[i]]$loglike <- w[[1]]
       ph[[i]]$rf <- w[[2]]
       ph[[i]]$error <- error
@@ -214,29 +226,65 @@ mapping_one <- function(g,
   else {stop("it should not get here")}
 }
 
-#' Efficiently phases unprocessed markers in a given phased
-#' genetic map, circumventing the need for complete
-#' HMM-based map recomputation.
+#' Augment a Phased Genetic Map with Unprocessed Markers
 #'
-#' @param void internal function
-#' @author Marcelo Mollinari, \email{mmollin@ncsu.edu}
+#' This function efficiently phases unprocessed markers in a given phased genetic
+#' map, circumventing the need for complete HMM-based recomputation of the map.
+#' It is designed to update a genetic map with new marker data while maintaining
+#' the integrity and structure of the existing map.
+#'
+#' @param x An object of class \code{mappoly2.sequence}
+#' @param lg Optional vector specifying the linkage groups to be processed.
+#'           If NULL, all linkage groups in the object are considered.
+#' @param type The type of genetic data to be processed, either 'mds' or 'genome'.
+#' @param ncpus The number of CPU cores to use for parallel processing.
+#' @param thresh.LOD.ph Threshold for the LOD (Logarithm of the Odds) score for
+#'                      phasing.
+#' @param thresh.LOD.rf Threshold for the LOD score for recombination fractions.
+#' @param thresh.rf Threshold for recombination fraction.
+#' @param max.phases The maximum number of phase configurations allowed for a marker.
+#' @param thresh.LOD.ph.to.insert Threshold LOD score for inserting a marker into the map.
+#' @param thresh.rf.to.insert Optional threshold for recombination fraction when
+#'                            inserting markers. If NULL, the maximum recombination
+#'                            fraction in the map is used.
+#' @param reestimate.hmm Logical flag indicating whether to reestimate the HMM
+#'                       (Hidden Markov Model) after marker insertion.
+#' @param tol Tolerance level for numerical computations.
+#' @param final.tol Final tolerance level for HMM reestimation.
+#' @param final.error Final error level for HMM reestimation.
+#' @param verbose Logical flag indicating whether to print detailed output during
+#'                function execution.
+#'
+#' @return Returns the updated genetic map object with newly phased markers.
+#'
+#' @details The function works by first identifying unprocessed markers in the
+#'          genetic map and then using a phasing algorithm to integrate these
+#'          markers into the existing map. It can handle large datasets and is
+#'          optimized for performance with options for parallel processing.
+#'
+#' @importFrom parallel makeCluster stopCluster
+#' @importFrom assertthat assert_that
 #' @export
 augment_phased_map <- function(x,
                                lg = NULL,
                                type = c("mds", "genome"),
+                               ncpus = 1,
                                thresh.LOD.ph = 5,
                                thresh.LOD.rf = 5,
                                thresh.rf = 0.5,
                                max.phases = 5,
                                thresh.LOD.ph.to.insert = 10,
                                thresh.rf.to.insert = NULL,
-                               tol = 10e-4,
+                               reestimate.hmm = TRUE,
+                               tol = 10e-3,
+                               final.tol = 10e-4,
+                               final.error = 0.0,
                                verbose = TRUE){
   # Extract the linkage group and type information from the input object
-  y <- mappoly2:::parse_lg_and_type(x, lg, type)
+  y <- parse_lg_and_type(x, lg, type)
 
   # Get all markers for the specified linkage group and type
-  mrk.all.lg <- mappoly2:::get_markers_from_ordered_sequence(x, y$lg, y$type, "p1p2")
+  mrk.all.lg <- get_markers_from_ordered_sequence(x, y$lg, y$type, "p1p2")
 
   # Generate a list of phased map information for each linkage group
   p1p2.map <- lapply(x$maps[y$lg], function(map_item) map_item[[y$type]]$p1p2$hmm.phase[[1]])
@@ -262,7 +310,7 @@ augment_phased_map <- function(x,
   # Retrieving how many alternate alleles share homologs based
   # on pairwise linkage analysis
   M <- lapply(mrk.all.lg,
-              function(mrk.seq) mappoly2:::filter_rf_matrix(x$data,
+              function(mrk.seq) filter_rf_matrix(x$data,
                                                  type = "sh",
                                                  thresh.LOD.ph,
                                                  thresh.LOD.rf,
@@ -271,23 +319,69 @@ augment_phased_map <- function(x,
   # splitting data into linkage groups
   g <- lapply(mrk.all.lg, function(x) g[x, ])
 
+  # Preparing data to serial or parallel submission
+  mapData <- vector("list", length(mrk.all.lg))
+  names(mapData) <- names(mrk.all.lg)
+
+  for(i in names(mrk.all.lg)){
+    mapData[[i]] <- list(map = p1p2.map[[i]],
+                         mrk = mrk.all.lg[[i]],
+                         mat = M[[i]],
+                         geno = g[[i]],
+                         max.phases = max.phases,
+                         ploidy.p1 = ploidy.p1,
+                         ploidy.p2 = ploidy.p2,
+                         dosage.p1 = dosage.p1,
+                         dosage.p2 = dosage.p2,
+                         tol = tol,
+                         thresh.LOD.ph.to.insert = thresh.LOD.ph.to.insert,
+                         thresh.rf.to.insert = thresh.rf.to.insert,
+                         verbose = verbose,
+                         n.ind = n.ind)
+  }
+  if(ncpus > 1) {
+    cl <- makeCluster(ncpus)
+    mapResult <- parLapply(cl, mapData, function(x) augment_phased_map_one(x$map, x$mrk, x$mat,
+                                                                           x$geno,
+                                                                           x$max.phases,
+                                                                           x$ploidy.p1,
+                                                                           x$ploidy.p2,
+                                                                           x$dosage.p1,
+                                                                           x$dosage.p2,
+                                                                           x$tol,
+                                                                           x$thresh.LOD.ph.to.insert,
+                                                                           x$thresh.rf.to.insert,
+                                                                           x$verbose,
+                                                                           x$n.ind))
+    stopCluster(cl)
+  } else {
+    mapResult <- lapply(mapData, function(x) augment_phased_map_one(x$map, x$mrk, x$mat,
+                                                                    x$geno,
+                                                                    x$max.phases,
+                                                                    x$ploidy.p1,
+                                                                    x$ploidy.p2,
+                                                                    x$dosage.p1,
+                                                                    x$dosage.p2,
+                                                                    x$tol,
+                                                                    x$thresh.LOD.ph.to.insert,
+                                                                    x$thresh.rf.to.insert,
+                                                                    x$verbose,
+                                                                    x$n.ind))
+  }
   for(i in names(mrk.all.lg)){
     # Update the hmm phase in the original x$maps object
-    x$maps[[i]][[y$type]]$p1p2$hmm.phase[[1]] <- mappoly2:::augment_phased_map_one(map = p1p2.map[[i]],
-                                                                                   mrk = mrk.all.lg[[i]],
-                                                                                   mat = M[[i]],
-                                                                                   geno = g[[i]],
-                                                                                   max.phases,
-                                                                                   ploidy.p1,
-                                                                                   ploidy.p2,
-                                                                                   dosage.p1,
-                                                                                   dosage.p2,
-                                                                                   tol,
-                                                                                   thresh.LOD.ph.to.insert,
-                                                                                   thresh.rf.to.insert,
-                                                                                   verbose,
-                                                                                   n.ind)
+    x$maps[[i]][[y$type]]$p1p2$hmm.phase[[1]] <- mapResult[[i]]
 
+  }
+  if(reestimate.hmm){
+    cat("\nReestimating multilocus map ...\n")
+    x <- mapping(x,
+                 parent = "p1p2",
+                 type = y$type,
+                 tol = final.tol,
+                 ncpus = ncpus,
+                 error = final.error,
+                 verbose = FALSE)
   }
   return(x)
 }
@@ -310,8 +404,8 @@ augment_phased_map_one <- function(map, mrk, mat, geno, max.phases,
   perform_phasing <- function(dosage, map, M, parent, mrk.id, mrk.pos) {
     dose.vec <- dosage[mrk.id]
     InitPh <- map
-    S <- M[[paste0("Sh.", parent)]][mrk.id, mrk.pos]
-    mappoly2:::phasing_one(mrk.id, dose.vec, S, InitPh, verbose = FALSE)
+    S <- M[[paste0("Sh.", parent)]][mrk.id, mrk.pos, drop = FALSE]
+    phasing_one(mrk.id, dose.vec, S, InitPh, verbose = FALSE)
   }
 
   # Two-point phasing for both parents
@@ -330,8 +424,9 @@ augment_phased_map_one <- function(map, mrk, mat, geno, max.phases,
   # Handle cases with no selected markers
   mrk.sel <- which(n.conf <= max.phases)
   if(length(mrk.sel) == 0) {
-    stop("No markers were selected for 'max.phases' = ", max.phases,
-         "\n'max.phases' should be at least ", min(n.conf))
+    warning("No markers were selected for 'max.phases' = ", max.phases,
+         "\n increasing 'max.phases' to ", min(n.conf) + 1)
+    max.phases <- min(n.conf) + 1
   }
 
   # Update phase information for selected markers
@@ -344,12 +439,12 @@ augment_phased_map_one <- function(map, mrk, mat, geno, max.phases,
                      nrow = n.ind, byrow = TRUE)
 
   # Find flanking markers
-  flanking <- mappoly2:::find_flanking_markers(mrk, mrk.pos, mrk.id)
+  flanking <- find_flanking_markers(mrk, mrk.pos, mrk.id)
   phasing_results <- vector("list", length(flanking))
   names(phasing_results) <- names(flanking)
 
   # Initialize progress bar if verbose mode is enabled
-  if(verbose) pb <- txtProgressBar(min = 0, max = length(L1), style = 3)
+  if(verbose) pb <- utils::txtProgressBar(min = 0, max = length(L1), style = 3)
 
   # Iterating over each set of phasing results
   for(j in 1:length(L1)) {
@@ -360,13 +455,13 @@ augment_phased_map_one <- function(map, mrk, mat, geno, max.phases,
     # Determine the position of the marker and set homolog probabilities
     if(is.na(u)[1]) {  # Marker at the beginning of the linkage group
       homolog_prob <- as.matrix(map$haploprob[, c(na.omit(u), na.omit(u) + 1) + 3])
-      idx <- c(1, 0, 2)
+      idx <- c(0, 1, 2)
     } else if(is.na(u)[2]) {  # Marker at the end of the linkage group
       homolog_prob <- as.matrix(map$haploprob[, c(na.omit(u) - 1, na.omit(u)) + 3])
       idx <- c(0, 2, 1)
     } else {  # Marker in the middle of the linkage group
       homolog_prob <- as.matrix(map$haploprob[, u + 3])
-      idx <- c(0, 1, 2)
+      idx <- c(1, 0, 2)
     }
 
     # Initialize variables for phasing computations
@@ -378,9 +473,9 @@ augment_phased_map_one <- function(map, mrk, mat, geno, max.phases,
     for(l in 1:nrow(L1[[j]])) {
       for(k in 1:nrow(L2[[j]])) {
         PH <- list(L1[[j]][l, ], L2[[j]][k, ])
-        z[[count]] <- mappoly2:::est_hmm_map_biallelic_insert_marker(PH, G, pedigree, homolog_prob,
-                                                                     rf = c(0.01, 0.01), idx, verbose = FALSE,
-                                                                     detailed_verbose = FALSE, tol = tol, ret_H0 = FALSE)
+        z[[count]] <- est_hmm_map_biallelic_insert_marker(PH, G, pedigree, homolog_prob,
+                                                          rf = c(0.01, 0.01), idx, verbose = FALSE,
+                                                          detailed_verbose = FALSE, tol = tol, ret_H0 = FALSE)
         w1 <- rbind(w1, L1[[j]][l, ])
         w2 <- rbind(w2, L2[[j]][k, ])
         count <- count + 1
@@ -397,7 +492,7 @@ augment_phased_map_one <- function(map, mrk, mat, geno, max.phases,
                                                        p2 = w2[id, , drop = FALSE]))
 
     # Update progress bar if verbose mode is enabled
-    if(verbose) setTxtProgressBar(pb, j)
+    if(verbose) utils::setTxtProgressBar(pb, j)
   }
 
   # Close the progress bar if verbose mode is enabled
@@ -427,7 +522,7 @@ augment_phased_map_one <- function(map, mrk, mat, geno, max.phases,
   # Iterate over selected list to update map information
   for(j in names(selected.list)) {
     cur.mrk <- rownames(map$p1)
-    pos <- mappoly2:::find_flanking_markers(mrk, cur.mrk, j)
+    pos <- find_flanking_markers(mrk, cur.mrk, j)
 
     # Skip if no flanking markers are found
     if(length(unlist(pos)) == 0) {
@@ -451,15 +546,38 @@ augment_phased_map_one <- function(map, mrk, mat, geno, max.phases,
       rownames(map$p1) <- rownames(map$p2) <- c(preceding, j, succeeding)
     }
   }
+  map$loglike <- NULL
+  map$rf <- NULL
+  map$error <- NULL
+  map$haploprob <- NULL
   return(map)
 }
 
 
-#'This function merges two genetic maps built from markers that are exclusively
-#'informative in isolated parents, facilitating unified analysis and visualization
-#'of distinct genetic data.
+#' Merge Single Parent Genetic Maps
 #'
-#' @param void internal function
+#' This function merges two genetic maps built from markers that are exclusively informative
+#' in isolated parents. It facilitates unified analysis and visualization of distinct genetic data.
+#'
+#' @param x An object of class `mappoly2.sequence` containing maps constructed for each parent separately.
+#' @param lg Optional vector specifying the linkage groups to be processed.
+#'           If NULL, all linkage groups in `x` are considered.
+#' @param type The type of genetic maps to be merged, options include "mds", "genome", or "custom".
+#' @param hmm.reconstruction Logical; if TRUE, HMM-based reconstruction of the merged map is performed.
+#' @param rf Recombination fraction, used in the merging calculations.
+#' @param error Error tolerance in the merging process.
+#' @param ncpus Integer specifying the number of CPU cores for parallel processing.
+#' @param verbose Logical; if TRUE, progress messages will be printed.
+#' @param tol Tolerance level for the merging algorithm.
+#' @param ret_H0 Logical; if TRUE, hypothesis testing results are returned.
+#'
+#' @return Returns the `mappoly2.sequence` object with the merged genetic maps for the specified linkage groups.
+#'
+#' @details The function merges separate genetic maps for individual parents into a single map
+#'          for each linkage group. It handles the alignment and integration of markers from
+#'          both parents and optionally performs HMM-based reconstruction of the merged maps.
+#'
+#' @importFrom assertthat assert_that
 #' @author Marcelo Mollinari, \email{mmollin@ncsu.edu}
 #' @export
 merge_single_parent_maps <- function(x,
@@ -473,7 +591,7 @@ merge_single_parent_maps <- function(x,
                                      tol = 10e-4,
                                      ret_H0 = FALSE)
 {
-  y <- mappoly2:::parse_lg_and_type(x,lg,type)
+  y <- parse_lg_and_type(x,lg,type)
   # HMM screened
   has.hmm.phase <- sapply(x$maps[y$lg], function(x) sapply(x[[y$type]][3:4], function(x) !is.null(x$hmm.phase)))
   if(any(!has.hmm.phase))
@@ -482,7 +600,7 @@ merge_single_parent_maps <- function(x,
   p1.map <- lapply(x$maps[y$lg], function(x) x[[y$type]]$p1$hmm.phase[[1]])
   p2.map <- lapply(x$maps[y$lg], function(x) x[[y$type]]$p2$hmm.phase[[1]])
   # Gathering marker order
-  ord.mrk.id <- mappoly2:::get_markers_from_ordered_sequence(x, y$lg, y$type, "p1p2")
+  ord.mrk.id <- get_markers_from_ordered_sequence(x, y$lg, y$type, "p1p2")
 
   for(i in names(ord.mrk.id)){
     temp.mrk.id <- character(length(ord.mrk.id[[i]]))

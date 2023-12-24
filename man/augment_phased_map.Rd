@@ -2,32 +2,75 @@
 % Please edit documentation in R/map.R
 \name{augment_phased_map}
 \alias{augment_phased_map}
-\title{Efficiently phases unprocessed markers in a given phased
-genetic map, circumventing the need for complete
-HMM-based map recomputation.}
+\title{Augment a Phased Genetic Map with Unprocessed Markers}
 \usage{
 augment_phased_map(
   x,
   lg = NULL,
   type = c("mds", "genome"),
+  ncpus = 1,
   thresh.LOD.ph = 5,
   thresh.LOD.rf = 5,
   thresh.rf = 0.5,
   max.phases = 5,
   thresh.LOD.ph.to.insert = 10,
   thresh.rf.to.insert = NULL,
-  tol = 0.001,
+  reestimate.hmm = TRUE,
+  tol = 0.01,
+  final.tol = 0.001,
+  final.error = 0,
   verbose = TRUE
 )
 }
 \arguments{
-\item{void}{internal function}
+\item{x}{An object of class \code{mappoly2.sequence}}
+
+\item{lg}{Optional vector specifying the linkage groups to be processed.
+If NULL, all linkage groups in the object are considered.}
+
+\item{type}{The type of genetic data to be processed, either 'mds' or 'genome'.}
+
+\item{ncpus}{The number of CPU cores to use for parallel processing.}
+
+\item{thresh.LOD.ph}{Threshold for the LOD (Logarithm of the Odds) score for
+phasing.}
+
+\item{thresh.LOD.rf}{Threshold for the LOD score for recombination fractions.}
+
+\item{thresh.rf}{Threshold for recombination fraction.}
+
+\item{max.phases}{The maximum number of phase configurations allowed for a marker.}
+
+\item{thresh.LOD.ph.to.insert}{Threshold LOD score for inserting a marker into the map.}
+
+\item{thresh.rf.to.insert}{Optional threshold for recombination fraction when
+inserting markers. If NULL, the maximum recombination
+fraction in the map is used.}
+
+\item{reestimate.hmm}{Logical flag indicating whether to reestimate the HMM
+(Hidden Markov Model) after marker insertion.}
+
+\item{tol}{Tolerance level for numerical computations.}
+
+\item{final.tol}{Final tolerance level for HMM reestimation.}
+
+\item{final.error}{Final error level for HMM reestimation.}
+
+\item{verbose}{Logical flag indicating whether to print detailed output during
+function execution.}
+}
+\value{
+Returns the updated genetic map object with newly phased markers.
 }
 \description{
-Efficiently phases unprocessed markers in a given phased
-genetic map, circumventing the need for complete
-HMM-based map recomputation.
+This function efficiently phases unprocessed markers in a given phased genetic
+map, circumventing the need for complete HMM-based recomputation of the map.
+It is designed to update a genetic map with new marker data while maintaining
+the integrity and structure of the existing map.
 }
-\author{
-Marcelo Mollinari, \email{mmollin@ncsu.edu}
+\details{
+The function works by first identifying unprocessed markers in the
+genetic map and then using a phasing algorithm to integrate these
+markers into the existing map. It can handle large datasets and is
+optimized for performance with options for parallel processing.
 }

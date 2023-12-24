@@ -20,3 +20,4 @@ A list where each element in \code{B2} is mapped to its closest preceding and su
 Identifies the closest preceding and succeeding elements from \code{B1} for each element in \code{B2},
 based on their positions in \code{A}.
 }
+\keyword{internal}

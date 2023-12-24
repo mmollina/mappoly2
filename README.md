@@ -1,55 +1,66 @@
-# mappoly2
+# MAPpoly2
 
-Genetic Linkage Maps in Autopolyploids v 2.0
+MAPpoly2 is an R package that builds upon the successful foundation of MAPpoly, 
+specifically tailored for genetic mapping in polyploids. It represents an advancement,
+especially in managing large datasets and in facilitating interactive applications. 
 
-## Features to be implemented soon
+As an early-stage developmental version, MAPpoly2 has been 
+designed to enhance user-friendliness and accessibility. This version has been developed
+for potential integration with R Shiny, aiming to offer a dynamic and user-intuitive
+interface for genetic mapping in polyploids. 
 
-1. [x] DONE ~~Rectify the C++ code to correctly exchange parents with distinct ploidy levels.~~
+One of the key improvements in MAPpoly2 is its enhanced performance, largely attributable to the implementation of computationally intensive codes primarily in C++. This allows for efficient handling of large datasets. Additionally, the package enables the construction of individual maps for each parent using a Hidden Markov Model (HMM), which significantly speed up the map construction process. These individual maps can be subsequently merged, and a joint map is recomputed to include any remaining markers.
 
-2. [x] DONE ~~Introduce the functionality to support multilocus analysis for individual parents.~~
+Moreover, MAPpoly2 introduces a more streamlined mapping process. This improvement is particularly significant as it lays the groundwork for future integration with Shiny.
 
-3. [x] DONE ~~Prevent underflow in the forward-backward algorithm: probability normalization was employed during both the forward and backward steps. [See this code for more information.](https://github.com/mmollina/mappoly2/commit/ee4d0b8938b0631e377959d4f8f0c6fa27c0c8e7#diff-f405d1ef79df16b745f22994e5c42adddb61716567b5f0d029ce5de6c9b98cadR341)~~
+## Main Functions:
+- `add_marker`: Add markers to a pre-mapped sequence
+- `augment_phased_map`: Augment a phased map with additional information
+- `drop_marker`: Remove markers from a sequence
+- `pairwise_phasing`: Perform pairwise phasing on sequences
+- `filter_data`, `filter_individuals`: Functions for data filtering
+- `genome_order`, `group`: Functions for ordering genome sequences and grouping
+- `make_sequence`, `mapping`: Create and map genetic sequences
+- `plot.mappoly2.data`, `plot_genome_vs_map`, `plot_map`: Visualization functions
+- `read_geno_csv`: Read genotype data from CSV
+- `rev_map`, `rf_filter`: Reverse mapping and filter recombination fractions
+- Other utility functions like `subset.mappoly2.data`, `plot_map_list`
 
-4. [x] DONE ~~Employing a comprehensive approach that combines two-point phasing with a multilocus likelihood-based method.~~
 
-5. [x] DONE ~~Implement the compute_hmm_log_likelihood function employing logarithmic computations within the forward algorithm framework (in C++).~~
+## Installation:
 
-6. [x] DONE ~~Integrate emission probabilities to address global genotyping error, within the multilocus approach to improve accuracy.~~ 
+## From GitHub 
 
-7. [x] DONE ~~Develop a procedure to calculate conditional probabilities of genotypes:~~
-    - ~~When genotypes from both parents are informative.~~
-    - ~~When only the genotype from one parent is informative.~~
-    - ~~When genotypes from both parents are informative, with error consideration.~~
-    - ~~When only the genotype from one parent is informative, with error consideration.~~
-    - ~~Implement the R wrapper functions for C++ calc_genoprob (still to be implemented --> genoprob.R)~~
-    
-8. [x] DONE ~~Implement function add_marker, given a phased map. Use pre-computed conditional probabilities of genotypes~~. 
-    - ~~Implement function to list possible phase configurations of a sequence of unmapped 
-      markers given a phased map and a pairwise recombination fraction matrix and associated 
-      phase statistics~~
-    - ~~Implement the function 'homologprob_to_hmmstates': This subroutine takes in a homolog 
-        probability vector (associated with both parent units) and outputs an emission vector. 
-        This resultant vector serves as input for the reconstruction of flanking positions, 
-        enabling the incorporation of a new marker for subsequent phasing and re-estimation 
-        via three-point analysis.~~
-    - ~~Implement function to visit states for one unmapped marker flanked by two mapped markers~~
-    - ~~Implement a function that receives as input a matrix whose rows represent possible phases 
-      for a marker, insert it on a pre-computed map and return the log-likelihood~~
-9. [x] ~~DONE Implement functions 'drop_marker', 'add_marker', and 'plot_genome_vs_map'~~
-10. [ ] TODO Implement two-point recombination fraction estimation using RcppParallel.    
-11. [ ] TODO Implement the same idea implemented in sequential
-12. [ ] TODO Implement function to re-phase each marker individually, given the rest of the map. 
-        Implement for a pre-defined segment of the map or the whole map. 
-13. [ ] TODO I am updating MAPpoly to streamline its core C++ functions for easier adaptation to 
-        multi-population mapping. Once this is done, I will evaluate the adaptability of these 
-        updated functions for multi-population scenarios.
-14. [ ] TODO Tutorial on how to use MAPpoly2.0 to build maps in diploid families derived from inbred lines (BC, F2, RILs, etc)
-15. [ ] TODO Functions to update parent names and other attributes in several objects through the analysis.
-16. [ ] TODO Simulations to suggest argument values in time-consuming functions. Maybe include signal/noise ratio, etc.
-17. [ ] TODO Function to compute how much information the data caries
-18. [ ] TODO Enhance the user-friendliness of the software:
-    - A
-    - B
-    - C
-    - etc
+You can install the development version from Git Hub. Within R, you need to install `devtools`:
+
+```R
+install.packages("devtools")
+```
+
+If you are using Windows, please install the the latest recommended version of [Rtools](https://cran.r-project.org/bin/windows/Rtools/).
+
+To install MAPpoly from Git Hub use
+
+```R
+devtools::install_github("mmollina/mappoly", dependencies=TRUE)
+```
+
+# Acknowledgment
+
+This package has been developed as part of the [Genomic Tools for Sweetpotato Improvement project](https://sweetpotatogenomics.cals.ncsu.edu/) (GT4SP) and [SweetGAINS](https://cgspace.cgiar.org/handle/10568/106838), both funded by [Bill & Melinda Gates Foundation](https://www.gatesfoundation.org/). Its continuous improvement is made possible by the project [AFRI-Grant: A Genetics-Based Data Analysis System for Breeders in Polyploid Breeding Programs](https://portal.nifa.usda.gov/web/crisprojectpages/1027948-a-genetics-based-data-analysis-system-for-breeders-in-polyploid-breeding-programs.html) and  [SCRI-Grant: Tools for polyploids](https://www.polyploids.org/), funded by USDA NIFA.
+
+<div class="horizontalgap" style="width:5px">
+    <a id="NCSU" href="https://www.ncsu.edu/"><img src="https://brand.ncsu.edu/assets/logos/ncstate-brick-2x2-red.png" width="150" alt=""/></a>
+    <a id="BMGF" href="https://www.gatesfoundation.org/"><img src="https://fsm-alliance.org/wp-content/uploads/gates-logo-bda5cc0866e8e37eccab4ac502b916c1-copy.png" width="150" alt=""/></a>
+    <a id="GT4SP" href="https://sweetpotatogenomics.cals.ncsu.edu/"><img src="http://www.sweetpotatoknowledge.org/wp-content/uploads/2016/02/GT4SP-logo-e1456736272456.png" width="70" alt=""/></a>
+    <a id="sweetgains" href="https://cgspace.cgiar.org/handle/10568/106838"><img src="https://cipotato.org/wp-content/uploads/2020/06/SweetGains-sin-fondo-1-350x230.png" width="150" alt=""/></a>
+    <a id="PolyploidTools" href="https://www.polyploids.org/"><img src="https://www.polyploids.org/sites/default/files/inline-images/Project%20Logo-transparent.png" width="180" alt=""/></a>    
+     <a id="USDA-NIFA" href="https://portal.nifa.usda.gov/web/crisprojectpages/1027948-a-genetics-based-data-analysis-system-for-breeders-in-polyploid-breeding-programs.html"><img src="https://upload.wikimedia.org/wikipedia/commons/0/06/USDA_NIFA_Twitter_Logo.jpg" width="100" alt=""/></a>  
+    <span class="stretch"></span>
+</div>
+
+---
+<sub>NC State University promotes equal opportunity and prohibits discrimination and harassment based upon one’s age, color, disability, gender identity, genetic information, national origin, race, religion, sex (including pregnancy), sexual orientation and veteran status.</sub>
+
+
 

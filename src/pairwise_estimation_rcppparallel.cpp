@@ -125,7 +125,7 @@ struct rf_two_point_parallel : public Worker {
         1;
       double min_lod = 1000000.0;
       double res2 = 0.0;
-      
+
       if(count_matrix_number[(id-1)] > 1) //MODIFIED
         {
           RMatrix<double>::Row gen_1 = geno.row(mrk_pairs(0,k));
@@ -310,7 +310,7 @@ struct rf_two_point_parallel : public Worker {
                 count2=0;
                 temp=0.0;
                 std::fill(Tr.begin(), Tr.end(), 1);
-                
+
                 for(int i = 0; i < dk.size(); i++){
                   count=0;
                   Tr[dk[i] + (dk1[i] * (offspring_ploidy+2))]=0;
@@ -383,7 +383,7 @@ struct rf_two_point_parallel : public Worker {
                 count2=0;
                 temp=0.0;
                 std::fill(Tr.begin(), Tr.end(), 1);
-                
+
                 for(int i = 0; i < dk.size(); i++){
                   count=0;
                   Tr[dk[i] + (dk1[i] * (offspring_ploidy+2))]=0;
@@ -451,7 +451,7 @@ RcppExport SEXP pairwise_rf_estimation_disc_rcpp(SEXP mrk_pairs_R,
   int ploidy_p1 = as<int>(ploidy_p1_R);
   int ploidy_p2 = as<int>(ploidy_p2_R);
   double tol = as<double>(tol_R);
-  int threads = as<int>(threads_R);
+  //int threads = as<int>(threads_R);
   int n_ind = geno.ncol();
   // std::fill(Tr2.begin(), Tr2.end(), 1);
 

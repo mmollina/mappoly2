@@ -27,3 +27,4 @@ The 'type' element contains the matched SNP order type.
 This function parses the linkage group and type from a given mappoly2.sequence object.
 It validates the input and extracts the specified linkage group and type.
 }
+\keyword{internal}

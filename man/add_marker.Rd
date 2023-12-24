@@ -2,24 +2,71 @@
 % Please edit documentation in R/sequence_edits.R
 \name{add_marker}
 \alias{add_marker}
-\title{Add a marker to a pre-mapped sequence}
+\title{Add a Marker to a Pre-Mapped Sequence}
 \usage{
 add_marker(
-  input.seq,
+  x,
   mrk,
-  input.mat = NULL,
-  tol = 0.001,
+  lg = NULL,
+  type = c("mds", "genome", "custom"),
+  parent = c("p1p2", "p1", "p2"),
+  reestimate.map.and.haplo = FALSE,
   verbose = TRUE,
+  tol = 0.001,
+  thresh.LOD.ph = 5,
+  thresh.LOD.rf = 5,
+  thresh.rf = 0.5,
+  max.phases = 5,
   thresh.LOD.ph.to.insert = 10,
   thresh.rf.to.add = NULL
 )
 }
 \arguments{
-\item{void}{internal function}
+\item{x}{A \code{mappoly2.sequence} object.}
+
+\item{mrk}{The name of the marker to be added.}
+
+\item{lg}{The linkage group to which the marker will be added.}
+
+\item{type}{The type of sequence ('mds', 'genome', or 'custom').}
+
+\item{parent}{Specifies the parent phase ('p1p2', 'p1', or 'p2').}
+
+\item{reestimate.map.and.haplo}{Logical; if \code{TRUE}, re-estimates the map and haplotype probabilities after adding the marker (default is \code{FALSE}).}
+
+\item{verbose}{Logical; if \code{TRUE}, function prints messages during execution (default is \code{TRUE}).}
+
+\item{tol}{Tolerance level for re-estimating the map.}
+
+\item{thresh.LOD.ph}{LOD threshold for considering phase configurations (default = 5).}
+
+\item{thresh.LOD.rf}{LOD threshold for recombination fraction (default = 5).}
+
+\item{thresh.rf}{Recombination fraction threshold (default = 0.5).}
+
+\item{max.phases}{The maximum number of phase configurations to consider (default = 5).}
+
+\item{thresh.LOD.ph.to.insert}{Threshold LOD for inserting the marker into the map (default = 10).}
+
+\item{thresh.rf.to.add}{Recombination fraction threshold for adding the marker (default is the maximum of existing recombination fractions).}
+}
+\value{
+Returns the modified \code{mappoly2.sequence} object with the new marker added.
 }
 \description{
-Add a marker to a pre-mapped sequence
+This function adds a specified marker to a pre-mapped genetic sequence within a \code{mappoly2.sequence} object. It assesses the best position for the marker in the sequence based on phase configurations and recombination fractions.
 }
-\author{
-Marcelo Mollinari, \email{mmollin@ncsu.edu}
+\details{
+The function operates as follows:
+\enumerate{
+\item Validates the input object and parameters.
+\item Uses \code{test_one_marker} to evaluate all possible phase configurations for the specified marker.
+\item Checks if the best phase configuration meets the specified LOD and recombination fraction thresholds.
+\item Determines the optimal position for the marker within the linkage group based on the phase test results.
+\item Inserts the marker into the sequence at the determined position.
+\item Optionally re-estimates the map if \code{reestimate.map.and.haplo} is \code{TRUE}.
+}
+}
+\seealso{
+\code{\link{drop_marker}} for removing markers from a sequence.
 }

@@ -11,3 +11,4 @@ get_screened_mrk_indices(x)
 Given a screened data set, returns the indices of the
 screened markers in the corresponding raw dataset
 }
+\keyword{internal}

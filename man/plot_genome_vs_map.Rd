@@ -2,35 +2,45 @@
 % Please edit documentation in R/plot_methods.R
 \name{plot_genome_vs_map}
 \alias{plot_genome_vs_map}
-\title{Physical versus genetic distance}
+\title{Plot Physical vs. Genetic Distance}
 \usage{
 plot_genome_vs_map(
   x,
   type = c("mds", "genome"),
+  parent = c("p1p2", "p1", "p2"),
   same.ch.lg = FALSE,
-  alpha = 1/5,
-  size = 3
+  alpha = 1/2,
+  size = 2
 )
 }
 \arguments{
-\item{same.ch.lg}{Logical. If \code{TRUE} displays only the scatterplots between the
-chromosomes and linkage groups with the same number. Default is \code{FALSE}.}
+\item{x}{A single object or a list of objects of class \code{mappoly.map}.}
 
-\item{alpha}{transparency factor for SNPs points}
+\item{type}{Character vector indicating the type of genetic map to be used for the
+analysis. Options include "mds", "genome", or "custom". Default is c("mds", "genome").}
 
-\item{size}{size of the SNP points}
+\item{parent}{Character vector specifying the parent or parents to be considered in the
+analysis. Options are "p1p2" (both parents), "p1" (first parent), or "p2"
+(second parent). Default is c("p1p2", "p1", "p2").}
 
-\item{w}{A list or a single object of class \code{mappoly.map}}
+\item{same.ch.lg}{Logical; if \code{TRUE}, only scatterplots for chromosomes and linkage
+groups with the same number are displayed. Default is \code{FALSE}.}
 
-\item{phase.config}{A vector containing which phase configuration should be
-plotted. If \code{'best'} (default), plots the configuration
-with the highest likelihood for all elements in \code{'w'}}
+\item{alpha}{Numeric; transparency factor for SNP points in the scatterplot. Default is 1/5.}
+
+\item{size}{Numeric; size of the SNP points in the scatterplot. Default is 3.}
+}
+\value{
+A ggplot object representing the scatterplot(s) of physical vs. genetic distances.
 }
 \description{
-This function plots scatterplot(s) of physical distance (in Mbp) versus the genetic
-distance (in cM). Map(s) should be passed as a single object or a list of objects
-of class \code{mappoly.map}.
+This function creates scatterplots to compare physical distance (in Mbp) with genetic
+distance (in cM). It accepts either a single object or a list of objects of class
+\code{mappoly.map}, plotting the relationship for each map provided.
 }
-\author{
-Marcelo Mollinari, \email{mmollin@ncsu.edu}
+\details{
+The function generates scatterplots to visually compare the physical distance
+(measured in megabase pairs, Mbp) and the genetic distance (measured in centiMorgans, cM)
+for each map. This helps in understanding the relationship between physical and genetic
+distances in genetic studies.
 }

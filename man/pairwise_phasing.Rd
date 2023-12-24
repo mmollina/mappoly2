@@ -2,7 +2,7 @@
 % Please edit documentation in R/phasing.R
 \name{pairwise_phasing}
 \alias{pairwise_phasing}
-\title{Phasing based on pairwise recombination fraction estimation}
+\title{Phasing Based on Pairwise Recombination Fraction Estimation}
 \usage{
 pairwise_phasing(
   x,
@@ -18,10 +18,40 @@ pairwise_phasing(
 )
 }
 \arguments{
-\item{void}{internal function}
+\item{x}{An object representing genetic mapping data, typically a mappoly2 sequence object.}
+
+\item{lg}{Optional vector specifying the linkage groups to be processed.
+If NULL, all linkage groups in \code{x} are considered.}
+
+\item{type}{The type of genetic maps to be processed, options include "mds", "genome", or "custom".}
+
+\item{parent}{Specifies which parent's data to use in the phasing process.
+Options are "p1p2" (both parents), "p1" (first parent), or "p2" (second parent).}
+
+\item{thresh.LOD.ph}{Threshold for the LOD (Logarithm of the Odds) score for phasing.}
+
+\item{thresh.LOD.rf}{Threshold for the LOD score for recombination fractions.}
+
+\item{thresh.rf}{Threshold for recombination fraction.}
+
+\item{max.search.expansion.p1}{The maximum number of search expansions for parent 1.}
+
+\item{max.search.expansion.p2}{The maximum number of search expansions for parent 2.
+Defaults to the same as \code{max.search.expansion.p1}.}
+
+\item{verbose}{Logical; if TRUE, progress messages will be printed.}
+}
+\value{
+Returns the updated mappoly2 sequence object with the phased genetic maps.
 }
 \description{
-Phasing based on pairwise recombination fraction estimation
+This function performs phasing based on pairwise recombination fraction estimation for genetic maps in a mappoly2 sequence object. It is designed to facilitate the phasing process using detailed genetic data.
+}
+\details{
+The function iterates over the specified linkage groups and performs phasing
+based on pairwise recombination fraction estimation. It supports phasing for
+individual parents as well as both parents together. The function handles the
+alignment and integration of phasing data across different maps.
 }
 \author{
 Marcelo Mollinari, \email{mmollin@ncsu.edu}

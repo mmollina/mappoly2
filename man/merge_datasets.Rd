@@ -44,5 +44,4 @@ merged_data
 
 plot(merged_data)
 }
-
 }

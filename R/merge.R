@@ -35,7 +35,7 @@
 #'
 #' plot(merged_data)
 #' }
-#'
+#' @importFrom stats setNames
 #' @export
 merge_datasets <- function(..., filter.non.conforming = TRUE,
                                     filter.redundant = TRUE){
@@ -62,15 +62,11 @@ merge_datasets <- function(..., filter.non.conforming = TRUE,
   if (filter.non.conforming) {
     res <- filter_non_conforming_classes(res)
   }
-  # Screening redundant markers
+
   if(filter.redundant){
-    redundant <- filter_redundant(res)
-    if(all(is.na(redundant))) res$redundant <- NA
-    else{
-      res <- subset_data(res, select.mrk = setdiff(res$mrk.names, redundant$removed))
-    }
-    res$redundant <- redundant
+    res <- filter_redundant(res)
   }
+
   res$QAQC.values <- .setQAQC(id.mrk = res$mrk.names,
                               id.ind = res$ind.names,
                               miss.mrk = apply(res$geno.dose, 1, function(x) sum(is.na(x)))/res$n.ind,

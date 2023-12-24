@@ -2,9 +2,7 @@
 % Please edit documentation in R/order.R
 \name{mds}
 \alias{mds}
-\alias{print.mappoly2.pcmap}
-\alias{print.mappoly2.pcmap3d}
-\title{Estimates loci position using Multidimensional Scaling}
+\title{Estimates Loci Position Using Multidimensional Scaling}
 \usage{
 mds(
   x,
@@ -15,52 +13,39 @@ mds(
   weight.exponent = 2,
   verbose = TRUE
 )
-
-\method{print}{mappoly2.pcmap}(x, ...)
-
-\method{print}{mappoly2.pcmap3d}(x, ...)
 }
 \arguments{
-\item{x}{an object of class \code{mappoly.mds}.}
+\item{x}{An object of class \code{mappoly2.sequence}.}
 
-\item{p}{integer. The smoothing parameter for the principal curve.
-If \code{NULL} (default), this will be determined using leave-one-out cross validation.}
+\item{mrk.id}{A vector of marker IDs to be used in the analysis.}
 
-\item{n}{vector of integers or strings containing loci to be omitted from the analysis.}
+\item{p}{Integer; the smoothing parameter for the principal curve.
+If \code{NULL} (default), this will be determined using leave-one-out cross-validation.}
 
-\item{ndim}{integer. The number of dimensions to be considered in the multidimensional scaling procedure (default = 2).}
+\item{n}{Vector of integers or strings containing loci to be omitted from the analysis.}
 
-\item{weight.exponent}{integer. The exponent used in the LOD score values to weight the
-MDS procedure (default = 2).}
+\item{ndim}{Integer; the number of dimensions to be considered in the MDS procedure (default = 2).}
 
-\item{verbose}{boolean. If \code{TRUE} (default), displays information about the analysis.}
+\item{weight.exponent}{Integer; the exponent used in the LOD score values to weight the MDS procedure (default = 2).}
 
-\item{...}{currently ignored.}
-
-\item{x$pairwise}{an object of class \code{mappoly.x$pairwiserix}.}
+\item{verbose}{Boolean; if \code{TRUE} (default), displays information about the analysis.}
 }
 \value{
-A list containing:
-\item{M}{the input distance map.}
-\item{sm}{the unconstrained MDS results.}
-\item{pc}{the principal curve results.}
-\item{distmap}{a matrix of pairwise distances between
-loci, where the columns are in the estimated order.}
-\item{locimap}{a data frame of the loci containing the name
-and position of each locus in order of increasing distance.}
-\item{length}{integer representing the total length of the segment.}
-\item{removed}{a vector of the names of loci removed from the analysis.}
-\item{scale}{the scaling factor from the MDS.}
-\item{locikey}{a data frame showing the number associated with each
-locus name for interpreting the MDS configuration plot.}
-\item{confplotno}{a data frame showing locus names associated
-with each number on the MDS configuration plots.}
+A list containing various components related to MDS results, including the input
+distance map, unconstrained MDS results, principal curve results, matrix of pairwise
+distances, data frame of loci positions, total length of the segment, vector of
+removed loci, scaling factor, and data frames for interpreting MDS plots.
 }
 \description{
-Estimates loci position using the Multidimensional Scaling method proposed by
-\cite{Preedy and Hackett (2016)}. This code is adapted from
-the package \code{MDSmap}, available under the GNU General Public License,
-Version 3, at \url{https://CRAN.R-project.org/package=MDSMap}.
+This function estimates loci positions using the Multidimensional Scaling (MDS) method.
+The method is adapted from the package \code{MDSmap} and is based on the approach
+proposed by Preedy and Hackett (2016).
+}
+\details{
+The function employs MDS to estimate the positions of loci on a genetic map.
+It includes options for excluding certain loci, adjusting the number of dimensions,
+and setting weighting factors for LOD scores. The results include detailed information
+about the estimated positions and relationships between loci.
 }
 \references{
 Preedy, K. F., & Hackett, C. A. (2016). A rapid marker ordering approach for
@@ -69,6 +54,5 @@ using multidimensional scaling. \emph{Theoretical and Applied Genetics}, 129(11)
 2117-2132. \doi{10.1007/s00122-016-2761-8}
 }
 \author{
-Marcelo Mollinari, \email{mmollin@ncsu.edu} mostly adapted from MDSmap
-codes, written by Katharine F. Preedy, \email{katharine.preedy@bioss.ac.uk}
+Marcelo Mollinari, adapted from MDSmap codes by Katharine F. Preedy
 }

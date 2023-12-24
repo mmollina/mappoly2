@@ -13,3 +13,4 @@ Given a dataset containing chromosome information,
 and a chromosome vector return a vector of screened
 markers corresponding to the chromosomes provided
 }
+\keyword{internal}

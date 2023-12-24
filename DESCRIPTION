@@ -47,7 +47,11 @@ Authors@R: c(person(given = "Marcelo",
                     role = "cph",
                     comment = "C code for MLE optimization in src/pairwise_estimation.cpp"))
 Maintainer: Marcelo Mollinari <mmollin@ncsu.edu>
-Description: What the package does (one paragraph).
+Description: Enhanced and streamlined genetic mapping in polyploid organisms. 
+             Building upon the foundational capabilities of 'mappoly', it 
+             introduces several key improvements and features that
+             make it more efficient and user-friendly, especially for 
+             integration with interactive applications like Shiny. 
 License: MIT + file LICENSE
 LazyData: TRUE
 LazyDataCompression: xz
@@ -65,18 +69,18 @@ Imports:
     cli,
     crayon,
     magrittr,
-    rstudioapi
+    rstudioapi,
+    AGHmatrix,
+    gatepoints,
+    CMplot
 LinkingTo: Rcpp, RcppProgress, RcppArmadillo, RcppParallel
 Encoding: UTF-8
 Roxygen: list(markdown = TRUE)
 RoxygenNote: 7.2.3
-SystemRequirements: C++11, GNU make
+SystemRequirements: GNU make
 Suggests:
     testthat,
-    knitr,
-    AGHmatrix,
-    gatepoints,
-    fields
+    knitr
 URL: https://github.com/mmollina/mappoly2
 BugReports: https://github.com/mmollina/mappoly2/issues
 VignetteBuilder: knitr

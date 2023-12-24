@@ -4,7 +4,7 @@
 \alias{plot.mappoly2.data}
 \title{Plot Data from mappoly2.data Object}
 \usage{
-\method{plot}{mappoly2.data}(x, type = c("rf", "screened", "density", "raw"), chrom = NULL)
+\method{plot}{mappoly2.data}(x, type = c("rf", "screened", "density", "raw"), chrom = NULL, ...)
 }
 \arguments{
 \item{x}{A \code{mappoly2.data} object containing genetic mapping data. The object can also be of class "screened" and "pairwise.rf".}
@@ -12,6 +12,8 @@
 \item{type}{A character string specifying the type of plot to generate. It can be one of "rf" (recombination frequency), "screened", "density", or "raw". Default is "rf".}
 
 \item{chrom}{Optional; a vector of chromosome numbers or names to subset the data before plotting. If \code{NULL}, all chromosomes are considered.}
+
+\item{...}{Additional arguments, not used in this method}
 }
 \value{
 The function does not return a value but generates a plot.
@@ -30,8 +32,6 @@ The function handles data selection based on the provided chromosome information
 }
 }
 \examples{
-# Assuming `mappoly_data` is a pre-existing mappoly2.data object
-plot.mappoly2.data(mappoly_data, type = "rf")
-plot.mappoly2.data(mappoly_data, type = "density", chrom = 1)
+plot(B2721)
 
 }

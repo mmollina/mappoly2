@@ -5,7 +5,7 @@
 \title{Pairwise Two-Point Analysis}
 \usage{
 pairwise_rf(
-  input.data,
+  x,
   mrk.scope = c("all", "per.chrom", "chrom"),
   chrom = NULL,
   ncpus = 1L,
@@ -14,7 +14,7 @@ pairwise_rf(
 )
 }
 \arguments{
-\item{input.data}{An object of class \code{mappoly2.data}}
+\item{x}{An object of class \code{mappoly2.data}}
 
 \item{mrk.scope}{Specifies the range of markers for which the pairwise recombination
 fractions will be calculated. Acceptable values are "all", "per.chrom", and "chrom".
@@ -26,9 +26,9 @@ the \code{mrk.scope} argument is set to \code{"chrom"}.}
 
 \item{ncpus}{Number of parallel processes (cores) to use (default = 1)}
 
-\item{tol}{Desired accuracy. See \code{optimize()} for details}
+\item{verbose}{Logical; if TRUE, progress messages will be printed.}
 
-\item{ll}{If \code{TRUE}, returns log-likelihood instead of LOD scores (for internal use)}
+\item{tol}{Desired accuracy. See \code{optimize()} for details}
 }
 \value{
 An updated object of class \code{mappoly2.data} with a slot called 'pairwise.rf' containing:
@@ -56,7 +56,9 @@ Additional arguments (\code{chrom} or \code{sequence}) must be specified when us
 \code{"chrom"} or \code{"seq"} options, respectively.
 }
 \examples{
-  dat <- filter_data(B2721, mrk.thresh = .08, ind.thresh = 0.06)
+
+  dat <- subset(B2721, perc = .1)
+  dat <- filter_data(dat, mrk.thresh = .08, ind.thresh = 0.06)
   dat <- pairwise_rf(dat, mrk.scope = "chrom", chrom = "ch10")
 
 }

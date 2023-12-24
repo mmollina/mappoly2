@@ -11,3 +11,4 @@ text_col(x, col = c("-", "red", "blue"))
 Changes the color of text in the R console, with a specific
 focus on compatibility with RStudio's dark and light themes.
 }
+\keyword{internal}

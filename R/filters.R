@@ -1,60 +1,64 @@
-.setQAQC <- function(id.mrk, id.ind,
-                     miss.mrk = NA,
-                     miss.ind = rep(NA, length(id.ind)),
-                     chisq.pval){
-  list(markers = data.frame(miss = miss.mrk,
-                            chisq.pval = chisq.pval,
-                            read.depth = NA,
-                            row.names = id.mrk),
-       individuals = data.frame(miss = miss.ind,
-                                full.sib = NA,
-                                row.names = id.ind))
-}
 
-.get_mrk_ind_from_QAQC <- function(x,
-                                   miss.mrk.thresh = +Inf,
-                                   miss.ind.thresh = +Inf,
-                                   chisq.pval.thresh = -Inf,
-                                   read.depth.thresh = c(0, +Inf)){
-
-  if(any(is.na(x$markers[,"read.depth"]))){
-    id.mrk <- x$markers[,"miss"] < miss.mrk.thresh &
-      x$markers[,"chisq.pval"] > chisq.pval.thresh
-  } else{
-    id.mrk <- x$markers[,"miss"] < miss.mrk.thresh &
-      x$markers[,"chisq.pval"] > chisq.pval.thresh &
-      x$markers[,"read.depth"] > read.depth.thresh[1] &
-      x$markers[,"read.depth"] < read.depth.thresh[2]
-  }
-  if(any(is.na(x$individuals[,"full.sib"])))
-    id.ind <- x$individuals[,"miss"] < miss.ind.thresh
-  else
-    id.ind <- x$individuals[,"miss"] < miss.ind.thresh &
-      x$individuals[,"full.sib"]
-  return(list(thresholds = list(miss.mrk = miss.mrk.thresh,
-                                miss.ind = miss.ind.thresh,
-                                chisq.pval = chisq.pval.thresh,
-                                read.depth = read.depth.thresh),
-              mrk.names = rownames(x$markers)[id.mrk],
-              ind.names = rownames(x$individuals)[id.ind]))
-}
-
-#' Filter out markers with redundant information
+#' Filter Out Redundant Markers
+#'
+#' This function filters out redundant markers from a `mappoly2.data` object. It identifies and removes duplicated genetic markers based on their genotypic information, thus reducing the data to unique markers. It also updates the `redundant` component of the object with information about which markers were kept and which were removed.
+#'
+#' @param x An object of class \code{mappoly2.data}. It is expected to have a component named `geno.dose`, which is a matrix containing the dosage for each marker (rows) for each individual (columns).
+#'
+#' @return The modified `mappoly2.data` object with redundant markers removed. The return value includes:
+#'   - The original data with redundant markers removed.
+#'   - The `redundant` component of the object updated to reflect changes. This component is a data frame listing the markers that were kept (`kept`) and the corresponding markers that were removed due to redundancy (`removed`).
+#'
+#' @details This function first checks if the input is a valid `mappoly2.data` object using \code{assert_that(is.mappoly2.data(x))}. It then identifies redundant markers by checking for duplicates in the `geno.dose` matrix. If no redundant markers are found, the function returns the original object. If redundant markers are identified, they are removed, and the object's `redundant` data frame is updated accordingly.
+#' @keywords internal
 filter_redundant <- function(x)
 {
+  assert_that(is.mappoly2.data(x))
   id <- duplicated(x$geno.dose, dimnames = TRUE)
   dat.unique <- x$geno.dose[!id, ]
-  if(nrow(x$geno.dose) == nrow(dat.unique))
-    return(NA)
+  if(nrow(x$geno.dose) == nrow(dat.unique)){
+    if(!is.data.frame(x$redundant))
+      x$redundant <- 0
+    else{
+      w <- x$redundant
+      x$redundant <- w[w$kept%in%rownames(x$geno.dose),]
+    }
+    return(x)
+  }
   dat.duplicated <- x$geno.dose[id, , drop = FALSE]
   n1 <- apply(dat.unique, 1, paste, collapse = "")
   n2 <- apply(dat.duplicated, 1, paste, collapse = "")
-  return(data.frame(kept = rownames(dat.unique)[match(n2,n1)],
-                    removed = rownames(dat.duplicated)))
+  w <- data.frame(kept = rownames(dat.unique)[match(n2,n1)],
+                  removed = rownames(dat.duplicated))
+  x <- subset_data(x, select.mrk = setdiff(x$mrk.names,
+                                                        w$removed))
+  w <- unique(rbind(x$redundant, w))
+  x$redundant <- w[w$kept%in%rownames(x$geno.dose),]
+  return(x)
 }
 
-#' @export
+#' Filter Genetic Data Based on Quality Metrics
+#'
+#' This function filters genetic data in a `mappoly2.data` object based on various quality control metrics. It applies thresholds for missing data rates, chi-squared p-values, and read depth to markers and individuals, and optionally plots the screening process.
+#'
+#' @param x A `mappoly2.data` object containing genetic data.
+#' @param mrk.thresh A numeric threshold for the missing data rate in markers (default is 0.10).
+#' @param ind.thresh A numeric threshold for the missing data rate in individuals (default is 0.10).
+#' @param chisq.pval.thresh A numeric threshold for chi-squared test p-values in markers (default is NULL, which sets the threshold using a Bonferroni approximation).
+#' @param read.depth.thresh A numeric vector with two values indicating the lower and upper bounds for acceptable read depths in markers (default is c(5, 1000)).
+#' @param plot.screening Logical, if TRUE (default), plots are generated to visually represent the screening process.
+#'
+#' @return Returns the input `mappoly2.data` object with additional components:
+#'   - `screened.data`: A list containing the thresholds used for selection and the names of markers and individuals that met the specified criteria.
+#'   - Class attribute `screened` is also appended to the object.
+#'
+#' @details The function first validates the input object, then applies the specified thresholds to filter out markers and individuals based on missing data rates, chi-squared p-values, and read depths. It updates the object with the results of this filtering and optionally generates plots to visualize the data before and after filtering.
+#'
+#' @examples
+#'   filtered_data <- filter_data(B2721)
+#'
 #' @importFrom graphics axis
+#' @export
 filter_data <- function(x,
                         mrk.thresh = 0.10,
                         ind.thresh = 0.10,
@@ -68,7 +72,7 @@ filter_data <- function(x,
   # Set threshold for chi-square p-values using Bonferroni approximation if not specified
   if(is.null(chisq.pval.thresh))
     chisq.pval.thresh <- 0.05/length(chisq.val)
-  id <- mappoly2:::.get_mrk_ind_from_QAQC(x$QAQC.values,
+  id <- .get_mrk_ind_from_QAQC(x$QAQC.values,
                                           miss.mrk.thresh = mrk.thresh,
                                           miss.ind.thresh = ind.thresh,
                                           chisq.pval.thresh = chisq.pval.thresh,
@@ -189,13 +193,15 @@ filter_data <- function(x,
 #'
 #' @author Marcelo Mollinari, \email{mmollin@ncsu.edu}
 #' @importFrom stats prcomp
+#' @importFrom AGHmatrix Gmatrix
+#' @importFrom gatepoints fhs
 #' @export
 filter_individuals <- function(x,
                                ind.to.remove = NULL,
                                inter = TRUE,
                                type = c("Gmat", "PCA"),
                                verbose = TRUE){
-  assert_that(mappoly2:::is.mappoly2.data(x))
+  assert_that(is.mappoly2.data(x))
   if(x$ploidy.p1 != x$ploidy.p2)
     stop("'filter_individuals' cannot be executed\n  on progenies with odd ploidy levels.")
   type <- match.arg(type)
@@ -248,7 +254,7 @@ filter_individuals <- function(x,
     full.sib <- !x$ind.names%in%ind.to.remove
     x$QAQC.values$individuals[,"full.sib"] <- !rownames(x$QAQC.values$individuals)%in%ind.to.remove
     if(inherits(x, "screened")){
-      id <- mappoly2:::.get_mrk_ind_from_QAQC(x$QAQC.values,
+      id <- .get_mrk_ind_from_QAQC(x$QAQC.values,
                                               miss.mrk.thresh = x$screened.data$thresholds$miss.mrk,
                                               miss.ind.thresh = x$screened.data$thresholds$miss.ind,
                                               chisq.pval.thresh = x$screened.data$thresholds$chisq.pval,
@@ -278,7 +284,7 @@ filter_individuals <- function(x,
       full.sib <- !x$ind.names%in%ind.to.remove
       x$QAQC.values$individuals[,"full.sib"] <- !rownames(x$QAQC.values$individuals)%in%ind.to.remove
       if(inherits(x, "screened")){
-        id <- mappoly2:::.get_mrk_ind_from_QAQC(x$QAQC.values,
+        id <- .get_mrk_ind_from_QAQC(x$QAQC.values,
                                                 miss.mrk.thresh = x$screened.data$thresholds$miss.mrk,
                                                 miss.ind.thresh = x$screened.data$thresholds$miss.ind,
                                                 chisq.pval.thresh = x$screened.data$thresholds$chisq.pval,
@@ -295,54 +301,58 @@ filter_individuals <- function(x,
   }
   par(pty="m")
 }
-#'  Remove markers that do not meet a LOD criteria
+
+#' Remove Markers Not Meeting LOD and Recombination Fraction Criteria
 #'
-#'  Remove markers that do not meet a LOD and recombination fraction
-#'  criteria for at least a percentage of the pairwise marker
-#'  combinations. It also removes markers with strong evidence of
-#'  linkage across the whole linkage group (false positive).
+#' This function removes markers from a `mappoly2.data` or `mappoly2.sequence` object
+#' that do not meet specified LOD (logarithm of odds) and recombination fraction criteria.
+#' It is designed to filter out markers that are unlikely to be linked or show strong
+#' evidence of linkage across an entire linkage group, which might indicate false positives.
 #'
-#' \code{thresh.LOD.ph} should be set in order to only select
-#'     recombination fractions that have LOD scores associated to the
-#'     linkage phase configuration higher than \code{thresh_LOD_ph}
-#'     when compared to the second most likely linkage phase configuration.
-#'     That action usually eliminates markers that are unlinked to the
-#'     set of analyzed markers.
+#' @param x An object of class \code{mappoly2.data} or \code{mappoly2.sequence}.
 #'
-#' @param input.twopt an object of class \code{mappoly.twopt}
+#' @param thresh.LOD.ph LOD score threshold for linkage phase configuration.
+#' Typically set to eliminate markers that are unlinked to the analyzed set (default = 5).
 #'
-#' @param thresh.LOD.ph LOD score threshold for linkage phase configuration
-#' (default = 5)
+#' @param thresh.LOD.rf LOD score threshold for recombination fraction (default = 5).
 #'
-#' @param thresh.LOD.rf LOD score threshold for recombination fraction
-#' (default = 5)
+#' @param thresh.rf Recombination fraction threshold (default = 0.15).
 #'
-#' @param thresh.rf threshold for recombination fractions (default = 0.15)
+#' @param probs A numeric vector indicating the probability corresponding to the filtering quantiles (default = c(0.05, 1)).
 #'
-#' @param probs indicates the probability corresponding to the filtering
-#' quantiles. (default = c(0.05, 1))
+#' @param lg A vector of linkage groups to be processed.
+#' If NULL (default), all groups are considered.
 #'
-#' @param diag.markers A window where marker pairs should be considered.
-#'    If NULL (default), all markers are considered.
+#' @param type A character vector specifying the method for linkage group analysis.
+#' Options are "mds" for multidimensional scaling and "genome" for genomic analysis.
+#' This parameter only has an effect if `lg` is not NULL.
 #'
-#' @param mrk.order marker order. Only has effect if 'diag.markers' is not NULL
+#' @param diag.markers A vector specifying a window of marker pairs to consider.
+#' If NULL (default), all markers are considered.
 #'
-#' @param ncpus number of parallel processes (i.e. cores) to spawn
-#' (default = 1)
+#' @param mrk.order Marker order vector.
+#' This parameter is only used if `diag.markers` is not NULL.
 #'
-#' @param diagnostic.plot if \code{TRUE} produces a diagnostic plot
+#' @param diagnostic.plot Logical; if \code{TRUE}, generates a diagnostic plot (default is TRUE).
 #'
-#' @param breaks number of cells for the histogram
+#' @param breaks The number of cells for the histogram in the diagnostic plot (default = 100).
 #'
-#' @return A filtered object of class \code{mappoly.sequence}.
+#' @return A filtered object of the same class as the input (`mappoly2.data` or `mappoly2.sequence`).
 #'
+#' @details The function first checks the type of the input object and applies the
+#' relevant filtering criteria based on LOD scores and recombination fractions.
+#' It optionally produces a diagnostic plot to visualize the filtering process.
+#'
+#' @examples
+#' \dontrun{
+#'   # Assuming `my_data` is a valid mappoly2.data or mappoly2.sequence object
+#'   filtered_data <- rf_filter(my_data, thresh.LOD.ph = 5, thresh.LOD.rf = 5)
+#' }
 #'
 #' @author Marcelo Mollinari, \email{mmollin@ncsu.edu} with updates by Gabriel Gesteira, \email{gdesiqu@ncsu.edu}
-#'
 #' @export
 #' @importFrom ggplot2 ggplot geom_histogram aes scale_fill_manual xlab ggtitle
-#' @importFrom graphics hist
-
+#' @importFrom graphics hist par text points
 rf_filter <- function(x,
                       thresh.LOD.ph = 5,
                       thresh.LOD.rf = 5,
@@ -354,7 +364,7 @@ rf_filter <- function(x,
                       mrk.order = NULL,
                       diagnostic.plot = TRUE,
                       breaks = 100){
-  if(mappoly2:::is.mappoly2.data(x)){
+  if(is.mappoly2.data(x)){
     assert_that(has.mappoly2.rf(x))
     return(init_rf_filter(x,
                           thresh.LOD.ph,
@@ -374,21 +384,35 @@ rf_filter <- function(x,
     assert_that(all(lg %in% lg.temp), msg = "Provide a valid group set")
     for(i in lg){
       x <- rf_filter_per_group(x,
-                                 i,
-                                 type,
-                                 thresh.LOD.ph,
-                                 thresh.LOD.rf,
-                                 thresh.rf,
-                                 probs,
-                                 diag.markers,
-                                 diagnostic.plot,
-                                 breaks)
+                               i,
+                               type,
+                               thresh.LOD.ph,
+                               thresh.LOD.rf,
+                               thresh.rf,
+                               probs,
+                               diag.markers,
+                               diagnostic.plot,
+                               breaks)
     }
     return(x)
   }
 }
 
-
+#' Initialize Recombination Fraction Filtering
+#'
+#' Internal function to initialize filtering based on recombination fractions, LOD scores for linkage phase and recombination fraction.
+#'
+#' @param x An object of class \code{pairwise.rf}.
+#' @param thresh.LOD.ph LOD threshold for linkage phase (default = 5).
+#' @param thresh.LOD.rf LOD threshold for recombination fraction (default = 5).
+#' @param thresh.rf Recombination fraction threshold (default = 0.15).
+#' @param probs Probability range for filtering (default = c(0.05, 1)).
+#' @param diag.markers Window of marker pairs to consider (default = NULL).
+#' @param mrk.order Order of markers (used if diag.markers is not NULL).
+#' @param diagnostic.plot Boolean to control the generation of a diagnostic plot (default = TRUE).
+#' @param breaks Number of breaks for histogram in diagnostic plot (default = 100).
+#' @return A modified \code{pairwise.rf} object with filtered data.
+#' @keywords internal
 init_rf_filter <- function(x,
                            thresh.LOD.ph = 5,
                            thresh.LOD.rf = 5,
@@ -402,7 +426,7 @@ init_rf_filter <- function(x,
   assert_that(inherits(x, "pairwise.rf"))
   probs <- range(probs)
   ## Getting filtered rf matrix
-  M <-mappoly2:::filter_rf_matrix(x,
+  M <-filter_rf_matrix(x,
                                   type = "rf",
                                   thresh.LOD.ph = thresh.LOD.ph,
                                   thresh.LOD.rf = thresh.LOD.rf,
@@ -437,6 +461,22 @@ init_rf_filter <- function(x,
   return(x)
 }
 
+#' Filter Recombination Fractions for Specific Linkage Group
+#'
+#' Internal function to filter recombination fractions for a specific linkage group in a \code{mappoly2.sequence} object.
+#'
+#' @param x A \code{mappoly2.sequence} object.
+#' @param lg Linkage group to filter.
+#' @param type Method for linkage group analysis ("mds" or "genome").
+#' @param thresh.LOD.ph LOD threshold for linkage phase (default = 5).
+#' @param thresh.LOD.rf LOD threshold for recombination fraction (default = 5).
+#' @param thresh.rf Recombination fraction threshold (default = 0.15).
+#' @param probs Probability range for filtering (default = c(0.05, 1)).
+#' @param diag.markers Window of marker pairs to consider (default = NULL).
+#' @param diagnostic.plot Boolean to control the generation of a diagnostic plot (default = TRUE).
+#' @param breaks Number of breaks for histogram in diagnostic plot (default = 100).
+#' @return A modified \code{mappoly2.sequence} object with filtered linkage group.
+#' @keywords internal
 rf_filter_per_group <- function(x,
                                 lg,
                                 type = c("mds", "genome"),
@@ -448,12 +488,12 @@ rf_filter_per_group <- function(x,
                                 diagnostic.plot = TRUE,
                                 breaks = 100)
 {
-  y <- mappoly2:::parse_lg_and_type(x,lg,type)
+  y <- parse_lg_and_type(x,lg,type)
   assert_that(length(y$lg) ==1 & is.numeric(lg))
   probs <- range(probs)
   ## Getting filtered rf matrix
   mrk.names <- x$maps[[lg]][[y$type]]$mkr.names
-  M <-mappoly2:::filter_rf_matrix(x$data,
+  M <-filter_rf_matrix(x$data,
                                   type = "rf",
                                   thresh.LOD.ph = thresh.LOD.ph,
                                   thresh.LOD.rf = thresh.LOD.rf,
@@ -482,7 +522,18 @@ rf_filter_per_group <- function(x,
   return(x)
 }
 
-
+#' Filter Recombination Fraction Matrix
+#'
+#' Internal function to filter a recombination fraction matrix based on LOD thresholds and recombination fraction limits.
+#'
+#' @param x A data object containing pairwise recombination fractions.
+#' @param type Type of matrix to filter ("rf" for recombination fraction, "sh" for SH values).
+#' @param thresh.LOD.ph LOD threshold for linkage phase (default = 0).
+#' @param thresh.LOD.rf LOD threshold for recombination fraction (default = 0).
+#' @param thresh.rf Recombination fraction threshold (default = 0.5).
+#' @param mrk.names Marker names to include in the filtering (default = NULL, all markers).
+#' @return A filtered recombination fraction matrix or a list of filtered SH matrices.
+#' @keywords internal
 filter_rf_matrix <- function(x,
                              type = c("rf", "sh"),
                              thresh.LOD.ph = 0,

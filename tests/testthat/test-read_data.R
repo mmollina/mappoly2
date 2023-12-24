@@ -15,8 +15,7 @@ test_that("read data from CSV file correctly", {
                   "chrom",
                   "genome.pos",
                   "ref",
-                  "alt",
-                  "chisq.pval")])
+                  "alt")])
   expect_equal(y, dat$n.mrk)
   expect_true(x["ind.names"] == dat$n.ind)
   expect_equal(length(y), 1)

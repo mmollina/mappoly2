@@ -2,21 +2,30 @@
 % Please edit documentation in R/order.R
 \name{genome_order}
 \alias{genome_order}
-\title{Get the genomic position of markers in a sequence}
+\title{Get the Genomic Position of Markers in a Sequence}
 \usage{
 genome_order(x, mrk.names, verbose = TRUE)
 }
 \arguments{
-\item{x}{an object of the class mappoly.geno.ord}
+\item{x}{An object of class \code{mappoly2.sequence}.}
 
-\item{verbose}{if \code{TRUE} (default), the current progress is shown; if
-\code{FALSE}, no output is produced}
+\item{mrk.names}{A vector of marker names for which the genomic position is required.}
 
-\item{...}{currently ignored}
+\item{verbose}{Logical; if TRUE, progress messages will be printed.}
+}
+\value{
+Returns a data frame with the genomic position of the specified markers,
+ordered by chromosome and sequence position.
 }
 \description{
-This functions gets the genomic position of markers in a sequence and
-return an ordered data frame with the name and position of each marker
+This internal function retrieves and orders the genomic position of markers in a given genetic sequence. It is primarily used within a larger analytical context.
+}
+\details{
+The function checks for the availability of genomic position information
+in the provided data object. If available, it orders the markers based
+on their chromosome and sequence position. The function handles cases
+where only chromosome information or only sequence position information
+is available.
 }
 \author{
 Marcelo Mollinari, \email{mmollin@ncsu.edu}

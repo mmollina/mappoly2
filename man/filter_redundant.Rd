@@ -2,10 +2,24 @@
 % Please edit documentation in R/filters.R
 \name{filter_redundant}
 \alias{filter_redundant}
-\title{Filter out markers with redundant information}
+\title{Filter Out Redundant Markers}
 \usage{
 filter_redundant(x)
 }
-\description{
-Filter out markers with redundant information
+\arguments{
+\item{x}{An object of class \code{mappoly2.data}. It is expected to have a component named \code{geno.dose}, which is a matrix containing the dosage for each marker (rows) for each individual (columns).}
 }
+\value{
+The modified \code{mappoly2.data} object with redundant markers removed. The return value includes:
+\itemize{
+\item The original data with redundant markers removed.
+\item The \code{redundant} component of the object updated to reflect changes. This component is a data frame listing the markers that were kept (\code{kept}) and the corresponding markers that were removed due to redundancy (\code{removed}).
+}
+}
+\description{
+This function filters out redundant markers from a \code{mappoly2.data} object. It identifies and removes duplicated genetic markers based on their genotypic information, thus reducing the data to unique markers. It also updates the \code{redundant} component of the object with information about which markers were kept and which were removed.
+}
+\details{
+This function first checks if the input is a valid \code{mappoly2.data} object using \code{assert_that(is.mappoly2.data(x))}. It then identifies redundant markers by checking for duplicates in the \code{geno.dose} matrix. If no redundant markers are found, the function returns the original object. If redundant markers are identified, they are removed, and the object's \code{redundant} data frame is updated accordingly.
+}
+\keyword{internal}

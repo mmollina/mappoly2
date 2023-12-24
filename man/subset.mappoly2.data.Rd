@@ -2,7 +2,7 @@
 % Please edit documentation in R/subset.R
 \name{subset.mappoly2.data}
 \alias{subset.mappoly2.data}
-\title{Subsets mappoly2.data Object}
+\title{Subset mappoly2.data Object}
 \usage{
 \method{subset}{mappoly2.data}(
   x,
@@ -13,40 +13,48 @@
   select.ind = NULL,
   seed = NULL,
   filter.non.conforming = TRUE,
-  filter.redundant = TRUE
+  filter.redundant = TRUE,
+  ...
 )
 }
 \arguments{
 \item{x}{A \code{mappoly2.data} object from which the subset is to be selected.}
 
-\item{type}{A character string, either "marker" or "individual", indicating whether markers or individuals should be subset.}
+\item{type}{Character string, either "marker" or "individual", indicating whether
+markers or individuals should be subset. Default is "marker".}
 
-\item{n}{An integer specifying the number of individuals or markers to be sampled. If NULL, \code{percentage} must be specified.}
+\item{perc}{Numeric; the proportion of individuals or markers to be sampled.
+This is used only if \code{n} is NULL. Default is 0.1.}
 
-\item{seed}{a single value, interpreted as an integer, or \code{NULL}.
-See the \code{\link[base]{set.seed}} function for information.}
+\item{n}{Integer; the number of individuals or markers to be sampled.
+If NULL, \code{perc} must be specified.}
 
-\item{filter.non.conforming}{If \code{TRUE} (default), data points with
-unexpected genotypes (e.g., double reduction) are converted to 'NA'.
-See the \code{\link[mappoly]{segreg_poly}} function for information on
-expected classes and their respective frequencies.}
+\item{select.mrk}{Character vector containing the names of the markers to select.
+Effective only if \code{type = "marker"}, and both \code{n} and \code{perc} are NULL.}
 
-\item{filter.redundant}{Logical. If \code{TRUE} (default), removes redundant
-markers during map construction, keeping them annotated to export to the
-final map.}
+\item{select.ind}{Character vector containing the names of the individuals to select.
+Effective only if \code{type = "individual"}, and both \code{n} and \code{perc} are NULL.}
 
-\item{percentage}{A numeric value between 0 and 1 indicating the proportion of individuals or markers to be sampled.
-This parameter is considered only if \code{n} is set to NULL.}
+\item{seed}{Integer or NULL; sets the seed for random number generation for reproducible sampling.}
 
-\item{selected.ind}{A character vector containing the names of the individuals to select.
-This parameter takes effect only if \code{type = "individual"}, and both \code{n} and \code{percentage} are NULL.}
+\item{filter.non.conforming}{Logical; if TRUE (default), data points with unexpected genotypes
+(e.g., double reduction) are converted to 'NA'.}
 
-\item{selected.mrk}{A character vector containing the names of the markers to select.
-This parameter takes effect only if \code{type = "marker"}, and both \code{n} and \code{percentage} are NULL.}
+\item{filter.redundant}{Logical; if TRUE (default), removes redundant markers during map construction,
+keeping them annotated to export to the final map.}
+
+\item{...}{Additional arguments, currently not used.}
 }
 \value{
 A \code{mappoly2.data} object that contains the selected subset of individuals or markers.
 }
 \description{
-This function selects a subset of either individuals or markers from an object of the \code{mappoly2.data} class.
+This function creates a subset of either individuals or markers from an object
+of the \code{mappoly2.data} class, based on specified criteria.
+}
+\details{
+The function allows for flexible subsetting of \code{mappoly2.data} objects based on
+the number or proportion of individuals or markers. It supports random sampling
+and specific selection based on provided lists. Additional filtering options are
+available to handle non-conforming data and redundant markers.
 }

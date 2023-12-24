@@ -5,7 +5,7 @@
 #' @param x A `mappoly2.data` object containing genetic mapping data. The object can also be of class "screened" and "pairwise.rf".
 #' @param type A character string specifying the type of plot to generate. It can be one of "rf" (recombination frequency), "screened", "density", or "raw". Default is "rf".
 #' @param chrom Optional; a vector of chromosome numbers or names to subset the data before plotting. If `NULL`, all chromosomes are considered.
-#'
+#' @param ... Additional arguments, not used in this method
 #' @details
 #' The function can visualize data in four different ways based on the `type` parameter:
 #' - "rf": Plots a recombination frequency matrix, available for objects with the "pairwise.rf" class.
@@ -17,24 +17,26 @@
 #' @return The function does not return a value but generates a plot.
 #'
 #' @examples
-#' # Assuming `mappoly_data` is a pre-existing mappoly2.data object
-#' plot.mappoly2.data(mappoly_data, type = "rf")
-#' plot.mappoly2.data(mappoly_data, type = "density", chrom = 1)
+#' plot(B2721)
 #'
 #' @importFrom graphics barplot layout mtext image legend
 #' @importFrom grDevices colorRampPalette
+#' @importFrom CMplot CMplot
 #' @export
-plot.mappoly2.data<-function(x, type = c("rf", "screened", "density", "raw"), chrom = NULL)
+plot.mappoly2.data<-function(x,
+                             type = c("rf", "screened", "density", "raw"),
+                             chrom = NULL,
+                             ...)
 {
   mrk.id <- NULL
   if(!is.null(chrom)){
-    mrk.id <- x$mrk.names[mappoly2:::get_mrk_indices_from_chrom(x, chrom)]
+    mrk.id <- x$mrk.names[get_mrk_indices_from_chrom(x, chrom)]
   }
   opar <- par(no.readonly = TRUE)
   on.exit(par(opar))
   type <- match.arg(type)
-  if(mappoly2:::has.mappoly2.rf(x) & type == "rf"){
-    assert_that(mappoly2:::has.mappoly2.rf(x))
+  if(has.mappoly2.rf(x) & type == "rf"){
+    assert_that(has.mappoly2.rf(x))
     if(!is.null(mrk.id))
       mrk.id <- Reduce(intersect, list(x$screened.data$mrk.names,
                                        mrk.id, colnames(x$pairwise.rf$rec.mat)))
@@ -46,7 +48,7 @@ plot.mappoly2.data<-function(x, type = c("rf", "screened", "density", "raw"), ch
                        ord = mrk.id)
   }
   else if (type == "density"){
-    assert_that(mappoly2:::has.mappoly2.screened(x))
+    assert_that(has.mappoly2.screened(x))
     assert_that(data.has.genome.info(x))
     if(!is.null(mrk.id))
       mrk.id <- intersect(x$screened.data$mrk.names, mrk.id)
@@ -57,25 +59,26 @@ plot.mappoly2.data<-function(x, type = c("rf", "screened", "density", "raw"), ch
                     Position = x$genome.pos[mrk.id])
     CMplot::CMplot(u,type = "p", plot.type = "d", file.output=FALSE)
   }
-  else if(((!mappoly2:::has.mappoly2.rf(x) & mappoly2:::has.mappoly2.screened(x)) | type == "screened") & type != "raw"){
-    assert_that(mappoly2:::has.mappoly2.screened(x))
+  else if(((!has.mappoly2.rf(x) & has.mappoly2.screened(x)) | type == "screened") & type != "raw"){
+    assert_that(has.mappoly2.screened(x))
     if(!is.null(mrk.id))
       mrk.id <- intersect(x$screened.data$mrk.names, mrk.id)
     else
       mrk.id <- x$screened.data$mrk.names
-    mappoly2:::plot_data(x, text = "Screened data", col = "darkblue",
+    plot_data(x, text = "Screened data", col = "darkblue",
                          mrk.id = mrk.id,
                          ind.id = x$screened.data$ind.names)
   }
   else
-    mappoly2:::plot_data(x, text = "Raw data", col = "darkred", mrk.id = mrk.id)
+    plot_data(x, text = "Raw data", col = "darkred", mrk.id = mrk.id)
 }
 
 plot_data <- function(x,
                       text,
                       col,
                       mrk.id = NULL,
-                      ind.id = NULL, ...){
+                      ind.id = NULL,
+                      ...){
   oldpar <- par(mar = c(5,4,1,2))
   on.exit(par(oldpar))
   if(is.null(mrk.id))
@@ -165,16 +168,45 @@ optimal_layout <- function(n) {
   return(c(rows, cols))
 }
 
+#' Plot Recombination Fraction Matrices for Genetic Maps
+#'
+#' This function visualizes the recombination fraction matrices for genetic maps.
+#' It allows the user to plot these matrices for different types of genetic data
+#' (e.g., MDS, genome, custom) and for specified linkage groups.
+#'
+#' @param x A \code{mappoly2.data} object that contains recombination fraction information.
+#' @param lg Optional vector specifying the linkage groups for which the recombination
+#'           fraction matrices should be plotted. If NULL, matrices for all linkage
+#'           groups are plotted.
+#' @param type The type of genetic data to be visualized. Can be 'mds', 'genome',
+#'             or 'custom'. This parameter determines how the matrices are processed
+#'             and displayed.
+#' @param fact A numeric factor used for scaling or aggregating the matrix data.
+#'             Defaults to 1 (no scaling).
+#'
+#' @return The function does not return a value but generates a series of plots,
+#'         each representing the recombination fraction matrix for a specified linkage
+#'         group.
+#'
+#' @details The function processes the genetic mapping data based on the specified
+#'          'type' and 'lg' parameters. It then uses `plot_rf_matrix_one` to plot
+#'          individual matrices for each linkage group. The visualization helps in
+#'          understanding the recombination patterns and genetic distances between
+#'          markers.
+#'
+#' @importFrom graphics par
+#' @importFrom assertthat assert_that
+#' @export
 plot_rf_matrix <- function(x,
                            lg = NULL,
                            type = c("mds", "genome", "custom"),
                            fact = 1){
-  y <- mappoly2:::parse_lg_and_type(x,lg,type)
-  mrk.id <- mappoly2:::get_markers_from_ordered_sequence(x, y$lg, y$type)
-  op <- par(mfrow = mappoly2:::optimal_layout(length(y$lg)), pty = "s")
+  y <- parse_lg_and_type(x,lg,type)
+  mrk.id <- get_markers_from_ordered_sequence(x, y$lg, y$type)
+  op <- par(mfrow = optimal_layout(length(y$lg)), pty = "s")
   on.exit(par(op))
   for(i in 1:length(mrk.id)){
-    mappoly2:::plot_rf_matrix_one(s$data$pairwise.rf,
+    plot_rf_matrix_one(x$data$pairwise.rf,
                                   ord = mrk.id[[i]],
                                   main.text = paste(names(x$maps[i]), y$type, sep = "-"),
                                   fact = fact)
@@ -304,8 +336,33 @@ prepare_map <- function(x,
 }
 
 
-
-#' @importFrom grDevices rgb
+#' Plot Genetic Map
+#'
+#' This function visualizes a genetic map for a specified linkage group. It supports various types of genetic maps and offers customization options for the display.
+#'
+#' @param x An object representing genetic mapping data.
+#' @param lg The linkage group to be visualized, default is the first linkage group (lg = 1).
+#' @param type The type of genetic map to process, either "mds" or "genome".
+#' @param parent Specifies which parent's data to use in the visualization.
+#'               Options are "p1p2" (both parents), "p1" (first parent), or "p2" (second parent).
+#' @param left.lim The left limit for the plotting area, default is 0.
+#' @param right.lim The right limit for the plotting area, default is Inf.
+#' @param phase Logical; if TRUE, phases are included in the plot.
+#' @param mrk.names Logical; if TRUE, marker names are displayed on the plot.
+#' @param plot.dose Logical; if TRUE, doses are plotted.
+#' @param homolog.names.adj Adjustment for homolog names in the plot.
+#' @param cex Character expansion size for text in the plot.
+#' @param xlim The limits for the x-axis. Can be set to NULL for automatic adjustment.
+#' @param main The main title for the plot.
+#' @param ... Additional graphical parameters.
+#'
+#' @return The function does not return a value but generates a plot of the genetic map.
+#'
+#' @details The function creates a detailed plot of a genetic map for a given linkage group.
+#'          It can display various features such as phases, marker names, and doses, and allows
+#'          for customization of the plot's appearance.
+#'
+#' @importFrom grDevices rgb blues9
 #' @importFrom graphics rect
 #' @export
 plot_map <- function(x, lg = 1, type = c("mds", "genome"),
@@ -315,14 +372,14 @@ plot_map <- function(x, lg = 1, type = c("mds", "genome"),
                      plot.dose = TRUE, homolog.names.adj = 3,
                      cex = 1, xlim = NULL, main = "",...) {
   type <- match.arg(type)
-  y <- mappoly2:::parse_lg_and_type(x,lg,type)
+  y <- parse_lg_and_type(x,lg,type)
   parent <- match.arg(parent)
   assert_that(is.mapped.sequence(x, y$lg, y$type, parent),
               msg = "Requested map is not estimated")
   assert_that(length(y$lg) ==1 & is.numeric(lg))
   old.par <- par(no.readonly = TRUE)
   on.exit(par(old.par))
-  map.info <- mappoly2:::prepare_map(x$maps[[y$lg]][[y$type]][[parent]],
+  map.info <- prepare_map(x$maps[[y$lg]][[y$type]][[parent]],
                                        x$data$ploidy.p1, x$data$ploidy.p2,
                                        x$data$name.p1, x$data$name.p2,
                                        x$data$dosage.p1, x$data$dosage.p2,
@@ -480,42 +537,58 @@ plot_map <- function(x, lg = 1, type = c("mds", "genome"),
   }
 }
 
-#' Physical versus genetic distance
+#' Plot Physical vs. Genetic Distance
 #'
-#' This function plots scatterplot(s) of physical distance (in Mbp) versus the genetic
-#' distance (in cM). Map(s) should be passed as a single object or a list of objects
-#' of class \code{mappoly.map}.
+#' This function creates scatterplots to compare physical distance (in Mbp) with genetic
+#' distance (in cM). It accepts either a single object or a list of objects of class
+#' \code{mappoly.map}, plotting the relationship for each map provided.
 #'
-#' @param  w A list or a single object of class \code{mappoly.map}
+#' @param x A single object or a list of objects of class \code{mappoly.map}.
+#' @param type Character vector indicating the type of genetic map to be used for the
+#'             analysis. Options include "mds", "genome", or "custom". Default is c("mds", "genome").
+#' @param parent Character vector specifying the parent or parents to be considered in the
+#'               analysis. Options are "p1p2" (both parents), "p1" (first parent), or "p2"
+#'               (second parent). Default is c("p1p2", "p1", "p2").
+#' @param same.ch.lg Logical; if \code{TRUE}, only scatterplots for chromosomes and linkage
+#'                   groups with the same number are displayed. Default is \code{FALSE}.
+#' @param alpha Numeric; transparency factor for SNP points in the scatterplot. Default is 1/5.
+#' @param size Numeric; size of the SNP points in the scatterplot. Default is 3.
 #'
-#' @param phase.config A vector containing which phase configuration should be
-#'  plotted. If \code{'best'} (default), plots the configuration
-#'  with the highest likelihood for all elements in \code{'w'}
+#' @return A ggplot object representing the scatterplot(s) of physical vs. genetic distances.
 #'
-#' @param same.ch.lg Logical. If \code{TRUE} displays only the scatterplots between the
-#'   chromosomes and linkage groups with the same number. Default is \code{FALSE}.
+#' @details The function generates scatterplots to visually compare the physical distance
+#'          (measured in megabase pairs, Mbp) and the genetic distance (measured in centiMorgans, cM)
+#'          for each map. This helps in understanding the relationship between physical and genetic
+#'          distances in genetic studies.
 #'
-#' @param alpha transparency factor for SNPs points
-#'
-#' @param size size of the SNP points
-#'
-#' @author Marcelo Mollinari, \email{mmollin@ncsu.edu}
-#'
-#' @export plot_genome_vs_map
+#' @importFrom ggplot2 ggplot geom_point facet_wrap facet_grid labs theme_bw theme element_text
+#' @importFrom assertthat assert_that
+#' @export
 plot_genome_vs_map <- function(x,
                                type = c("mds", "genome"),
+                               parent = c("p1p2", "p1", "p2"),
                                same.ch.lg = FALSE,
-                               alpha = 1/5,
-                               size = 3){
+                               alpha = 1/2,
+                               size = 2){
+  assert_that(is.mappoly2.sequence(x))
   type <- match.arg(type)
-  w <- lapply(x$maps, function(y) y[[type]])
+  parent <- match.arg(parent)
+  has.map <- logical(length(x$maps))
+  names(has.map) <- names(x$maps)
+  for(i in names(x$maps)){
+    has.map[i] <- is.mapped.sequence(x, i, type, parent)
+  }
+  if(!all(has.map)){
+    stop("maps are no available for \n-->  type:", type, "\n-->  parent:", parent)
+  }
+  w <- lapply(x$maps[has.map], function(y) y[[type]])
   geno.vs.map <- NULL
   for(i in 1:length(w)){
     LG <- genomic.pos <- map.pos <- NULL
-    mrk.names <- rownames(w[[i]]$phase[[1]]$p1)
+    mrk.names <- rownames(w[[i]][[parent]]$hmm.phase[[1]]$p1)
     geno.vs.map <- rbind(geno.vs.map,
                          data.frame(mrk.names = mrk.names,
-                                    map.pos = cumsum(imf_h(c(0, w[[i]]$phase[[1]]$rf))),
+                                    map.pos = cumsum(imf_h(c(0, w[[i]][[parent]]$hmm.phase[[1]]$rf))),
                                     genomic.pos = x$data$genome.pos[mrk.names]/1e6,
                                     LG = as.factor(i),
                                     chr = as.factor(x$data$chrom[mrk.names])))
@@ -540,14 +613,45 @@ plot_genome_vs_map <- function(x,
   p
 }
 
+#' Plot a List of Genetic Maps
+#'
+#' This function visualizes a list of genetic maps from a mappoly2 sequence object. It supports both horizontal and vertical orientations and allows for customization of plot colors.
+#'
+#' @param x A mappoly2 sequence object containing genetic map data.
+#' @param horiz Logical; if TRUE, the maps are plotted horizontally, otherwise vertically.
+#' @param type The type of genetic maps to be plotted, either "mds" or "genome".
+#' @param parent Specifies which parent's data to use in the visualization.
+#'               Options are "p1p2" (both parents), "p1" (first parent), or "p2" (second parent).
+#' @param col The color used for plotting the maps, default is "lightgray".
+#'            Can be a vector of colors to apply different colors to each map.
+#'
+#' @return The function does not return a value but generates a plot or a series of plots
+#'         representing the genetic maps. It invisibly returns a data frame containing
+#'         marker positions and linkage group information.
+#'
+#' @details The function iterates over the linkage groups in the provided mappoly2 sequence
+#'          object and creates a plot (or a series of plots) showing the genetic map(s)
+#'          for the specified linkage groups. The plot orientation can be set to either
+#'          horizontal or vertical, and the color of the plots can be customized.
+#'
+#' @importFrom graphics plot axis
 #' @export
 plot_map_list <- function(x, horiz = TRUE,
                           type = c("mds", "genome"),
                           parent = c("p1p2", "p1", "p2"),
                           col = "lightgray"){
+  assert_that(is.mappoly2.sequence(x))
   type <- match.arg(type)
   parent <- match.arg(parent)
-  w <- lapply(x$maps, function(y) y[[type]])
+  has.map <- logical(length(x$maps))
+  names(has.map) <- names(x$maps)
+  for(i in names(x$maps)){
+    has.map[i] <- is.mapped.sequence(x, i, type, parent)
+  }
+  if(!all(has.map)){
+    stop("maps are no available for \n-->  type:", type, "\n-->  parent:", parent)
+  }
+  w <- lapply(x$maps[has.map], function(y) y[[type]])
   if(length(col) == 1)
     col <- rep(col, length(w))
   z <- NULL
@@ -588,7 +692,10 @@ plot_map_list <- function(x, horiz = TRUE,
 }
 
 
-plot_one_map<-function(x, i = 0, horiz = FALSE, col = "lightgray")
+plot_one_map<-function(x,
+                       i = 0,
+                       horiz = FALSE,
+                       col = "lightgray")
 {
   if(horiz)
   {
@@ -623,9 +730,9 @@ plot_one_map<-function(x, i = 0, horiz = FALSE, col = "lightgray")
 plot_mds_vs_genome <- function(x,
                                alpha = 1/2,
                                size = 2){
-  x.mds <- mappoly2:::get_markers_from_ordered_sequence(x, lg = seq_along(x$maps), "mds")
-  x.genome <- mappoly2:::get_markers_from_ordered_sequence(x, lg = seq_along(x$maps), type = "genome")
-  d <- NULL
+  d <- lg <- y <- NULL
+  x.mds <- get_markers_from_ordered_sequence(x, lg = seq_along(x$maps), "mds")
+  x.genome <- get_markers_from_ordered_sequence(x, lg = seq_along(x$maps), type = "genome")
   for(i in 1:length(x.mds)){
     a <- match(x.genome[[i]],x.mds[[i]])
     d <- rbind(d, data.frame(lg = names(x$maps)[i], x = seq_along(a), y = a))

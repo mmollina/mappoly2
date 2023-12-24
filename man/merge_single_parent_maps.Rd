@@ -2,9 +2,7 @@
 % Please edit documentation in R/map.R
 \name{merge_single_parent_maps}
 \alias{merge_single_parent_maps}
-\title{This function merges two genetic maps built from markers that are exclusively
-informative in isolated parents, facilitating unified analysis and visualization
-of distinct genetic data.}
+\title{Merge Single Parent Genetic Maps}
 \usage{
 merge_single_parent_maps(
   x,
@@ -20,12 +18,38 @@ merge_single_parent_maps(
 )
 }
 \arguments{
-\item{void}{internal function}
+\item{x}{An object of class \code{mappoly2.sequence} containing maps constructed for each parent separately.}
+
+\item{lg}{Optional vector specifying the linkage groups to be processed.
+If NULL, all linkage groups in \code{x} are considered.}
+
+\item{type}{The type of genetic maps to be merged, options include "mds", "genome", or "custom".}
+
+\item{hmm.reconstruction}{Logical; if TRUE, HMM-based reconstruction of the merged map is performed.}
+
+\item{rf}{Recombination fraction, used in the merging calculations.}
+
+\item{error}{Error tolerance in the merging process.}
+
+\item{ncpus}{Integer specifying the number of CPU cores for parallel processing.}
+
+\item{verbose}{Logical; if TRUE, progress messages will be printed.}
+
+\item{tol}{Tolerance level for the merging algorithm.}
+
+\item{ret_H0}{Logical; if TRUE, hypothesis testing results are returned.}
+}
+\value{
+Returns the \code{mappoly2.sequence} object with the merged genetic maps for the specified linkage groups.
 }
 \description{
-This function merges two genetic maps built from markers that are exclusively
-informative in isolated parents, facilitating unified analysis and visualization
-of distinct genetic data.
+This function merges two genetic maps built from markers that are exclusively informative
+in isolated parents. It facilitates unified analysis and visualization of distinct genetic data.
+}
+\details{
+The function merges separate genetic maps for individual parents into a single map
+for each linkage group. It handles the alignment and integration of markers from
+both parents and optionally performs HMM-based reconstruction of the merged maps.
 }
 \author{
 Marcelo Mollinari, \email{mmollin@ncsu.edu}

@@ -25,3 +25,4 @@ Markers based on the specified type for mapped sequences.
 \description{
 Similar to \code{get_markers_from_ordered_sequence} but specifically for mapped sequences.
 }
+\keyword{internal}

@@ -1,14 +1,28 @@
-#' Calculate Haplotype probabilities using Hidden Markov Models
+#' Calculate Haplotype Probabilities Using Hidden Markov Models
 #'
-#' This function calculates haplotypes for each linkage group in a genetic mapping dataset. It supports both sequential and parallel processing.
+#' This function calculates haplotypes for each linkage group in a genetic mapping dataset.
+#' It utilizes Hidden Markov Models and supports both sequential and parallel processing
+#' for efficient computation.
 #'
-#' @param x An object representing genetic mapping data.
-#' @param lg Optional; a vector of linkage group indices to process. If NULL, all linkage groups in `x` are processed.
-#' @param type The type of map to process, either "mds" or "genome".
+#' @param x An object representing genetic mapping data, typically of a specific class
+#'          that stores genetic information.
+#' @param lg Optional vector specifying the linkage group indices to process.
+#'           If NULL, all linkage groups in `x` are processed.
+#' @param type Character vector indicating the type of map to process, either "mds"
+#'             or "genome".
+#' @param parent Character vector specifying the parent or parents to be considered
+#'               in the haplotype calculation. Options are "p1p2" (both parents),
+#'               "p1" (first parent), and "p2" (second parent).
 #' @param phase.conf A configuration parameter for phase calculation.
-#' @param verbose Logical; if TRUE, progress messages will be printed.
-#' @param ncpus The number of CPU cores to use for parallel processing.
+#' @param verbose Logical value; if TRUE, progress messages will be printed.
+#' @param ncpus The number of CPU cores to use for parallel processing. Defaults to 1.
+#'
 #' @return The input object `x` with haplotypes calculated for the specified linkage groups.
+#'
+#' @details The function processes the genetic data to calculate haplotypes for each
+#'          specified linkage group using Hidden Markov Models. It can handle large
+#'          datasets efficiently by using parallel processing capabilities.
+#'
 #' @importFrom parallel detectCores makeCluster parLapply stopCluster
 #' @author Marcelo Mollinari, \email{mmollin@ncsu.edu}
 #' @export
@@ -20,7 +34,7 @@ calc_haplotypes <- function(x,
                             verbose = TRUE,
                             ncpus = 1)
 {
-  y <- mappoly2:::parse_lg_and_type(x,lg,type)
+  y <- parse_lg_and_type(x,lg,type)
   parent <- match.arg(parent)
   g <- x$data$geno.dose
   g[is.na(g)] <- -1
@@ -61,9 +75,9 @@ calc_haplotypes <- function(x,
                                verbose = verbose)
   }
   haplotypeFunc <- function(data) {
-    return(mappoly2:::calc_haplotypes_one(data$g, data$ph, data$ploidy.p1,
-                                          data$ploidy.p2, dat$dosage.p1,
-                                          dat$dosage.p2, data$phase.conf,
+    return(calc_haplotypes_one(data$g, data$ph, data$ploidy.p1,
+                                          data$ploidy.p2, data$dosage.p1,
+                                          data$dosage.p2, data$phase.conf,
                                           parent.info = data$parent.info,
                                           verbose = data$verbose))
   }

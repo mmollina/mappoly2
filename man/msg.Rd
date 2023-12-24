@@ -11,3 +11,4 @@ msg(text, line = 1, col = "-")
 Creates a formatted message with a horizontal rule
 and specified text color.
 }
+\keyword{internal}

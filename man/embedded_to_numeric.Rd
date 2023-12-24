@@ -7,7 +7,11 @@ the remaining string to an integer.}
 \usage{
 embedded_to_numeric(x)
 }
+\arguments{
+\item{void}{internal function}
+}
 \description{
 Removes all non-digit characters and then converts
 the remaining string to an integer.
 }
+\keyword{internal}

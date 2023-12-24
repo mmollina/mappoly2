@@ -1,56 +1,89 @@
-#' Estimates loci position using Multidimensional Scaling
+#' Order Genetic Sequence in a Mapping Data Object
 #'
-#' Estimates loci position using the Multidimensional Scaling method proposed by
-#' \cite{Preedy and Hackett (2016)}. This code is adapted from
-#' the package \code{MDSmap}, available under the GNU General Public License,
-#' Version 3, at \url{https://CRAN.R-project.org/package=MDSMap}.
+#' This function orders the genetic sequence within a mapping data object. It can
+#' operate on different types of genetic data (e.g., MDS or genomic) and allows
+#' for customization of the ordering process through various parameters.
 #'
-#' @param x$pairwise an object of class \code{mappoly.x$pairwiserix}.
+#' @param x A mapping data object that contains genetic mapping information.
+#' @param lg An optional vector specifying the linkage groups to be ordered.
+#'           If NULL, all linkage groups in the data object are considered.
+#' @param type The type of genetic data to be ordered, either 'mds' for
+#'             Multi-Dimensional Scaling or 'genome' for genomic data.
+#' @param p An optional parameter for the ordering function, specific to the
+#'          method being used (e.g., MDS).
+#' @param n An optional parameter for the ordering function, specific to the
+#'          method being used.
+#' @param ndim The number of dimensions to be used in the ordering process.
+#'             This parameter is primarily relevant for MDS.
+#' @param weight.exponent The exponent for weighting in the ordering process.
+#' @param verbose A logical value indicating whether to print detailed output
+#'                during the execution of the function.
 #'
-#' @param p integer. The smoothing parameter for the principal curve.
-#'   If \code{NULL} (default), this will be determined using leave-one-out cross validation.
+#' @return The function returns the modified mapping data object with updated
+#'         order of the genetic sequence.
 #'
-#' @param n vector of integers or strings containing loci to be omitted from the analysis.
+#' @details The function iterates over the specified linkage groups (or all groups
+#'          if none are specified) and applies either MDS or genomic ordering
+#'          based on the 'type' parameter. Additional parameters like 'p', 'n',
+#'          and 'ndim' are used to fine-tune the ordering process.
 #'
-#' @param ndim integer. The number of dimensions to be considered in the multidimensional scaling procedure (default = 2).
+#' @export
+order_sequence <- function(x,
+                           lg = NULL,
+                           type = c("mds", "genome"),
+                           p = NULL,
+                           n = NULL,
+                           ndim = 2,
+                           weight.exponent = 2,
+                           verbose = TRUE){
+  y <- parse_lg_and_type(x,lg,type)
+  for(i in y$lg){
+    if(verbose) cat("  -->", i)
+    if(y$type == "mds")
+      x$maps[[i]][[y$type]]$order <- mds(x, x$maps[[i]][[y$type]]$mkr.names,p,n,ndim,weight.exponent,verbose)
+    else
+      x$maps[[i]][[y$type]]$order <- genome_order(x, x$maps[[i]][[y$type]]$mkr.names, verbose = TRUE)
+    if(verbose) cat("\n")
+  }
+  return(x)
+}
+
+#' Estimates Loci Position Using Multidimensional Scaling
 #'
-#' @param weight.exponent integer. The exponent used in the LOD score values to weight the
-#'        MDS procedure (default = 2).
+#' This function estimates loci positions using the Multidimensional Scaling (MDS) method.
+#' The method is adapted from the package \code{MDSmap} and is based on the approach
+#' proposed by Preedy and Hackett (2016).
 #'
-#' @param verbose boolean. If \code{TRUE} (default), displays information about the analysis.
+#' @param x An object of class \code{mappoly2.sequence}.
+#' @param mrk.id A vector of marker IDs to be used in the analysis.
+#' @param p Integer; the smoothing parameter for the principal curve.
+#'          If \code{NULL} (default), this will be determined using leave-one-out cross-validation.
+#' @param n Vector of integers or strings containing loci to be omitted from the analysis.
+#' @param ndim Integer; the number of dimensions to be considered in the MDS procedure (default = 2).
+#' @param weight.exponent Integer; the exponent used in the LOD score values to weight the MDS procedure (default = 2).
+#' @param verbose Boolean; if \code{TRUE} (default), displays information about the analysis.
 #'
-#' @param x an object of class \code{mappoly.mds}.
+#' @return A list containing various components related to MDS results, including the input
+#'         distance map, unconstrained MDS results, principal curve results, matrix of pairwise
+#'         distances, data frame of loci positions, total length of the segment, vector of
+#'         removed loci, scaling factor, and data frames for interpreting MDS plots.
 #'
-#' @param ... currently ignored.
-#'
-#' @return A list containing:
-#' \item{M}{the input distance map.}
-#' \item{sm}{the unconstrained MDS results.}
-#' \item{pc}{the principal curve results.}
-#' \item{distmap}{a matrix of pairwise distances between
-#' loci, where the columns are in the estimated order.}
-#' \item{locimap}{a data frame of the loci containing the name
-#' and position of each locus in order of increasing distance.}
-#' \item{length}{integer representing the total length of the segment.}
-#' \item{removed}{a vector of the names of loci removed from the analysis.}
-#' \item{scale}{the scaling factor from the MDS.}
-#' \item{locikey}{a data frame showing the number associated with each
-#' locus name for interpreting the MDS configuration plot.}
-#' \item{confplotno}{a data frame showing locus names associated
-#' with each number on the MDS configuration plots.}
-#'
-#' @author Marcelo Mollinari, \email{mmollin@ncsu.edu} mostly adapted from MDSmap
-#'         codes, written by Katharine F. Preedy, \email{katharine.preedy@bioss.ac.uk}
+#' @details The function employs MDS to estimate the positions of loci on a genetic map.
+#'          It includes options for excluding certain loci, adjusting the number of dimensions,
+#'          and setting weighting factors for LOD scores. The results include detailed information
+#'          about the estimated positions and relationships between loci.
 #'
 #' @references
-#'  Preedy, K. F., & Hackett, C. A. (2016). A rapid marker ordering approach for
-#'  high-density genetic linkage maps in experimental autotetraploid populations
-#'  using multidimensional scaling. _Theoretical and Applied Genetics_, 129(11),
-#'  2117-2132. \doi{10.1007/s00122-016-2761-8}
+#' Preedy, K. F., & Hackett, C. A. (2016). A rapid marker ordering approach for
+#' high-density genetic linkage maps in experimental autotetraploid populations
+#' using multidimensional scaling. _Theoretical and Applied Genetics_, 129(11),
+#' 2117-2132. \doi{10.1007/s00122-016-2761-8}
 #'
 #' @importFrom smacof smacofSym
 #' @importFrom princurve principal.curve
 #' @importFrom stats runif
+#' @author Marcelo Mollinari, adapted from MDSmap codes by Katharine F. Preedy
+#' @export
 mds <- function(x,
                 mrk.id,
                 p = NULL,
@@ -114,128 +147,130 @@ mds <- function(x,
                   length = max(estpos),
                   removed = n,
                   locikey = locikey,
-                  meannnfit = nnfit$meanfit)
+                  meannnfit = nnfit$meanfit,
+                  ndim = ndim)
   return(ord.obj)
 }
 
+
+#' Plot Multi-Dimensional Scaling (MDS) Maps
+#'
+#' This function visualizes the results of Multi-Dimensional Scaling (MDS) analysis
+#' on genetic mapping data. It provides options to display either two-dimensional
+#' or three-dimensional MDS plots based on the number of dimensions in the MDS object.
+#'
+#' @param x A genetic mapping data object containing MDS information.
+#' @param lg A numeric value specifying the linkage group to be visualized.
+#'           Defaults to the first linkage group.
+#' @param D1lim Optional range for the first dimension of the MDS plot.
+#' @param D2lim Optional range for the second dimension of the MDS plot.
+#' @param D3lim Optional range for the third dimension of the MDS plot, applicable
+#'              only for three-dimensional plots.
+#' @param displaytext A logical value indicating whether to display text labels
+#'                    on the MDS plot. Defaults to `FALSE`.
+#'
+#' @return The function does not return a value but generates a plot of the MDS
+#'         analysis results for the specified linkage group.
+#'
+#' @details Depending on the dimensionality of the MDS object (`ndim`), this
+#'          function calls either `plot_pcmap` for two-dimensional data or
+#'          `plot_pcmap3d` for three-dimensional data. It visualizes the spatial
+#'          arrangement of markers in the specified dimensions, providing insights
+#'          into the genetic structure.
+#'
+#' @importFrom graphics plot text lines
+#' @importFrom assertthat assert_that
 #' @export
-order_sequence <- function(x,
-                           lg = NULL,
-                           type = c("mds", "genome"),
-                           p = NULL,
-                           n = NULL,
-                           ndim = 2,
-                           weight.exponent = 2,
-                           verbose = TRUE){
-  y <- mappoly2:::parse_lg_and_type(x,lg,type)
-  for(i in y$lg){
-    if(verbose) cat("  -->", i)
-    if(y$type == "mds")
-      x$maps[[i]][[y$type]]$order <- mds(x, x$maps[[i]][[y$type]]$mkr.names,p,n,ndim,weight.exponent,verbose)
-    else
-      x$maps[[i]][[y$type]]$order <- genome_order(x, x$maps[[i]][[y$type]]$mkr.names, verbose = TRUE)
-    if(verbose) cat("\n")
+plot_mds <- function(x,
+                     lg = 1,
+                     D1lim = NULL,
+                     D2lim = NULL,
+                     D3lim = NULL,
+                     displaytext = FALSE){
+  assert_that(is.mds.ordered(x, lg))
+  obj <- x$maps[[lg]][["mds"]]$order
+  if(obj$ndim > 2){
+    plot_pcmap3d(obj, D1lim, D2lim, D3lim, displaytext)
+  } else {
+    plot_pcmap(obj, D1lim, D2lim, displaytext)
   }
-  return(x)
 }
 
-
-
-#' @rdname mds
-#' @export
-print.mappoly2.pcmap <- function(x, ...)
-{
-  cat("\nThis is an object of class 'mappoly.mds'")
-  cat("\nNumber of markers: ", nrow(x$locimap))
-  cat("\nNumber of dimensions used: ", x$sm$ndim)
-  cat("\nStress: ", x$smacofsym$stress)
-  cat("\nMean Nearest Neighbour Fit:", x$meannnfit)
-}
-
-#' @rdname mds
-#' @export
-print.mappoly2.pcmap3d <- function(x, ...)
-{
-  cat("\nThis is an object of class 'mappoly.mds'")
-  cat("\nNumber of markers: ", nrow(x$locimap))
-  cat("\nNumber of dimensions used: ", x$sm$ndim)
-  cat("\nStress: ", x$smacofsym$stress)
-  cat("\nMean Nearest Neighbour Fit:", x$meannnfit)
-}
 
 #' @author Katharine F. Preedy, \email{katharine.preedy@bioss.ac.uk}
-#' @export
-plot.mappoly2.pcmap <- function (x, D1lim = NULL, D2lim = NULL, displaytext = FALSE, ...)
+#' @keywords internal
+plot_pcmap <- function (x, D1lim = NULL, D2lim = NULL, displaytext = FALSE, ...)
 {
   oldpar <- par(mfrow = c(1, 2))
   on.exit(par(oldpar))
   with(x, {
     if (displaytext  ==  TRUE) {
-      labels = locikey$locus
+      labels = x$locikey$locus
     }
     else {
-      labels = locikey$confplotno
+      labels = x$locikey$confplotno
     }
-    graphics::plot(smacofsym$conf, type = "n", main = "MDS with principal curve",
+    graphics::plot(x$smacofsym$conf, type = "n", main = "MDS with principal curve",
                    xlim = D1lim, ylim = D2lim, xlab = "Dim 1", ylab = "Dim 2")
-    text(smacofsym$conf, labels = labels, cex = 0.8)
+    text(x$smacofsym$conf, labels = labels, cex = 0.8)
     lines(pc)
     if (displaytext  ==  TRUE) {
-      labels1 = locimap$locus
+      labels1 = x$locimap$locus
     }
     else {
-      labels1 = locimap$confplotno
+      labels1 = x$locimap$confplotno
     }
-    graphics::plot(locimap$position, locimap$nnfit, type = "n",
+    graphics::plot(x$locimap$position, x$locimap$nnfit, type = "n",
                    xlab = "Position", ylab = "nnfit", main = "nearest neighbour fits")
-    text(locimap$position, locimap$nnfit, labels1)
+    text(x$locimap$position, x$locimap$nnfit, labels1)
   })
 }
 
+
 #' @author Katharine F. Preedy, \email{katharine.preedy@bioss.ac.uk}
-#' @export
-plot.mappoly2.pcmap3d <- function(x, D1lim = NULL, D2lim = NULL, D3lim = NULL, displaytext = FALSE, ...)
+#' @keywords internal
+plot_pcmap3d <- function(x, D1lim = NULL, D2lim = NULL, D3lim = NULL, displaytext = FALSE, ...)
 {
   oldpar <- par(mfrow = c(2, 2))
   on.exit(par(oldpar))
   with(x, {
     if (displaytext  ==  TRUE) {
-      labels = locikey$locus
+      labels = x$locikey$locus
     }
     else {
-      labels = locikey$confplotno
+      labels = x$locikey$confplotno
     }
     graphics::par(mfrow = c(2, 2))
-    graphics::plot(smacofsym$conf[, "D1"], smacofsym$conf[,
+    graphics::plot(x$smacofsym$conf[, "D1"], x$smacofsym$conf[,
                                                           "D2"], type = "n", main = "MDS with principal curve",
                    xlab = "Dimension 1", ylab = "Dimension 2", xlim = D1lim,
                    ylim = D2lim)
-    text(smacofsym$conf[, "D1"], smacofsym$conf[, "D2"],
+    text(x$smacofsym$conf[, "D1"], x$smacofsym$conf[, "D2"],
          labels = labels, cex = 0.8)
-    lines(pc$s[, "D1"][pc$ord], pc$s[, "D2"][pc$ord])
-    graphics::plot(smacofsym$conf[, "D1"], smacofsym$conf[,
+    lines(x$pc$s[, "D1"][x$pc$ord], x$pc$s[, "D2"][pc$ord])
+    graphics::plot(x$smacofsym$conf[, "D1"], x$smacofsym$conf[,
                                                           "D3"], type = "n", main = "MDS with principal curve",
                    xlab = "Dimension 1", ylab = "Dimension 3", xlim = D1lim,
                    ylim = D3lim)
-    text(smacofsym$conf[, "D1"], smacofsym$conf[, "D3"],
+    text(x$smacofsym$conf[, "D1"], x$smacofsym$conf[, "D3"],
          labels = labels, cex = 0.8)
-    lines(pc$s[, "D1"][pc$ord], pc$s[, "D3"][pc$ord])
-    graphics::plot(smacofsym$conf[, "D2"], smacofsym$conf[,
+    lines(x$pc$s[, "D1"][pc$ord], x$pc$s[, "D3"][x$pc$ord])
+    graphics::plot(x$smacofsym$conf[, "D2"], x$smacofsym$conf[,
                                                           "D3"], type = "n", main = "MDS with principal curve",
                    xlab = "Dimension 2", ylab = "Dimension 3", xlim = D2lim,
                    ylim = D3lim)
-    text(smacofsym$conf[, "D2"], smacofsym$conf[, "D3"],
+    text(x$smacofsym$conf[, "D2"], x$smacofsym$conf[, "D3"],
          labels = labels, cex = 0.8)
-    lines(pc$s[, "D2"][pc$ord], pc$s[, "D3"][pc$ord])
+    lines(x$pc$s[, "D2"][x$pc$ord], pc$s[, "D3"][x$pc$ord])
     if (displaytext  ==  TRUE) {
-      labels1 = locimap$locus
+      labels1 = x$locimap$locus
     }
     else {
-      labels1 = locimap$confplotno
+      labels1 = x$locimap$confplotno
     }
-    graphics::plot(locimap$position, locimap$nnfit, type = "n",
+    graphics::plot(x$locimap$position, x$locimap$nnfit, type = "n",
                    xlab = "Position", ylab = "nnfit", main = "nearest neighbour fits")
-    text(locimap$position, locimap$nnfit, labels1)
+    text(x$locimap$position, x$locimap$nnfit, labels1)
   })
 }
 
@@ -276,18 +311,27 @@ get.nearest.informative <- function (loci, lodmap){
 }
 
 
-#' Get the genomic position of markers in a sequence
+#' Get the Genomic Position of Markers in a Sequence
 #'
-#' This functions gets the genomic position of markers in a sequence and
-#' return an ordered data frame with the name and position of each marker
-#' @param x a sequence object of class \code{mappoly.sequence}
-#' @param verbose if \code{TRUE} (default), the current progress is shown; if
-#'     \code{FALSE}, no output is produced
-#' @param x 	an object of the class mappoly.geno.ord
-#' @param ... 	currently ignored
+#' This internal function retrieves and orders the genomic position of markers in a given genetic sequence. It is primarily used within a larger analytical context.
 #'
-#' @author Marcelo Mollinari, \email{mmollin@ncsu.edu}
+#' @param x An object of class \code{mappoly2.sequence}.
+#' @param mrk.names A vector of marker names for which the genomic position is required.
+#' @param verbose Logical; if TRUE, progress messages will be printed.
+#'
+#' @return Returns a data frame with the genomic position of the specified markers,
+#'         ordered by chromosome and sequence position.
+#'
+#' @details The function checks for the availability of genomic position information
+#'          in the provided data object. If available, it orders the markers based
+#'          on their chromosome and sequence position. The function handles cases
+#'          where only chromosome information or only sequence position information
+#'          is available.
+#'
 #' @importFrom utils head
+#' @importFrom assertthat assert_that
+#' @author Marcelo Mollinari, \email{mmollin@ncsu.edu}
+#' @export
 genome_order <- function(x, mrk.names, verbose = TRUE){
   assert_that(is.mappoly2.sequence(x))
   genome.pos <- x$data$genome.pos[mrk.names]
@@ -317,24 +361,4 @@ genome_order <- function(x, mrk.names, verbose = TRUE){
   }
   return(M.out)
 }
-
-#' @export
-print.mappoly2.geno.ord <- function(x, ...){
-  print(head(x$ord))
-}
-
-#' @export
-#' @importFrom ggplot2 ggplot aes geom_point xlab ylab theme
-plot.mappoly2.geno.ord <- function(x, ...){
-  seq <- seq.pos <- NULL
-  w <- x$ord
-  w$seq <- as.factor(w$seq)
-  w$seq = with(w, reorder(seq))
-  ggplot2::ggplot(w,
-                  ggplot2::aes(x = seq.pos, y = seq, group = as.factor(seq))) +
-    ggplot2::geom_point(ggplot2::aes(color = as.factor(seq)), shape = 108, size = 5, show.legend = FALSE) +
-    ggplot2::xlab("Position") +
-    ggplot2::ylab("Chromosome")
-}
-
 

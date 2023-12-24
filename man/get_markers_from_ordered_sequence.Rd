@@ -24,3 +24,4 @@ Markers based on the specified type.
 \description{
 Extracts markers from an ordered sequence in an object, based on the specified type.
 }
+\keyword{internal}

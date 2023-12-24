@@ -23,3 +23,4 @@ It initializes map structures for multiple linkage groups based on provided mark
 \note{
 This function is internal and usually not called directly by the user.
 }
+\keyword{internal}

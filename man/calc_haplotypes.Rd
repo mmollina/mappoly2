@@ -2,7 +2,7 @@
 % Please edit documentation in R/haplotypes.R
 \name{calc_haplotypes}
 \alias{calc_haplotypes}
-\title{Calculate Haplotype probabilities using Hidden Markov Models}
+\title{Calculate Haplotype Probabilities Using Hidden Markov Models}
 \usage{
 calc_haplotypes(
   x,
@@ -15,23 +15,37 @@ calc_haplotypes(
 )
 }
 \arguments{
-\item{x}{An object representing genetic mapping data.}
+\item{x}{An object representing genetic mapping data, typically of a specific class
+that stores genetic information.}
 
-\item{lg}{Optional; a vector of linkage group indices to process. If NULL, all linkage groups in \code{x} are processed.}
+\item{lg}{Optional vector specifying the linkage group indices to process.
+If NULL, all linkage groups in \code{x} are processed.}
 
-\item{type}{The type of map to process, either "mds" or "genome".}
+\item{type}{Character vector indicating the type of map to process, either "mds"
+or "genome".}
+
+\item{parent}{Character vector specifying the parent or parents to be considered
+in the haplotype calculation. Options are "p1p2" (both parents),
+"p1" (first parent), and "p2" (second parent).}
 
 \item{phase.conf}{A configuration parameter for phase calculation.}
 
-\item{verbose}{Logical; if TRUE, progress messages will be printed.}
+\item{verbose}{Logical value; if TRUE, progress messages will be printed.}
 
-\item{ncpus}{The number of CPU cores to use for parallel processing.}
+\item{ncpus}{The number of CPU cores to use for parallel processing. Defaults to 1.}
 }
 \value{
 The input object \code{x} with haplotypes calculated for the specified linkage groups.
 }
 \description{
-This function calculates haplotypes for each linkage group in a genetic mapping dataset. It supports both sequential and parallel processing.
+This function calculates haplotypes for each linkage group in a genetic mapping dataset.
+It utilizes Hidden Markov Models and supports both sequential and parallel processing
+for efficient computation.
+}
+\details{
+The function processes the genetic data to calculate haplotypes for each
+specified linkage group using Hidden Markov Models. It can handle large
+datasets efficiently by using parallel processing capabilities.
 }
 \author{
 Marcelo Mollinari, \email{mmollin@ncsu.edu}

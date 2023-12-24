@@ -2,7 +2,7 @@
 % Please edit documentation in R/map.R
 \name{mapping}
 \alias{mapping}
-\title{Multi-Locus Map Estimation}
+\title{Multi-Locus Map Estimation for mappoly2 Data Objects}
 \usage{
 mapping(
   x,
@@ -20,14 +20,21 @@ mapping(
 )
 }
 \arguments{
-\item{x}{An object representing mappoly2 data, typically containing genetic information
-and maps for linkage groups.}
+\item{x}{An object of class \code{mappoly2.sequence}, representing the genetic map data.}
 
-\item{lg}{Optional; a vector of linkage group indices to be processed. If NULL, all
-linkage groups in the data object are considered.}
+\item{lg}{Optional vector specifying linkage group indices to be processed. If NULL,
+all linkage groups in the data object are considered.}
 
-\item{type}{Character vector indicating the type of mapping to perform. Options include
-"mds" (multi-dimensional scaling) and "genome". Default is c("mds", "genome").}
+\item{type}{A character vector indicating the type of mapping to perform. Options
+include "mds" (multi-dimensional scaling), "genome", and "custom".
+Default is c("mds", "genome", "custom").}
+
+\item{parent}{A character vector specifying the parent or parents to be considered
+in the mapping process. Options are "p1p2" (both parents), "p1" (first parent),
+and "p2" (second parent). Default is c("p1p2", "p1", "p2").}
+
+\item{recompute.from.pairwise}{A logical value indicating whether to recompute the
+map from pairwise data.}
 
 \item{phase.conf}{A configuration parameter for phase determination.}
 
@@ -35,24 +42,28 @@ linkage groups in the data object are considered.}
 
 \item{error}{Error tolerance in the mapping process.}
 
-\item{ncpus}{Integer; specifies the number of cores to use for parallel processing}
+\item{ncpus}{Integer specifying the number of CPU cores for parallel processing.
+Default is 1 (sequential processing).}
 
-\item{verbose}{Logical; if TRUE, detailed progress information will be printed during
+\item{verbose}{Logical value; if TRUE, detailed progress information is printed during
 processing. Default is TRUE.}
 
 \item{tol}{Tolerance level for the mapping algorithm.}
 
-\item{ret_H0}{Logical; if TRUE, some hypothesis testing result is returned.}
+\item{ret_H0}{Logical; if TRUE, hypothesis testing results are returned.}
 }
 \value{
-Returns an updated mappoly2 data object with mapped linkage groups.
+Returns an updated \code{mappoly2.sequence} data object with mapped linkage groups.
 }
 \description{
-Performs multi-locus map estimation on mappoly2 data objects. This function supports
-both sequential and parallel processing for handling large datasets efficiently.
+This function performs multi-locus map estimation on mappoly2 data objects, supporting
+both sequential and parallel processing. It is designed to efficiently handle large
+datasets, making it suitable for complex genetic mapping tasks.
 }
-\seealso{
-\link[mappoly2]{mapping_one} for the function used in mapping calculations.
+\details{
+The function processes each specified linkage group, performing phase determination
+and map estimation based on the provided parameters. It can utilize parallel
+processing to enhance performance on large datasets.
 }
 \author{
 Marcelo Mollinari, \email{mmollin@ncsu.edu}

@@ -33,6 +33,11 @@ is.phased.sequence <- function(x, lg, type, parent, phase.type){
   !is.null(x$maps[[lg]][[type]][[parent]][[phase.type]][[1]]$p1)
 }
 
+is.mds.ordered <- function(x, lg){
+  assert_that(length(lg) == 1)
+  !is.null(x$maps[[lg]][["mds"]]$order)
+}
+
 is.mapped.sequence <- function(x, lg, type, parent){
   assert_that(length(lg) == 1)
   assert_that(length(type) == 1)
@@ -40,4 +45,10 @@ is.mapped.sequence <- function(x, lg, type, parent){
   !is.null(x$maps[[lg]][[type]][[parent]]$hmm.phase[[1]]$loglike)
 }
 
+is.haplotype.sequence <- function(x, lg, type, parent){
+  assert_that(length(lg) == 1)
+  assert_that(length(type) == 1)
+  assert_that(length(parent) == 1)
+  !is.null(x$maps[[lg]][[type]][[parent]]$hmm.phase[[1]]$haploprob)
+}
 

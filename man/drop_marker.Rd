@@ -2,17 +2,52 @@
 % Please edit documentation in R/sequence_edits.R
 \name{drop_marker}
 \alias{drop_marker}
-\title{Drop marker(s) from a sequence}
+\title{Drop Marker(s) from a Sequence}
 \usage{
-drop_marker(input.seq, mrk, reestimate.map = TRUE)
+drop_marker(
+  x,
+  mrk,
+  lg = NULL,
+  type = c("mds", "genome", "custom"),
+  parent = c("p1p2", "p1", "p2"),
+  reestimate.map.and.haplo = FALSE,
+  verbose = TRUE,
+  tol = 0.001
+)
 }
 \arguments{
-\item{void}{internal function}
+\item{x}{A \code{mappoly2.sequence} object.}
+
+\item{mrk}{Marker(s) to be dropped, specified by name or index.}
+
+\item{lg}{Linkage group from which the marker(s) should be removed.
+If \code{NULL} (default), all groups are considered.}
+
+\item{type}{Type of sequence ('mds', 'genome', or 'custom') to specify which part of the sequence the marker(s) should be removed from.}
+
+\item{parent}{Indicates the parent phase to consider ('p1p2', 'p1', or 'p2').}
+
+\item{reestimate.map.and.haplo}{Logical; if \code{TRUE}, the genetic map and haplotype probabilities are re-estimated after marker removal (default is \code{FALSE}).}
+
+\item{verbose}{Logical; if \code{TRUE}, function will print messages during execution (default is \code{TRUE}).}
+
+\item{tol}{Tolerance level used in map re-estimation (applicable if \code{reestimate.map.and.haplo} is \code{TRUE}).}
+}
+\value{
+Returns a modified \code{mappoly2.sequence} object with the specified marker(s) removed.
 }
 \description{
-Drop marker(s) from a sequence
+This function removes specified marker(s) from a given linkage group and type within a \code{mappoly2.sequence} object.
+It can optionally re-estimate the map after marker removal.
+}
+\details{
+The function identifies and removes the specified marker(s) from the linkage group and type within the \code{mappoly2.sequence} object.
+If \code{reestimate.map.and.haplo} is \code{TRUE}, it also re-estimates the genetic map using the provided tolerance level.
+The function validates the presence of the marker(s) and handles missing or incorrect marker specifications gracefully.
+}
+\seealso{
+\code{\link{add_marker}} for adding marker in a sequence.
 }
 \author{
 Marcelo Mollinari, \email{mmollin@ncsu.edu}
 }
-\keyword{internal}

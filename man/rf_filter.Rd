@@ -2,7 +2,7 @@
 % Please edit documentation in R/filters.R
 \name{rf_filter}
 \alias{rf_filter}
-\title{Remove markers that do not meet a LOD criteria}
+\title{Remove Markers Not Meeting LOD and Recombination Fraction Criteria}
 \usage{
 rf_filter(
   x,
@@ -19,47 +19,54 @@ rf_filter(
 )
 }
 \arguments{
-\item{thresh.LOD.ph}{LOD score threshold for linkage phase configuration
-(default = 5)}
+\item{x}{An object of class \code{mappoly2.data} or \code{mappoly2.sequence}.}
 
-\item{thresh.LOD.rf}{LOD score threshold for recombination fraction
-(default = 5)}
+\item{thresh.LOD.ph}{LOD score threshold for linkage phase configuration.
+Typically set to eliminate markers that are unlinked to the analyzed set (default = 5).}
 
-\item{thresh.rf}{threshold for recombination fractions (default = 0.15)}
+\item{thresh.LOD.rf}{LOD score threshold for recombination fraction (default = 5).}
 
-\item{probs}{indicates the probability corresponding to the filtering
-quantiles. (default = c(0.05, 1))}
+\item{thresh.rf}{Recombination fraction threshold (default = 0.15).}
 
-\item{diag.markers}{A window where marker pairs should be considered.
+\item{probs}{A numeric vector indicating the probability corresponding to the filtering quantiles (default = c(0.05, 1)).}
+
+\item{lg}{A vector of linkage groups to be processed.
+If NULL (default), all groups are considered.}
+
+\item{type}{A character vector specifying the method for linkage group analysis.
+Options are "mds" for multidimensional scaling and "genome" for genomic analysis.
+This parameter only has an effect if \code{lg} is not NULL.}
+
+\item{diag.markers}{A vector specifying a window of marker pairs to consider.
 If NULL (default), all markers are considered.}
 
-\item{mrk.order}{marker order. Only has effect if 'diag.markers' is not NULL}
+\item{mrk.order}{Marker order vector.
+This parameter is only used if \code{diag.markers} is not NULL.}
 
-\item{diagnostic.plot}{if \code{TRUE} produces a diagnostic plot}
+\item{diagnostic.plot}{Logical; if \code{TRUE}, generates a diagnostic plot (default is TRUE).}
 
-\item{breaks}{number of cells for the histogram}
-
-\item{input.twopt}{an object of class \code{mappoly.twopt}}
-
-\item{ncpus}{number of parallel processes (i.e. cores) to spawn
-(default = 1)}
+\item{breaks}{The number of cells for the histogram in the diagnostic plot (default = 100).}
 }
 \value{
-A filtered object of class \code{mappoly.sequence}.
+A filtered object of the same class as the input (\code{mappoly2.data} or \code{mappoly2.sequence}).
 }
 \description{
-Remove markers that do not meet a LOD and recombination fraction
-criteria for at least a percentage of the pairwise marker
-combinations. It also removes markers with strong evidence of
-linkage across the whole linkage group (false positive).
+This function removes markers from a \code{mappoly2.data} or \code{mappoly2.sequence} object
+that do not meet specified LOD (logarithm of odds) and recombination fraction criteria.
+It is designed to filter out markers that are unlikely to be linked or show strong
+evidence of linkage across an entire linkage group, which might indicate false positives.
 }
 \details{
-\code{thresh.LOD.ph} should be set in order to only select
-recombination fractions that have LOD scores associated to the
-linkage phase configuration higher than \code{thresh_LOD_ph}
-when compared to the second most likely linkage phase configuration.
-That action usually eliminates markers that are unlinked to the
-set of analyzed markers.
+The function first checks the type of the input object and applies the
+relevant filtering criteria based on LOD scores and recombination fractions.
+It optionally produces a diagnostic plot to visualize the filtering process.
+}
+\examples{
+\dontrun{
+  # Assuming `my_data` is a valid mappoly2.data or mappoly2.sequence object
+  filtered_data <- rf_filter(my_data, thresh.LOD.ph = 5, thresh.LOD.rf = 5)
+}
+
 }
 \author{
 Marcelo Mollinari, \email{mmollin@ncsu.edu} with updates by Gabriel Gesteira, \email{gdesiqu@ncsu.edu}

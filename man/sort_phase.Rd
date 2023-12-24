@@ -20,3 +20,4 @@ If FALSE, returns all phases sorted by log-likelihood in descending order.
 This function sorts a list of phases based on their log-likelihood values.
 It can return either the best phase (highest log-likelihood) or all phases in a sorted order.
 }
+\keyword{internal}

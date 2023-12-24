@@ -1,12 +1,16 @@
 #' @export
-print.mappoly2.data <- function(x, type = c("screened", "raw"), detailed = FALSE,  ...) {
+print.mappoly2.data <- function(x,
+                                type = c("screened", "raw"),
+                                detailed = FALSE,
+                                ...) {
   #### Raw ####
   msg("Data summary", col = "blue")
   txt <- list(
     paste0("    Ploidy level of ", x$name.p1, ":"),
     paste0("    Ploidy level of ", x$name.p2, ":"),
     "    No. individuals:",
-    "    No. markers:",
+    "    No. unique markers:",
+    "    Percentage of redundant:",
     "    Percentage of missing:",
     "    Chromosome info:",
     "    Genome position:",
@@ -21,31 +25,40 @@ print.mappoly2.data <- function(x, type = c("screened", "raw"), detailed = FALSE
   cat("\n", txt[[2]], x$ploidy.p2)
   cat("\n", txt[[3]], x$n.ind)
   cat("\n", txt[[4]], length(x$mrk.names))
-  cat("\n ", txt[[5]], " ",   round(100*sum(id)/length(id),1), "%" ,sep = "")
-  chrom.flag <- FALSE
+
+
+  if (is.null(x$redundant))
+    cat("\n", txt[[5]], "unavailable")
+  else if (is.numeric(x$redundant)) {
+    cat("\n", txt[[5]], "0%")
+  } else {
+    cat("\n ", txt[[5]], " ",  round(100*nrow(x$redundant)/(length(x$mrk.names) + nrow(x$redundant)),1), "%" ,sep = "")
+  }
+  cat("\n ", txt[[6]], " ",   round(100*sum(id)/length(id),1), "%" ,sep = "")
+   chrom.flag <- FALSE
   if (all(is.null(x$chrom)) || all(is.na(x$chrom)))
-    cat("\n", txt[[6]], "unavailable")
+    cat("\n", txt[[7]], "unavailable")
   else{
-    cat("\n", txt[[6]], "available")
+    cat("\n", txt[[7]], "available")
     chrom.flag <- TRUE
   }
   if(any(is.numeric(x$genome.pos)))
-    cat("\n",  txt[[7]], "available")
+    cat("\n",  txt[[8]], "available")
   else
-    cat("\n",  txt[[7]], "unavailable")
+    cat("\n",  txt[[8]], "unavailable")
 
   #### RF ####
   if(has.mappoly2.rf(x)){
-    cat("\n",  txt[[8]], "available")
-    cat("\n ",  txt[[9]], " ",
+    cat("\n",  txt[[9]], "available")
+    cat("\n ",  txt[[10]], " ",
         x$pairwise.rf$mrk.scope,
         " (",
         paste(unique(x$chrom[colnames(x$pairwise.rf$rec.mat)]), collapse = ", "),
         ")\n\n", sep = "")
   } else
-    cat("\n",  txt[[8]], "unavailable\n\n")
+    cat("\n",  txt[[9]], "unavailable\n\n")
   #### Screened ####
-  if(mappoly2:::has.mappoly2.screened(x)){
+  if(has.mappoly2.screened(x)){
     msg("Filtering information", col = "blue")
     txt <- list(
       "    Thresholds",
@@ -84,7 +97,7 @@ print.mappoly2.data <- function(x, type = c("screened", "raw"), detailed = FALSE
   }
   #### Detailed ####
   w <- table(x$chrom, useNA = "always")
-  w <- w[order(mappoly2:::embedded_to_numeric(names(w)))]
+  w <- w[order(embedded_to_numeric(names(w)))]
   names(w)[is.na(names(w))] <- "NoCrh"
   if(detailed){
     if(chrom.flag){
@@ -105,18 +118,20 @@ print.mappoly2.data <- function(x, type = c("screened", "raw"), detailed = FALSE
   msg("", col = "blue")
 }
 #' @export
-print.mappoly2.group <- function(x, detailed = TRUE, ...) {
+print.mappoly2.group <- function(x,
+                                 detailed = TRUE,
+                                 ...) {
   msg("Grouping summary", col = "blue")
   ## criteria
   cat("       - Number of linkage groups:  ", length(unique(x$groups.snp)), "\n")
   cat("       - Markers per linkage groups: \n")
   w <- table(x$groups.snp, useNA = "ifany")
   w <- data.frame(group = names(w), n_mrk = as.numeric(w), row.names = NULL)
-  mappoly2:::print_matrix(mat = w, 8, row.names = FALSE)
+  print_matrix(mat = w, 8, row.names = FALSE)
   cat("\n")
   ## printing summary
   if(!is.null(x$seq.vs.grouped.snp)){
-    mappoly2:::print_matrix(mat = x$seq.vs.grouped.snp, 8)
+    print_matrix(mat = x$seq.vs.grouped.snp, 8)
   }
   msg("", col = "blue")
 }
@@ -138,8 +153,14 @@ pad_strings <- function(vec, n) {
   z
 }
 
-print_matrix <- function(mat, spaces = 5, zero.print = ".", row.names = TRUE,
-                         header = FALSE, equal.space = TRUE, footer = FALSE, title=NULL){
+print_matrix <- function(mat,
+                         spaces = 5,
+                         zero.print = ".",
+                         row.names = TRUE,
+                         header = FALSE,
+                         equal.space = TRUE,
+                         footer = FALSE,
+                         title=NULL){
   mat[mat==0]<-zero.print
   txt1 <- NULL
   for(i in 1:ncol(mat))
@@ -150,7 +171,7 @@ print_matrix <- function(mat, spaces = 5, zero.print = ".", row.names = TRUE,
   dim(txt1) <- c(nrow(mat)+1, ncol(mat))
   if(!equal.space)
     for(i in 1:ncol(txt1))
-      txt1[,i] <- mappoly2:::pad_strings(txt1[,i], 1)
+      txt1[,i] <- pad_strings(txt1[,i], 1)
   txt2 <- rownames(mat)
   n2 <- nchar(txt2)
   for (i in 1:length(txt2))
@@ -182,10 +203,12 @@ print_matrix <- function(mat, spaces = 5, zero.print = ".", row.names = TRUE,
   invisible(nchar(txt3))
 }
 
-get_sequence_mat <- function(x, type, parent){
+get_sequence_mat <- function(x,
+                             type,
+                             parent){
   dn <- list(c(names(x$maps)),
              c("Ch","n.mrk", "ord", "phase", "map (cM)", "haplo"))
-  Chrom <- sapply(x$maps, function(y) paste0(mappoly2:::embedded_to_numeric(unique(x$data$chrom[y[[type]]$mkr.names])), collapse = "/"))
+  Chrom <- sapply(x$maps, function(y) paste0(embedded_to_numeric(unique(x$data$chrom[y[[type]]$mkr.names])), collapse = "/"))
   n.mrk <- sapply(x$maps, function(y) length(y[[type]]$mkr.names))
   ord <- sapply(x$maps, function(y) ifelse(is.null(y[[type]]$order), "N", "Y"))
   u1 <- sapply(x$maps, function(z) ifelse(is.null(z[[type]][[parent]][["rf.phase"]]), 0,
@@ -204,11 +227,13 @@ get_sequence_mat <- function(x, type, parent){
 }
 
 #' @export
-print.mappoly2.sequence <- function(x, type = c("mds", "genome")){
+print.mappoly2.sequence <- function(x,
+                                    type = c("mds", "genome"),
+                                    ...){
   type <- match.arg(type)
-  mat.p1 <- mappoly2:::get_sequence_mat(x, type, "p1")
-  mat.p2 <- mappoly2:::get_sequence_mat(x, type, "p2")[,4:6]
-  mat.p1p2 <- mappoly2:::get_sequence_mat(x, type, "p1p2")[,4:6]
+  mat.p1 <- get_sequence_mat(x, type, "p1")
+  mat.p2 <- get_sequence_mat(x, type, "p2")[,4:6]
+  mat.p1p2 <- get_sequence_mat(x, type, "p1p2")[,4:6]
   mat<-cbind(mat.p1,mat.p2,mat.p1p2)
   mat <- rbind(colnames(mat), mat)
   colnames(mat) <- c("", "", "", "p1","","", "p2", "", "", "p1p2","", "")
@@ -223,10 +248,41 @@ print.mappoly2.sequence <- function(x, type = c("mds", "genome")){
                    header = TRUE, title = "Genome")
 
   }
+  invisible(mat)
 }
 
+#' Summarize Genetic Mapping Data
+#'
+#' This function provides a summary of genetic mapping data, including information
+#' about marker distribution, map lengths, and gap sizes. It's designed to work with
+#' specific types of genetic data structures in R, offering a concise overview of
+#' the mapping results.
+#'
+#' @param x A genetic mapping data object, typically containing information about
+#'          maps, markers, and related genetic data.
+#' @param type The type of summary required: 'both', 'mds', or 'genome'.
+#'             'mds' refers to Multi-Dimensional Scaling, and 'genome' refers to
+#'             the entire genomic data. 'both' will provide information for both
+#'             mds and genome.
+#' @param parent Specifies which parent's data to use in the summary.
+#'               Options are 'p1p2' (both parents), 'p1' (first parent), or 'p2'
+#'               (second parent).
+#'
+#' @return An invisible data frame containing the mapping summary,
+#'         including linkage groups (LG), chromosome data (Chrom), map lengths,
+#'         number of markers per centiMorgan (Markers/cM), information on
+#'         simplex markers for each parent, double-simplex, multiplex, total
+#'         marker count, and the maximum gap size.
+#'
+#' @details The function processes the mapping data based on the specified 'type'
+#'          and 'parent' parameters. It calculates various statistics including
+#'          the maximum gap size in the map and the distribution of different
+#'          types of markers. The output is formatted as a table for easy viewing
+#'          and interpretation.
 #' @export
-map_summary <- function(x, type = c("mds", "genome"), parent = c("p1p2", "p1", "p2")){
+map_summary <- function(x,
+                        type = c("both", "mds", "genome"),
+                        parent = c("p1p2", "p1", "p2")){
   type <- match.arg(type)
   parent <- match.arg(parent)
   w <- lapply(x$maps, function(y) y[[type]])
@@ -234,7 +290,7 @@ map_summary <- function(x, type = c("mds", "genome"), parent = c("p1p2", "p1", "
   names(mrk.id) <- names(m) <- names(w)
   for(i in names(w)){
     mrk.id[[i]] <- rownames(w[[i]][[parent]]$hmm.phase[[1]]$p1)
-    if(mappoly2:::is.mapped.sequence(x, i, type, parent)){
+    if(is.mapped.sequence(x, i, type, parent)){
       m[[i]] <- round(imf_h(w[[i]][[parent]]$hmm.phase[[1]]$rf), 1)
     } else {
       m[[i]] <- 0
@@ -243,13 +299,13 @@ map_summary <- function(x, type = c("mds", "genome"), parent = c("p1p2", "p1", "
   mg <- sapply(m, max)
   ml <- sapply(m, sum)
   mn <- sapply(mrk.id, function(y) length(y))
-  md <- sapply(mrk.id, function(y,x) sapply(mappoly2:::get_dosage_type(x, mrk.names = y), length), x)
+  md <- sapply(mrk.id, function(y,x) sapply(get_dosage_type(x, mrk.names = y), length), x)
   md <- cbind(md, apply(md,1, sum))
   y <- c(round(mn/ml,3), round(sum(mn/sum(ml))))
   y[is.infinite(y)] <- 0
   mat = data.frame("LG" = c(names(w), "Total"),
-                       "Chrom" = c(sapply(mrk.id, function(y) paste0(mappoly2:::embedded_to_numeric(unique(x$data$chrom[y])), collapse = "/")), ""),
-                       "Map_length_(cM)" = c(ml, sum(ml)),
+                       "Chrom" = c(sapply(mrk.id, function(y) paste0(embedded_to_numeric(unique(x$data$chrom[y])), collapse = "/")), ""),
+                       "Map_length_(cM)" = round(c(ml, sum(ml)),1),
                        "Markers/cM" = y,
                        "Simplex_P1" = md[1,],
                        "Simplex_P2" = md[2,],
@@ -261,14 +317,15 @@ map_summary <- function(x, type = c("mds", "genome"), parent = c("p1p2", "p1", "
   p <- c(x$data$name.p1, x$data$name.p2, paste(x$data$name.p1, x$data$name.p2, sep = " x "))
   names(p) <- c("p1", "p2", "p1p2")
   if(type == "mds")
-    mappoly2:::print_matrix(mat, spaces = 0, zero.print = ".",
+    print_matrix(mat, spaces = 0, zero.print = ".",
                  row.names = FALSE,  equal.space = FALSE,
                  header = FALSE, footer = TRUE, title = paste0("MDS --- ", p[parent]))
   else if(type == "genome" )
-    mappoly2:::print_matrix(mat, spaces = 0, zero.print = ".",
+    print_matrix(mat, spaces = 0, zero.print = ".",
                             row.names = FALSE,  equal.space = FALSE,
                             header = FALSE, footer = TRUE, title = paste0("Genome --- ", p[parent]))
-}
+  invisible(mat)
+  }
 
 
 

@@ -18,3 +18,4 @@ double simplex, or multiplex based on their dosage values.
 \description{
 Classifies each marker based on its dosage type using the provided dosage data.
 }
+\keyword{internal}
