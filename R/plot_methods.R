@@ -66,8 +66,8 @@ plot.mappoly2.data<-function(x,
     else
       mrk.id <- x$screened.data$mrk.names
     plot_data(x, text = "Screened data", col = "darkblue",
-                         mrk.id = mrk.id,
-                         ind.id = x$screened.data$ind.names)
+              mrk.id = mrk.id,
+              ind.id = x$screened.data$ind.names)
   }
   else
     plot_data(x, text = "Raw data", col = "darkred", mrk.id = mrk.id)
@@ -207,9 +207,9 @@ plot_rf_matrix <- function(x,
   on.exit(par(op))
   for(i in 1:length(mrk.id)){
     plot_rf_matrix_one(x$data$pairwise.rf,
-                                  ord = mrk.id[[i]],
-                                  main.text = paste(names(x$maps[i]), y$type, sep = "-"),
-                                  fact = fact)
+                       ord = mrk.id[[i]],
+                       main.text = paste(names(x$maps[i]), y$type, sep = "-"),
+                       fact = fact)
   }
 }
 
@@ -285,7 +285,9 @@ plot.mappoly2.group <- function(x, ...) {
   dend <- as.dendrogram(x$hc.snp)
   dend1 <- dendextend::color_branches(dend, k = x$expected.groups)
   plot(dend1, leaflab = "none")
-  z <- rect.hclust(x$hc.snp, k = x$expected.groups, border = "red")
+  z <- list(names(x$groups.snp))
+  if(x$expected.groups != 1)
+    z <- rect.hclust(x$hc.snp, k = x$expected.groups, border = "red")
   xy <- sapply(z, length)
   xt <- as.numeric(cumsum(xy)-ceiling(xy/2))
   yt <- .1
@@ -380,10 +382,10 @@ plot_map <- function(x, lg = 1, type = c("mds", "genome"),
   old.par <- par(no.readonly = TRUE)
   on.exit(par(old.par))
   map.info <- prepare_map(x$maps[[y$lg]][[y$type]][[parent]],
-                                       x$data$ploidy.p1, x$data$ploidy.p2,
-                                       x$data$name.p1, x$data$name.p2,
-                                       x$data$dosage.p1, x$data$dosage.p2,
-                                       x$data$alt, x$data$ref)
+                          x$data$ploidy.p1, x$data$ploidy.p2,
+                          x$data$name.p1, x$data$name.p2,
+                          x$data$dosage.p1, x$data$dosage.p2,
+                          x$data$alt, x$data$ref)
   if(any(map.info$ph.p1 == "B")){
     var.col <- c(A = "black", B = "darkgray")
   } else {
@@ -746,3 +748,33 @@ plot_mds_vs_genome <- function(x,
                    legend.position = "none", plot.subtitle = ggplot2::element_text(hjust = 0.5))
   p
 }
+
+#' @export
+plot.mappoly2.order.comparison <- function(x, ...){
+  op <- par(xpd = TRUE)
+  on.exit(par(op))
+  pal <- c("#56B4E9","#E69F00")
+  w <- unlist(x$maps, recursive = FALSE)
+  max.dist <- max(unlist(x$maps))
+  max.dist <- max.dist * 1.1
+  plot(0,
+       xlim = c(0, max.dist),
+       ylim = c(0,length(w)+1),
+       type = "n", axes = FALSE,
+       xlab = "Map position (cM)",
+       ylab = "Linkage groups")
+  axis(1)
+  for(i in 1:length(w)){
+    plot_one_map(w[[i]] + max.dist * 0.1, i = i, horiz = TRUE, col = pal[1.5+((-1)^i)/2])
+  }
+  axis(2, at = 1:length(w), labels = names(w), lwd = 0, las = 2, hadj = 0)
+  legend("topright",
+         c("MDS",
+           "Genome"),
+         col = pal,
+         pch = c(15, 15), horiz = TRUE, inset=c(0,-0.1))
+  par(xpd = FALSE)
+}
+
+
+

@@ -39,86 +39,92 @@ group <- function(x = NULL,
                   LODweight = FALSE)
 {
   assert_that(has.mappoly2.rf(x))
-  ## checking for correct object
-  #if(x$pairwise.rf$mrk.scope == "per.chrom"){
-    #do something
-  #} else {
-    mrk.id <- intersect(x$screened.data$mrk.names, colnames(x$pairwise.rf$rec.mat))
-    MSNP <- x$pairwise.rf$rec.mat[mrk.id, mrk.id]
-    mn <- x$chrom[mrk.id]
-    mn[is.na(mn)] <- "NoChr"
-    dimnames(MSNP) <- list(mn, mn)
-    diag(MSNP) <- 0
-    MSNP[is.na(MSNP)] <- .5
-    if(LODweight){
-      Mlod <- x$pairwise$lod.mat^2
-      Mlod[is.na(Mlod)] <- 10e-5
-      hc.snp <- hclust(as.dist(MSNP), method="ward.D2", members=apply(Mlod, 1, mean, na.rm = TRUE))
-    } else {
-      hc.snp <- hclust(as.dist(MSNP), method = "average")
-    }
-    ANSWER <- "flag"
-    if(interactive() && inter)
+  mrk.id <- intersect(x$screened.data$mrk.names, colnames(x$pairwise.rf$rec.mat))
+  MSNP <- x$pairwise.rf$rec.mat[mrk.id, mrk.id]
+  mn <- x$chrom[mrk.id]
+  mn[is.na(mn)] <- "NoChr"
+  dimnames(MSNP) <- list(mn, mn)
+  diag(MSNP) <- 0
+  MSNP[is.na(MSNP)] <- .5
+  if(LODweight){
+    Mlod <- x$pairwise$lod.mat^2
+    Mlod[is.na(Mlod)] <- 10e-5
+    hc.snp <- hclust(as.dist(MSNP), method="ward.D2", members=apply(Mlod, 1, mean, na.rm = TRUE))
+  } else {
+    hc.snp <- hclust(as.dist(MSNP), method = "average")
+  }
+  ANSWER <- "flag"
+  if(interactive() && inter)
+  {
+    dend.snp <- as.dendrogram(hc.snp)
+    while(substr(ANSWER, 1, 1) != "y" && substr(ANSWER, 1, 1) != "yes" && substr(ANSWER, 1, 1) != "Y" && ANSWER  != "")
     {
-      dend.snp <- as.dendrogram(hc.snp)
-      while(substr(ANSWER, 1, 1) != "y" && substr(ANSWER, 1, 1) != "yes" && substr(ANSWER, 1, 1) != "Y" && ANSWER  != "")
-      {
-        if(is.null(expected.groups))
-          expected.groups <- as.numeric(readline("Enter the number of expected groups: "))
-        dend1 <- dendextend::color_branches(dend.snp, k = expected.groups)
-        plot(dend1, leaflab = "none")
-        z <- rect.hclust(hc.snp, k = expected.groups, border = "red")
-        groups.snp  <- cutree(tree = hc.snp, k = expected.groups)
-        xy <- sapply(z, length)
-        xt <- as.numeric(cumsum(xy)-ceiling(xy/2))
-        yt <- .1
-        points(x = xt, y = rep(yt, length(xt)), cex = 6, pch = 20, col = "lightgray")
-        text(x = xt, y = yt, labels = pmatch(xy, table(groups.snp, useNA = "ifany")), adj = .5)
-        ANSWER <- readline("Enter 'Y/n' to proceed or update the number of expected groups: ")
-        if(substr(ANSWER, 1, 1)  ==  "n" | substr(ANSWER, 1, 1)  ==  "no" | substr(ANSWER, 1, 1)  ==  "N")
-          stop("Function halted.")
-        if(substr(ANSWER, 1, 1) != "y" && substr(ANSWER, 1, 1) != "yes" && substr(ANSWER, 1, 1) != "Y" && ANSWER  != "")
-          expected.groups <- as.numeric(ANSWER)
-      }
-    }
-    if(is.null(expected.groups))
-      stop("Inform the 'expected.groups' or use 'inter = TRUE'")
-    # Distribution of SNPs into linkage groups
-    seq.vs.grouped.snp <- NULL
-    if(all(unique(mn)  ==  "NoChr") & comp.mat)
-    {
-      comp.mat <- NA
-      seq.vs.grouped.snp <- NA
-      warning("There is no physical reference to generate a comparison matrix")
-    }
-    groups.snp  <- cutree(tree = hc.snp, k = expected.groups)
+      if(is.null(expected.groups))
+        expected.groups <- as.numeric(readline("Enter the number of expected groups: "))
 
-    #}
-    if(comp.mat){
-      seq.vs.grouped.snp <- matrix(0, expected.groups, length(na.omit(unique(mn))),
-                                   dimnames = list(1:expected.groups, na.omit(unique(mn))))
-      for(i in 1:expected.groups)
-      {
-        u <- table(names(which(groups.snp == i)))
-        seq.vs.grouped.snp[i,names(u)] <- u
-      }
-      idtemp2 <- unique(apply(seq.vs.grouped.snp, 1, which.max))
-      idtemp2 <- c(idtemp2, setdiff(1:(ncol(seq.vs.grouped.snp)-1), idtemp2))
-      seq.vs.grouped.snp <- cbind(seq.vs.grouped.snp[,idtemp2])
-      cnm <- colnames(seq.vs.grouped.snp)
-      colnames(seq.vs.grouped.snp) <- cnm
-      seq.vs.grouped.snp <- cbind(seq.vs.grouped.snp, apply(seq.vs.grouped.snp, 1, sum))
-      seq.vs.grouped.snp <- rbind(seq.vs.grouped.snp, apply(seq.vs.grouped.snp, 2, sum))
-      colnames(seq.vs.grouped.snp)[ncol(seq.vs.grouped.snp)] <- "Total"
-      rownames(seq.vs.grouped.snp)[nrow(seq.vs.grouped.snp)] <- "Total"
-    } else {
-      seq.vs.grouped.snp <- NULL
+      ## Plot dendrogram
+      dend1 <- dendextend::color_branches(dend.snp, k = expected.groups)
+      plot(dend1, leaflab = "none")
+      z <- list(colnames(MSNP))
+      if(expected.groups != 1)
+        z <- rect.hclust(hc.snp, k = expected.groups, border = "red")
+      groups.snp  <- cutree(tree = hc.snp, k = expected.groups)
+      xy <- sapply(z, length)
+      xt <- as.numeric(cumsum(xy)-ceiling(xy/2))
+      yt <- .1
+      points(x = xt, y = rep(yt, length(xt)), cex = 6, pch = 20, col = "lightgray")
+      text(x = xt, y = yt, labels = pmatch(xy, table(groups.snp, useNA = "ifany")), adj = .5)
+
+      groups.snp  <- cutree(tree = hc.snp, k = expected.groups)
+      ANSWER <- readline("Enter 'Y/n' to proceed or update the number of expected groups: ")
+      if(substr(ANSWER, 1, 1)  ==  "n" | substr(ANSWER, 1, 1)  ==  "no" | substr(ANSWER, 1, 1)  ==  "N")
+        stop("Function halted.")
+      if(substr(ANSWER, 1, 1) != "y" && substr(ANSWER, 1, 1) != "yes" && substr(ANSWER, 1, 1) != "Y" && ANSWER  != "")
+        expected.groups <- as.numeric(ANSWER)
     }
-    names(groups.snp) <- mrk.id
-    return(structure(list(hc.snp = hc.snp,
-                          expected.groups = expected.groups,
-                          groups.snp = groups.snp,
-                          seq.vs.grouped.snp = seq.vs.grouped.snp,
-                          data = x), class = "mappoly2.group"))
+  }
+  if(is.null(expected.groups))
+    stop("Inform the 'expected.groups' or use 'inter = TRUE'")
+  # Distribution of SNPs into linkage groups
+  seq.vs.grouped.snp <- NULL
+  if(all(unique(mn)  ==  "NoChr") & comp.mat)
+  {
+    comp.mat <- NA
+    seq.vs.grouped.snp <- NA
+    warning("There is no physical reference to generate a comparison matrix")
+  }
+  groups.snp  <- cutree(tree = hc.snp, k = expected.groups)
+
+  if(comp.mat){
+    seq.vs.grouped.snp <- matrix(0, expected.groups, length(na.omit(unique(mn))),
+                                 dimnames = list(1:expected.groups, na.omit(unique(mn))))
+    for(i in 1:expected.groups)
+    {
+      u <- table(names(which(groups.snp == i)))
+      seq.vs.grouped.snp[i,names(u)] <- u
+    }
+    if(length(seq.vs.grouped.snp) != 1){
+      idtemp2 <- unique(apply(seq.vs.grouped.snp, 1, which.max))
+      b <- setdiff(1:(ncol(seq.vs.grouped.snp)-1), idtemp2)
+      if(length(b)!=0){
+        idtemp2 <- c(idtemp2, b)
+        seq.vs.grouped.snp <- cbind(seq.vs.grouped.snp[,idtemp2])
+        cnm <- colnames(seq.vs.grouped.snp)
+        colnames(seq.vs.grouped.snp) <- cnm
+        seq.vs.grouped.snp <- cbind(seq.vs.grouped.snp, apply(seq.vs.grouped.snp, 1, sum))
+        seq.vs.grouped.snp <- rbind(seq.vs.grouped.snp, apply(seq.vs.grouped.snp, 2, sum))
+        colnames(seq.vs.grouped.snp)[ncol(seq.vs.grouped.snp)] <- "Total"
+        rownames(seq.vs.grouped.snp)[nrow(seq.vs.grouped.snp)] <- "Total"
+      }
+    }
+  } else {
+    seq.vs.grouped.snp <- NULL
+  }
+  names(groups.snp) <- mrk.id
+  return(structure(list(hc.snp = hc.snp,
+                        expected.groups = expected.groups,
+                        groups.snp = groups.snp,
+                        seq.vs.grouped.snp = seq.vs.grouped.snp,
+                        data = x), class = "mappoly2.group"))
 }
 

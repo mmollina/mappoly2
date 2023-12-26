@@ -228,12 +228,11 @@ get_sequence_mat <- function(x,
 
 #' @export
 print.mappoly2.sequence <- function(x,
-                                    type = c("mds", "genome"),
-                                    ...){
+                                    type = c("mds", "genome"), ...){
   type <- match.arg(type)
   mat.p1 <- get_sequence_mat(x, type, "p1")
-  mat.p2 <- get_sequence_mat(x, type, "p2")[,4:6]
-  mat.p1p2 <- get_sequence_mat(x, type, "p1p2")[,4:6]
+  mat.p2 <- get_sequence_mat(x, type, "p2")[,4:6,drop = FALSE]
+  mat.p1p2 <- get_sequence_mat(x, type, "p1p2")[,4:6,drop = FALSE]
   mat<-cbind(mat.p1,mat.p2,mat.p1p2)
   mat <- rbind(colnames(mat), mat)
   colnames(mat) <- c("", "", "", "p1","","", "p2", "", "", "p1p2","", "")
@@ -328,6 +327,9 @@ map_summary <- function(x,
   }
 
 
-
+#' @export
+print.mappoly2.order.comparison <- function(x, ...){
+  print_matrix(x$comp.mat)
+}
 
 

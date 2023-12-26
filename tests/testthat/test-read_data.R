@@ -1,12 +1,10 @@
 context("Read data")
 test_that("read data from CSV file correctly", {
-  fpath <- system.file("extdata", "B2721.csv", package="mappoly2")
+  fpath <- system.file("extdata", "I195xF1_85_209.csv", package="mappoly2")
   dat <- read_geno_csv(file.in  = fpath,
                        ploidy.p1 = 4,
-                       ploidy.p2 = 4,
-                       name.p1 = "Atlantic",
-                       name.p2 = "B1829-5")
-  expect_identical(dat, B2721)
+                       ploidy.p2 = 4)
+  expect_identical(dat, alfa_bc)
   testthat_print(dat)
   x <- sapply(dat, length)
   y <- unique(x[c("mrk.names",

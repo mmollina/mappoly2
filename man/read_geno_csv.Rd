@@ -86,12 +86,12 @@ See the \code{Examples} section for a tetraploid example.
 \donttest{
 tempfl <- list.files(system.file('extdata', package = 'mappoly2'),
                      full.names = TRUE)
-SolCAP.dose <- read_geno_csv(file.in = tempfl,
-                             ploidy.p1 = 4,
-                             name.p1 = "Atlantic",
-                             name.p2 = "B1829-5")
-print(SolCAP.dose, detailed = TRUE)
-plot(SolCAP.dose)
+alfalfa.bc <- read_geno_csv(file.in = tempfl,
+                            ploidy.p1 = 4,
+                            name.p1 = "I195",
+                            name.p2 = "F1.85.209")
+print(alfalfa.bc, detailed = TRUE)
+plot(alfalfa.bc)
 }
 }
 \author{

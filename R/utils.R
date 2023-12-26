@@ -20,7 +20,8 @@ get_mrk_indices_from_chrom <- function(x, chrom){
       stop(msg = "provide a valid chromosome identifier")
   }
   ch.n.dat <- embedded_to_numeric(x$chrom)
-  ch.n.arg[is.na(ch.n.arg)] <- ch.n.dat[is.na(ch.n.dat)] <- 999
+  if(any(is.na(ch.n.arg)))
+    ch.n.arg[is.na(ch.n.arg)] <- ch.n.dat[is.na(ch.n.dat)] <- 999
   ch.id <- which(ch.n.dat%in%ch.n.arg)
   if(has.mappoly2.screened(x))
     ch.id <- intersect(ch.id, get_screened_mrk_indices(x))
@@ -382,7 +383,7 @@ rev_map <- function(x, lg,
   for(i in y$lg){
     z<- x$maps[[i]][[y$type]][[parent]]$hmm.phase[[1]]
     z$p1 <- z$p1[nrow(z$p1):1,]
-    z$p2 <- z$p1[nrow(z$p1):1,]
+    z$p2 <- z$p2[nrow(z$p2):1,]
     z$rf <- rev(z$rf)
     if(!is.null(z$haploprob))
       z$haploprob <- cbind(z$haploprob[,1:3], z$haploprob[,ncol(z$haploprob):4])

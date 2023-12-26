@@ -51,7 +51,8 @@ pairwise_rf <- function(x,
   assert_that(has.mappoly2.screened(x),
               msg = "The input data is not screened")
   mrk.scope <- match.arg(mrk.scope)
-
+  if(!is.null(chrom))
+    mrk.scope = "chrom"
   if(mrk.scope == "all"){
     seq.num <- get_screened_mrk_indices(x)
     mrk.pairs <- combn(sort(seq.num), 2)

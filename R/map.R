@@ -49,6 +49,9 @@ mapping <- function(x,
 {
   y <- parse_lg_and_type(x,lg,type)
   assert_that(is.mappoly2.sequence(x))
+  assert_that(is.numeric(ncpus))
+  if(ncpus > detectCores())
+    ncpus <- detectCores() - 1
   parent <- match.arg(parent)
   g <- x$data$geno.dose
   g[is.na(g)] <- -1
@@ -178,6 +181,8 @@ mapping_one <- function(g,
       ph[[i]]$loglike <- w[[1]]
       ph[[i]]$rf <- w[[2]]
       ph[[i]]$error <- error
+      ph[[i]]$p1 <- ph[[i]]$p1[mrk.id, ]
+      ph[[i]]$p2 <- ph[[i]]$p2[mrk.id, ]
     }
     cat("Done with map estimation\n")
     #return(ph)
@@ -199,6 +204,8 @@ mapping_one <- function(g,
       ph[[i]]$loglike <- w[[1]]
       ph[[i]]$rf <- w[[2]]
       ph[[i]]$error <- error
+      ph[[i]]$p1 <- ph[[i]]$p1[mrk.id, ]
+      ph[[i]]$p2 <- ph[[i]]$p2[mrk.id, ]
     }
     cat("Done with map estimation\n")
     return(sort_phase(ph))
@@ -219,6 +226,8 @@ mapping_one <- function(g,
       ph[[i]]$loglike <- w[[1]]
       ph[[i]]$rf <- w[[2]]
       ph[[i]]$error <- error
+      ph[[i]]$p1 <- ph[[i]]$p1[mrk.id, ]
+      ph[[i]]$p2 <- ph[[i]]$p2[mrk.id, ]
     }
     cat("Done with map estimation\n")
     return(sort_phase(ph))
@@ -425,7 +434,7 @@ augment_phased_map_one <- function(map, mrk, mat, geno, max.phases,
   mrk.sel <- which(n.conf <= max.phases)
   if(length(mrk.sel) == 0) {
     warning("No markers were selected for 'max.phases' = ", max.phases,
-         "\n increasing 'max.phases' to ", min(n.conf) + 1)
+            "\n increasing 'max.phases' to ", min(n.conf) + 1)
     max.phases <- min(n.conf) + 1
   }
 
@@ -626,4 +635,183 @@ merge_single_parent_maps <- function(x,
                  verbose = verbose, tol = tol, ret_H0 = ret_H0)
   return(x)
 }
+
+
+
+#' Compare Marker Orders from MDS and Genome Maps
+#'
+#' This function compares two pre-built maps, one using MDS (multidimensional scaling)
+#' and the other using genome order, based on their HMM (hidden Markov model) multilocus-based likelihoods.
+#' It serves as an objective function to assist in selecting the best map by ensuring
+#' that only markers present in both maps are considered for a proper comparison.
+#'
+#' @param x A `mappoly2.sequence` object containing the pre-built maps.
+#' @param parent The parent phase to consider ('p1p2', 'p1', or 'p2').
+#' @param ncpus Integer specifying the number of CPU cores for parallel processing.
+#'              Default is 1 (sequential processing).
+#' @param error Optional error parameter for comparison adjustments.
+#' @param verbose Logical; if `TRUE`, prints messages during the function execution.
+#' @param tol Tolerance level for likelihood comparison.
+#'
+#' @return A matrix comparing the HMM likelihoods of markers across MDS and genome maps.
+#' @export
+compare_order <- function(x,
+                          parent = c("p1p2","p1","p2"),
+                          ncpus = 1,
+                          error = 0.0,
+                          verbose = TRUE,
+                          tol = 10e-3) {
+  # Set parent type
+  parent <- match.arg(parent)
+
+  assert_that(is.numeric(ncpus))
+
+  if(ncpus > detectCores())
+    ncpus <- detectCores() - 1
+
+  # Handle missing genotype data
+  g <- x$data$geno.dose
+  g[is.na(g)] <- -1
+
+  # Extract necessary data from the input object
+  ploidy.p1 <- x$data$ploidy.p1
+  ploidy.p2 <- x$data$ploidy.p2
+  dosage.p1 <- x$data$dosage.p1
+  dosage.p2 <- x$data$dosage.p2
+  ind.names <- x$data$screened.data$ind.names
+
+  # Initialize list to store comparison results for each linkage group
+  d <- w <- vector("list", length(x$maps))
+  names(d) <- names(w) <- names(x$maps)
+
+  # Checking existence of maps
+  has.mds.map <- sapply(x$maps, function(x) !is.null(x[["mds"]][[parent]]$hmm.phase[[1]]$loglike))
+  has.genome.map <- sapply(x$maps, function(x) !is.null(x[["genome"]][[parent]]$hmm.phase[[1]]$loglike))
+  id <- has.mds.map & has.genome.map
+
+  if(all(!id))
+    stop("there are no maps to compare")
+
+  # Loop over each linkage group to compare orders
+  for(i in names(w)[id]) {
+    # Extract phase and marker data for MDS and genome methods
+    ph.mds <- x$maps[[i]][["mds"]][[parent]]$hmm.phase
+    mds.id <- rownames(ph.mds[[1]]$p1)
+    d.mds <- c(0, cumsum(imf_h(ph.mds[[1]]$rf)))
+    names(d.mds) <- mds.id
+
+    ph.gen <- x$maps[[i]][["genome"]][[parent]]$hmm.phase
+    gen.id <- rownames(ph.gen[[1]]$p1)
+    d.gen <- c(0, cumsum(imf_h(ph.gen[[1]]$rf)))
+    names(d.gen) <- gen.id
+
+    # Intersect markers from both methods for comparison
+    mds.id2 <- intersect(mds.id, gen.id)
+    gen.id2 <- intersect(gen.id, mds.id)
+
+    # Store comparison data in the list
+    w[[i]] <- list(ph.mds = ph.mds,
+                   ph.gen = ph.gen,
+                   rf.mds = mf_h(diff(d.mds[mds.id2])),
+                   rf.gen = mf_h(diff(d.gen[gen.id2])),
+                   g.mds = g[mds.id2, ind.names],
+                   g.gen = g[gen.id2, ind.names])
+    d[[i]] <- list(mds = d.mds, genome = d.gen)
+  }
+  if(ncpus > 1){
+    cl <- makeCluster(ncpus)
+    # Apply the comparison function in parallel
+    result <- parLapply(cl, w, function(x, parent, ploidy.p1, ploidy.p2, dosage.p1,
+                                        dosage.p2, error, verbose, tol) {
+      compare_order_one_lg(x$g.mds, x$g.gen, x$ph.mds, x$ph.gen, x$rf.mds,
+                           x$rf.gen, parent, ploidy.p1, ploidy.p2, dosage.p1,
+                           dosage.p2, error = error, verbose = verbose, tol = tol)
+    }, parent, ploidy.p1, ploidy.p2, dosage.p1, dosage.p2, error, verbose, tol)
+
+    # Stop the cluster after computation is done
+    stopCluster(cl)
+  }
+  else {
+    # Apply the comparison function to each linkage group
+    result <- lapply(w, function(x, parent, ploidy.p1, ploidy.p2, dosage.p1,
+                                 dosage.p2, error, verbose, tol) {
+      compare_order_one_lg(x$g.mds, x$g.gen, x$ph.mds, x$ph.gen, x$rf.mds,
+                           x$rf.gen, parent, ploidy.p1, ploidy.p2, dosage.p1,
+                           dosage.p2, error = error, verbose = verbose, tol = tol)
+    }, parent, ploidy.p1, ploidy.p2, dosage.p1, dosage.p2, error, verbose, tol)
+  }
+  # Combine results into a matrix
+  comp.mat <- NULL
+  for(i in names(result)) {
+    comp.mat <- rbind(comp.mat, cbind(LG = i, result[[i]]))
+  }
+  structure(list(comp.mat = comp.mat, maps = d), class = "mappoly2.order.comparison")
+}
+
+#' Compare Marker Orders for a Single Linkage Group
+#'
+#' This internal function compares the marker orders for a single linkage group
+#' using two different map construction methods: multidimensional scaling (MDS)
+#' and genome order. It calculates the mapping for each method and compares
+#' their log likelihoods to determine the best map order.
+#'
+#' @param g.mds Genotype data for MDS.
+#' @param g.gen Genotype data for genome method.
+#' @param ph.mds Phase information for MDS.
+#' @param ph.gen Phase information for genome method.
+#' @param rf.mds Recombination fractions for MDS.
+#' @param rf.gen Recombination fractions for genome method.
+#' @param parent Parent phase to consider.
+#' @param ploidy.p1 Ploidy of parent 1.
+#' @param ploidy.p2 Ploidy of parent 2.
+#' @param dosage.p1 Dosage information for parent 1.
+#' @param dosage.p2 Dosage information for parent 2.å
+#' @param error error parameter.
+#' @param verbose If `TRUE`, prints messages.
+#' @param tol Tolerance level.
+#'
+#' @return A matrix with comparison results, including number of markers, map lengths,
+#' maximum gaps, average distances, and log likelihoods for both methods.
+#' @keywords internal
+compare_order_one_lg <- function(g.mds, g.gen, ph.mds, ph.gen, rf.mds,
+                                 rf.gen, parent, ploidy.p1, ploidy.p2,
+                                 dosage.p1, dosage.p2, error = 0.0,
+                                 verbose = TRUE, tol = 10e-3){
+  mds.map <- mapping_one(g.mds,
+                         ph.mds,
+                         ploidy.p1,
+                         ploidy.p2,
+                         dosage.p1,
+                         dosage.p2,
+                         parent,
+                         phase.conf = "all",
+                         rf = rf.mds,
+                         error = error,
+                         verbose = verbose,
+                         tol = tol,
+                         ret_H0 = TRUE)
+  gen.map <- mapping_one(g.gen,
+                         ph.gen,
+                         ploidy.p1,
+                         ploidy.p2,
+                         dosage.p1,
+                         dosage.p2,
+                         parent,
+                         phase.conf = "all",
+                         rf = rf.gen,
+                         error = error,
+                         verbose = verbose,
+                         tol = tol,
+                         ret_H0 = TRUE)
+  comp.mat <- sapply(list(mds.map, gen.map), function(x){
+    c(nrow(x[[1]]$p1), sum(imf_h(x[[1]]$rf)), max(imf_h(x[[1]]$rf)),
+      mean(imf_h(x[[1]]$rf)), x[[1]]$loglike)})
+  comp.mat <- t(round(comp.mat, 2))
+  l <- list(c("*", ""), c("", "*"))
+  comp.mat <- cbind(comp.mat, l[[which.max(comp.mat[,5])]])
+  dimnames(comp.mat) <- list(c("mds", "genome"), c("n.mrk", "map length", "max_gap", "ave_dist",  "loglike", ""))
+  return(comp.mat)
+}
+
+
 
