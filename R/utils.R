@@ -8,7 +8,7 @@ get_screened_mrk_indices <- function(x){
 #' Given a dataset containing chromosome information,
 #' and a chromosome vector return a vector of screened
 #' markers corresponding to the chromosomes provided
-#' @keywords internal internal
+#' @keywords internal
 get_mrk_indices_from_chrom <- function(x, chrom){
   assert_that(has.chromosome.info(x))
   a <- unique(x$chrom)
@@ -391,3 +391,60 @@ rev_map <- function(x, lg,
   }
   return(x)
 }
+
+#' Convert MAPpoly Data to CSV
+#'
+#' This function takes MAPpoly data objects and writes them to CSV files. Each object in the list
+#' is processed individually, and a CSV file is generated for each. The user can specify the path
+#' for saving the CSV files, and custom names for the parents in the dataset.
+#'
+#' @param x A list of MAPpoly data objects or a single MAPpoly data object. The function
+#'   checks if `x` is a list, and if not, it converts it into a list.
+#' @param path Optional; a string specifying the directory where the CSV files will be saved.
+#'   If not provided, files are saved in the current working directory.
+#' @param parent.names Optional; a matrix of names for the parent genotypes. If not provided,
+#'   default names are generated in the format P1, P2, etc. The matrix should have two columns
+#'   and a number of rows equal to the length of `x`.
+#' @details This function processes each MAPpoly data object, extracting relevant data for
+#'   CSV output. It handles missing reference and alternate sequences, and ensures that the
+#'   provided parent names match the structure of the data. The function creates one CSV file
+#'   per MAPpoly data object.
+#' @return Invisible NULL. The function is used for its side effect of writing files.
+#' @importFrom utils write.csv
+#' @export
+mappoly_to_csv_mappoly2 <- function(x, path = NULL, parent.names = NULL){
+  if(!is.list(x) & inherits(x, "mappoly.data"))
+    x <- list(x)
+  if(is.null(parent.names))
+    parent.names <- t(apply(matrix(1:(length(x) * 2), ncol = 2, byrow = TRUE),
+                            1, function(x) paste0("P",x)))
+  assert_that(is.matrix(parent.names))
+  assert_that(ncol(parent.names)==2 & nrow(parent.names)==length(x))
+  assert_that(all(sapply(x, function(x) inherits(x, "mappoly.data"))))
+  for(i in 1:length(x)){
+    F1<-x[[i]]$geno.dose
+    F1[F1==x[[i]]$ploidy+1] <- NA
+    r <- is.null(x[[i]]$seq.ref)
+    if(is.null(r))
+      r <- rep(NA, length(x[[i]]$mrk.names))
+    a <- is.null(x[[i]]$seq.alt)
+    if(is.null(r))
+      a <- rep(NA, length(x[[i]]$mrk.names))
+    w<-data.frame(snp_id = x[[i]]$mrk.names,
+                  P1 = x[[i]]$dosage.p1,
+                  P2 = x[[i]]$dosage.p2,
+                  chrom = x[[i]]$chrom[x[[i]]$mrk.names],
+                  genome_pos = x[[i]]$genome.pos[x[[i]]$mrk.names],
+                  ref = r,
+                  alt = a,
+                  F1)
+    names(w)[c(2:3)] <- parent.names[i,]
+    fn <- paste0(paste0(parent.names[i, ], collapse = "x"), ".csv")
+    if (is.null(path))
+      file_path <- file.path(getwd(), fn)
+    else
+      file_path <- file.path(path, fn)
+    write.csv(x, file = file_path, row.names = FALSE)
+  }
+}
+

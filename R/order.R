@@ -42,7 +42,7 @@ order_sequence <- function(x,
     if(y$type == "mds")
       x$maps[[i]][[y$type]]$order <- mds(x, x$maps[[i]][[y$type]]$mkr.names,p,n,ndim,weight.exponent,verbose)
     else
-      x$maps[[i]][[y$type]]$order <- genome_order(x, x$maps[[i]][[y$type]]$mkr.names, verbose = TRUE)
+      x$maps[[i]][[y$type]]$order <- genome_order(x, mrk.names = x$maps[[i]][[y$type]]$mkr.names, verbose = TRUE)
     if(verbose) cat("\n")
   }
   return(x)
@@ -242,21 +242,21 @@ plot_pcmap3d <- function(x, D1lim = NULL, D2lim = NULL, D3lim = NULL, displaytex
     }
     graphics::par(mfrow = c(2, 2))
     graphics::plot(x$smacofsym$conf[, "D1"], x$smacofsym$conf[,
-                                                          "D2"], type = "n", main = "MDS with principal curve",
+                                                              "D2"], type = "n", main = "MDS with principal curve",
                    xlab = "Dimension 1", ylab = "Dimension 2", xlim = D1lim,
                    ylim = D2lim)
     text(x$smacofsym$conf[, "D1"], x$smacofsym$conf[, "D2"],
          labels = labels, cex = 0.8)
     lines(x$pc$s[, "D1"][x$pc$ord], x$pc$s[, "D2"][pc$ord])
     graphics::plot(x$smacofsym$conf[, "D1"], x$smacofsym$conf[,
-                                                          "D3"], type = "n", main = "MDS with principal curve",
+                                                              "D3"], type = "n", main = "MDS with principal curve",
                    xlab = "Dimension 1", ylab = "Dimension 3", xlim = D1lim,
                    ylim = D3lim)
     text(x$smacofsym$conf[, "D1"], x$smacofsym$conf[, "D3"],
          labels = labels, cex = 0.8)
     lines(x$pc$s[, "D1"][pc$ord], x$pc$s[, "D3"][x$pc$ord])
     graphics::plot(x$smacofsym$conf[, "D2"], x$smacofsym$conf[,
-                                                          "D3"], type = "n", main = "MDS with principal curve",
+                                                              "D3"], type = "n", main = "MDS with principal curve",
                    xlab = "Dimension 2", ylab = "Dimension 3", xlim = D2lim,
                    ylim = D3lim)
     text(x$smacofsym$conf[, "D2"], x$smacofsym$conf[, "D3"],
@@ -357,7 +357,7 @@ genome_order <- function(x, mrk.names, verbose = TRUE){
                     seq.pos = genome.pos,
                     row.names = mrk.names)
     M.out <- M[order(embedded_to_numeric(M[, "seq"]),
-                     embedded_to_numeric(M[, "seq.pos"])),]
+                     M[, "seq.pos"]),]
   }
   return(M.out)
 }

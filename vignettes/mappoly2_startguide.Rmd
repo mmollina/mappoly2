@@ -1,0 +1,48 @@
+---
+title: "Introduction to MAPpoly2"
+date: '`r Sys.Date()`'
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{mappoly2_intro}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>",
+  fig.width = 4, 
+  fig.height= 4,
+  eval = FALSE
+)
+options(rmarkdown.html_vignette.check_title = FALSE)
+```
+
+## Introduction
+
+MAPpoly2 is an R package currently under development, designed to construct genetic maps in autopolyploid species. Building upon its predecessor, MAPpoly, it retains many of its functionalities but introduces a more streamlined approach to map construction. MAPpoly2 enhances efficiency with new phasing and multilocus implementations, enabling it to handle large datasets. It is capable of accommodating parents with varying ploidy levels of 2, 4, and 6, operating under regular meiosis.
+
+One feature of MAPpoly2 is its ability to construct multilocus based maps within individual parents, focusing on markers that are informative for the specific parent. This approach significantly speeds up the process for large datasets. Subsequently, these maps can be merged, unmapped markers can be assigned, and final edits applied. While the MDS algorithm remains the primary method for 'de novo' marker ordering, the availability of genome information allows users to incorporate this data into their analysis, facilitating a comparison of the resulting maps.
+
+Furthermore, MAPpoly2 incorporates several graphical functions, and its structure is conducive to integration with R Shiny. This integration is anticipated in the near future, which we expect will enhance the package's usability and interactivity.
+
+
+```{r loading dataset}
+require(mappoly2)
+tempfl <- list.files(system.file('extdata', package = 'mappoly2'),
+                     full.names = TRUE)
+alfalfa.bc <- read_geno_csv(file.in = tempfl,
+                            ploidy.p1 = 4,
+                            name.p1 = "I195",
+                            name.p2 = "F1.85.209")
+print(alfalfa.bc, detailed = TRUE)
+```
+
+## Plot data
+
+You can also embed plots, for example:
+
+```{r plot_data}
+plot(alfalfa.bc)
+```
