@@ -74,7 +74,8 @@ Imports:
     gatepoints,
     CMplot,
     reshape2,
-    dplyr
+    dplyr,
+    tibble
 LinkingTo: Rcpp, RcppProgress, RcppArmadillo, RcppParallel
 Encoding: UTF-8
 Roxygen: list(markdown = TRUE)
@@ -83,7 +84,8 @@ SystemRequirements: GNU make
 Suggests:
     testthat,
     knitr,
-    rmarkdown
+    rmarkdown,
+    viridis
 URL: https://github.com/mmollina/mappoly2
 BugReports: https://github.com/mmollina/mappoly2/issues
 VignetteBuilder: knitr

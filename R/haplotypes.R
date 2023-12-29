@@ -49,7 +49,7 @@ calc_haplotypes <- function(x,
 
   # Checking for minimal phase information
   if(all(!has.hmm.map))
-    stop("Provide a hmm estimated map.")
+    stop("Provide an hmm estimated map.")
 
   ## Selecting markers based on input
   u <- t(has.hmm.map[parent, , drop = FALSE])

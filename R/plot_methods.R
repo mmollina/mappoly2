@@ -778,3 +778,75 @@ plot.mappoly2.order.comparison <- function(x, ...){
 
 
 
+#' Plot Multiple Genetic Maps in a Grid Layout
+#'
+#' This function creates a visual representation of genetic maps from different biparental populations.
+#' Each panel in the grid corresponds to a linkage group or chromosome. The maps are displayed
+#' with the marker positions in centimorgans on the Y axis, and the distinct biparental populations
+#' on the X axis. A color gradient from light to dark blue indicates the frequency of markers shared
+#' across populations, providing insight into genetic similarities and differences.
+#'
+#' @param x A list of 'mappoly2.sequence' objects representing the genetic data of biparental populations.
+#'
+#' @return A ggplot object representing the genetic maps in a grid layout. Each panel shows a
+#'         linkage group or chromosome with marker positions and shared frequency across populations.
+#' @importFrom ggplot2 ggplot aes geom_point xlab ylab theme scale_color_manual theme margin guides guide_legend theme_dark
+#' @importFrom dplyr count left_join vars
+#' @export
+plot_multi_map <- function(x){
+  # Ensure all elements in 'x' are of class 'mappoly2.sequence'
+  assert_that(all(sapply(x, function(x) is.mappoly2.sequence(x))),
+              msg = "all elements in 'x' must be of class 'mappoly2.sequence'")
+
+  # Construct names for each biparental population
+  names(x) <- sapply(x, function(x) paste0(x$data$name.p1 , "x", x$data$name.p2))
+
+  # Create a matrix to identify available maps for each population
+  map.mat <- sapply(x, function(x)  sapply(x$maps, function(x) !is.null(x[["genome"]][["p1p2"]])), simplify = "array")
+  map.mat <- matrix(map.mat, nrow = length(x[[1]]$maps), dimnames = list(names(x[[1]]$maps), names(x)))
+
+  # Check for populations without maps and throw an error if any are found
+  y <- apply(map.mat, 1, function(x) all(!x))
+  if(any(y))
+    stop("at least one population should have a map for group(s): ", paste(names(y)[y], collapse = " "))
+
+  # Initialize a variable to store map data
+  maps <- NULL
+
+  # Loop through each population and extract map data
+  for(i in 1:length(x)){
+    w <- x[[i]]
+    for(j in rownames(map.mat)[map.mat[,i]]){
+      maps <- rbind(maps, data.frame(F1 = names(x)[i],
+                                     LG = j,
+                                     mrk.names = rownames(w$maps[[j]]$genome$p1p2$hmm.phase[[1]]$p1),
+                                     pos = cumsum(c(0, imf_h(w$maps[[j]]$genome$p1p2$hmm.phase[[1]]$rf)))))
+    }
+  }
+  # Count the occurrences of each marker name in 'mrk.names'
+  marker_counts <- maps %>%
+    count(mrk.names) %>%
+    mutate(category = as.character(n))
+
+  # Join the counts back to the original data frame
+  maps_with_counts <- maps %>%
+    left_join(marker_counts, by = "mrk.names")
+
+  # Generate a color set for each unique count category using viridis
+  unique_counts <- sort(unique(marker_counts$category))
+  colors <- rev(viridis::mako(length(unique_counts)))
+  names(colors) <- unique_counts
+
+  # Update the plotting code
+  lo <- optimal_layout(nrow(map.mat))
+  ggplot(maps_with_counts, aes(x = pos, y = F1, group = as.factor(F1), color = category)) +
+    geom_point(shape = 108, size = 5, show.legend = TRUE) +
+    facet_wrap(vars(LG), nrow = lo[1], ncol = lo[2]) +
+    xlab("Position (cM)") +
+    ylab("Biparental Maps") +
+    scale_color_manual(values = colors, name = "Marker\nFrequency\nAcross\nPopulations") +  # Set the legend title
+    theme(legend.title = element_text(face = "bold")) +  # Optionally make the legend title bold
+    guides(color = guide_legend(override.aes = list(shape = 15))) + # Square shape for legend keys
+    theme_dark()
+}
+

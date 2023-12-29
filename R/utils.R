@@ -448,3 +448,26 @@ mappoly_to_csv_mappoly2 <- function(x, path = NULL, parent.names = NULL){
   }
 }
 
+#' drsimonj pallet
+#'
+#' @param void internal function to be documented
+#' @keywords internal
+#' @export
+drsimonj_colors <- function(n) {
+  color_set <- c(`red`        = "#d11141",
+                 `green`      = "#00b159",
+                 `blue`       = "#00aedb",
+                 `orange`     = "#f37735",
+                 `yellow`     = "#ffc425",
+                 `light grey` = "#cccccc",
+                 `dark grey`  = "#8c8c8c")
+
+  if (n <= 7) {
+    return(color_set[seq_len(n)])
+  } else {
+    color_palette <- colorRampPalette(color_set)
+    return(color_palette(n))
+  }
+}
+
+
