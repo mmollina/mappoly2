@@ -34,25 +34,26 @@
 #' @author Marcelo Mollinari, \email{mmollin@ncsu.edu}
 #' @importFrom parallel makeCluster stopCluster detectCores
 #' @export
-mapping <- function(x,
-                    lg = NULL,
-                    type = c("mds", "genome", "custom"),
+mapping <- function(x, lg = NULL, type = c("mds", "genome", "custom"),
                     parent = c("p1p2","p1","p2"),
                     recompute.from.pairwise = FALSE,
-                    phase.conf = "all",
-                    rf = NULL,
-                    error = 0.0,
-                    ncpus = 1,
-                    verbose = TRUE,
-                    tol = 10e-4,
-                    ret_H0 = FALSE)
-{
-  y <- parse_lg_and_type(x,lg,type)
+                    phase.conf = "all", rf = NULL,
+                    error = 0.0, ncpus = 1, verbose = TRUE,
+                    tol = 10e-4, ret_H0 = FALSE) {
+  # Parse the linkage group and map type from 'x'
+  y <- parse_lg_and_type(x, lg, type)
+
+  # Validate the input sequence and number of CPUs
   assert_that(is.mappoly2.sequence(x))
   assert_that(is.numeric(ncpus))
-  if(ncpus > detectCores())
-    ncpus <- detectCores() - 1
+
+  # Adjust the number of CPUs to not exceed available cores
+  ncpus <- min(ncpus, detectCores())
+
+  # Match the 'parent' argument to its possible values
   parent <- match.arg(parent)
+
+  # Prepare the genetic data for mapping
   g <- x$data$geno.dose
   g[is.na(g)] <- -1
   ploidy.p1 <- x$data$ploidy.p1
@@ -62,47 +63,48 @@ mapping <- function(x,
   ind.names <- x$data$screened.data$ind.names
   cat("Multi-locus map estimation\n")
 
-  # Assessing phase availability
-  # Two-point based
+  # Assess phase availability in the maps
   has.rf.phase <- sapply(x$maps[y$lg], function(x) sapply(x[[y$type]][3:5], function(x) !is.null(x$rf.phase)))
-  # HMM screened
   has.hmm.phase <- sapply(x$maps[y$lg], function(x) sapply(x[[y$type]][3:5], function(x) !is.null(x$hmm.phase)))
 
-  # Checking for minimal phase information
-  if(all(!has.rf.phase) &  all(!has.hmm.phase))
+  # Check if there is minimal phase information for mapping
+  if(all(!has.rf.phase) & all(!has.hmm.phase)) {
     stop("Provide a pre-phased sequence.")
+  }
 
-  ## Selecting markers based on input
+  # Prepare marker selection based on input and available phase information
   if(recompute.from.pairwise){
     u <- t(has.rf.phase[parent, ,drop = FALSE])
   } else {
-    u <- cbind(has.rf.phase[parent,],
-               has.hmm.phase[parent,])
+    u <- cbind(has.rf.phase[parent,], has.hmm.phase[parent,])
     rownames(u) <- colnames(has.hmm.phase)
   }
   v <- apply(u, 1, any)
-  if(all(!v))
+  if(all(!v)) {
     stop(paste("Provide a pre-phased sequence for groups", paste(names(v), collapse = " ")))
-  if(any(!v))
+  }
+  if(any(!v)) {
     warning(paste("Provide a pre-phased sequence for groups", paste(names(v[!v]), collapse = " ")))
-  if(recompute.from.pairwise)
+  }
+  if(recompute.from.pairwise) {
     p <- apply(u[v,,drop= FALSE], 1, function(x) ifelse(x[1], "rf.phase", NA))
-  else
+  } else {
     p <- apply(u[v,,drop= FALSE], 1, function(x) ifelse(x[2], "hmm.phase", "rf.phase"))
+  }
 
-  ## Gathering data for parallel processing
+  # Prepare data for each map for parallel processing
   mapData <- vector("list", length(p))
   names(mapData) <- names(p)
-  for(i in names(p)){
+  for(i in names(p)) {
     mrk.id <- get_markers_from_phased_sequence(x, i, y$type, parent, phase = p[i])
-    mrk.id <- get_info_markers(mrk.id[[i]], x, parent) ## Double checking marker information
+    mrk.id <- get_info_markers(mrk.id[[i]], x, parent)  # Double checking marker information
     gtemp <- g[mrk.id, ind.names]
     ph <- x$maps[[i]][[y$type]][[parent]][[p[i]]]
     mapData[[i]] <- list(gtemp = gtemp,
                          ph = ph,
                          ploidy.p1 = ploidy.p1,
                          ploidy.p2 = ploidy.p2,
-                         dosage.p1= dosage.p1[mrk.id],
+                         dosage.p1 = dosage.p1[mrk.id],
                          dosage.p2 = dosage.p2[mrk.id],
                          info.parent = parent,
                          phase.conf = phase.conf,
@@ -112,6 +114,8 @@ mapping <- function(x,
                          tol = tol,
                          ret_H0 = ret_H0)
   }
+
+  # Define the mapping function for each map
   mapFunc <- function(data) {
     if(data$verbose) cat("Processing linkage group\n")
     return(mapping_one(g = data$gtemp,
@@ -128,17 +132,33 @@ mapping <- function(x,
                        tol = data$tol,
                        ret_H0 = data$ret_H0))
   }
+
+  # Execute the mapping in parallel
   if(ncpus > 1) {
-    cl <- makeCluster(ncpus)
-    results <- parLapply(cl, mapData, mapFunc)
-    stopCluster(cl)
+    os_type <- Sys.info()["sysname"]
+    if (os_type == "Windows") {
+      # Windows OS: Use parLapply
+      cl <- makeCluster(ncpus)
+      on.exit(stopCluster(cl))
+      clusterExport(cl, varlist = c("mapData", "mapFunc", "mapping_one"), envir = environment())
+      results <- parLapply(cl, mapData, mapFunc)
+    } else {
+      # Non-Windows OS: Use mclapply
+      results <- mclapply(mapData, mapFunc, mc.cores = ncpus)
+    }
   } else {
+    # Single-core execution: Use lapply
     results <- lapply(mapData, mapFunc)
   }
-  for(i in names(p))
+
+  # Update the maps with the results
+  for(i in names(p)) {
     x$maps[[i]][[y$type]][[parent]][["hmm.phase"]] <- results[[i]]
+  }
+
   return(x)
 }
+
 
 mapping_one <- function(g,
                         ph,

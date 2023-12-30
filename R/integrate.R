@@ -17,6 +17,7 @@
 #'          use and handles complex genetic map structures.
 #' @importFrom dplyr mutate arrange
 #' @importFrom reshape2 melt acast
+#' @importFrom stats dist
 #' @noRd
 #' @keywords internal
 match_homologs <- function(x,
@@ -51,7 +52,7 @@ match_homologs <- function(x,
     ph.names <- c(ph.names, paste0("pop_", par.ord[i,1], "_par_",  par.ord[i,2]))
   }
   names(ph.list) <- ph.names
-
+  value <- pop <- L1 <- NULL
   # Cluster and rearrange homologs if more than one full-sib family is present
   if(n > 1){
     dd <- as.matrix(dist(ph.mat, method = "binary"))
@@ -102,7 +103,7 @@ match_homologs <- function(x,
   colnames(pos) <- "geno.pos"
 
   # Return the final list of outputs
-  list(ph = ph.out, equivalence = x, hc = hc, shared.mrks = idn, genome.pos = pos)
+  list(ph = ph.out, hc = hc, shared.mrks = idn, genome.pos = pos)
 }
 
 
@@ -199,11 +200,17 @@ prepare_to_integrate <- function(x,
     G <- construct_dose_matrix(phases, pedigree, parents.mat, x)
 
     # Store results for the current linkage group
-    results[[j]] <- list(PH = phases, G = G, pedigree = pedigree, homolog.correspondence = hom.res, ploidy = pl)
+    results[[j]] <- list(PH = phases, G = G, pedigree = pedigree)
   }
 
   # Return results with a specific class
-  structure(results, class = "mappoly2.prepared.integrated.data")
+  names(results) <- names(y)
+  structure(list(phases = results,
+                 pedigree = pedigree,
+                 homolog.correspondence = hom.res,
+                 ploidy = pl,
+                 individual.maps = x),
+            class = "mappoly2.prepared.integrated.data")
 }
 
 create_pedigree <- function(parents.mat, x, pl) {
@@ -243,27 +250,135 @@ construct_dose_matrix <- function(phases, pedigree, parents.mat, x) {
 }
 
 #' @export
+print.mappoly2.prepared.integrated.data  <- function(x,...){
+  invisible(x)
+}
+
+#' @export
 plot.mappoly2.prepared.integrated.data  <- function(x, lg = 1, ...){
-  pl <- x[[1]]$ploidy
-  assert_that(is.numeric(lg), lg <= length(x[[1]]))
-  a <- mappoly2:::optimal_layout(length(pl))
+  pl <- x$ploidy
+  assert_that(is.numeric(lg) & lg <= length(x$phases))
+  a <- optimal_layout(length(pl))
   op <- par(mfrow = a, pty = "s")
   on.exit(par(op))
-  k <- lg
-  w <- x[[k]]
-  hc <- lapply(w$homolog.correspondence, function(x) x$hc)
+  w <- x[[lg]]
+  hc <- lapply(x$homolog.correspondence, function(x) x$hc)
   hc <-  hc[!sapply(hc, function(x) all(is.na(x)))]
   for(i in 1:length(hc)){
     d <- as.dendrogram(hc[[i]])
     d <- d %>%
       dendextend::color_branches(k = pl[i], col = drsimonj_colors(pl[i])) %>%
       dendextend::color_labels(k = pl[i], col = drsimonj_colors(pl[i])) %>%
-      set("branches_lwd", 4)
-      plot(d, main = names(pl)[i], axes = FALSE)
+      dendextend::set("branches_lwd", 4)
+    plot(d, main = names(pl)[i], axes = FALSE)
   }
   # Add the overall title
   par(mfrow = c(1,1))
   mtext("Correspondence among homologs across populations",
         side = 3, line = -5, outer = TRUE)
+}
+
+#' Estimate Consensus Genetic Map
+#'
+#' This function estimates a consensus genetic map among different biparental
+#' populations.
+#'
+#' @param x A list of 'mappoly2.prepared.integrated.data' objects.
+#' @param err Error rate to be used in the HMM map estimation (default is 0.0).
+#' @param ncpus Number of CPUs to use for parallel processing (default is 1).
+#'        Automatically adjusted to not exceed the number of available cores.
+#' @param verbose Logical; if TRUE, enables the printing of progress messages (default is TRUE).
+#' @param detailed_verbose Logical; if TRUE, enables the printing of detailed progress messages (default is FALSE).
+#' @param tol Tolerance level for the estimation convergence (default is 10e-4).
+#' @param ret_H0 Logical; if TRUE, returns null hypothesis estimates (default is FALSE).
+#'
+#' @return A list of results from the consensus map estimation.
+#' @importFrom parallel makeCluster stopCluster detectCores mclapply clusterExport
+#' @importFrom assertthat assert_that
+#' @export
+estimate_consensus_map <- function(x,
+                                   err = 0.0,
+                                   ncpus = 1,
+                                   verbose = TRUE,
+                                   detailed_verbose = FALSE,
+                                   tol = 10e-4,
+                                   ret_H0 = FALSE) {
+  # Validate that 'x' is a 'mappoly2.prepared.integrated.data' object
+  assert_that(inherits(x, "mappoly2.prepared.integrated.data"))
+
+  # Detect the operating system
+  os_type <- Sys.info()["sysname"]
+
+  # Adjust the number of cores to not exceed available cores
+  ncpus <- min(ncpus, detectCores())
+
+  # Conditional execution: Parallel or Serial
+  if (ncpus > 1) {
+    # For parallel execution
+    if (os_type == "Windows") {
+      # Windows OS: Use parLapply
+      cl <- makeCluster(ncpus)
+      on.exit(stopCluster(cl))
+      clusterExport(cl, varlist = c("err", "verbose", "detailed_verbose", "tol", "ret_H0"), envir = environment())
+
+      # Parallel execution using parLapply
+      w <- parLapply(cl, x$phases, function(xi) {
+        est_hmm_map_biallelic(PH = xi$PH,
+                              G = xi$G,
+                              pedigree = as.matrix(xi$pedigree),
+                              rf = rep(0.01, nrow(xi$G) - 1),
+                              err = err,
+                              verbose = verbose,
+                              detailed_verbose = detailed_verbose,
+                              tol = tol,
+                              ret_H0 = ret_H0)
+      })
+    } else {
+      # Non-Windows OS: Use mclapply
+      w <- mclapply(x$phases, function(xi) {
+        est_hmm_map_biallelic(PH = xi$PH,
+                              G = xi$G,
+                              pedigree = as.matrix(xi$pedigree),
+                              rf = rep(0.01, nrow(xi$G) - 1),
+                              err = err,
+                              verbose = verbose,
+                              detailed_verbose = detailed_verbose,
+                              tol = tol,
+                              ret_H0 = ret_H0)
+      }, mc.cores = ncpus)
+    }
+  } else {
+    # For serial execution
+    w <- lapply(x$phases, function(xi) {
+      est_hmm_map_biallelic(PH = xi$PH,
+                            G = xi$G,
+                            pedigree = as.matrix(xi$pedigree),
+                            rf = rep(0.01, nrow(xi$G) - 1),
+                            err = err,
+                            verbose = verbose,
+                            detailed_verbose = detailed_verbose,
+                            tol = tol,
+                            ret_H0 = ret_H0)
+    })
+  }
+  result <- vector("list", length(x$phases))
+  names(result) <- names(x$phases)
+  for(i in names(result)){
+    result[[i]] <- list(p1 = x$phases[[i]]$PH[[1]],
+                        p2 = x$phases[[i]]$PH[[2]],
+                        loglike = w[[i]][[1]],
+                        rf = w[[i]][[2]],
+                        error = err,
+                        haploprob = NULL)
+  }
+  # Return results with specific class
+  structure(list(consensus.map = result,
+                 individual.maps = x$individual.maps),
+            class = "mappoly2.consensus.map")
+}
+
+#' @export
+print.mappoly2.consensus.map  <- function(x,...){
+  invisible(x)
 }
 

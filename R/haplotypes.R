@@ -26,39 +26,44 @@
 #' @importFrom parallel detectCores makeCluster parLapply stopCluster
 #' @author Marcelo Mollinari, \email{mmollin@ncsu.edu}
 #' @export
-calc_haplotypes <- function(x,
-                            lg = NULL,
-                            type = c("mds", "genome"),
-                            parent = c("p1p2","p1","p2"),
-                            phase.conf = "all",
-                            verbose = TRUE,
-                            ncpus = 1)
-{
-  y <- parse_lg_and_type(x,lg,type)
+calc_haplotypes <- function(x, lg = NULL, type = c("mds", "genome"),
+                            parent = c("p1p2","p1","p2"), phase.conf = "all",
+                            verbose = TRUE, ncpus = 1) {
+  # Parse the linkage group and map type
+  y <- parse_lg_and_type(x, lg, type)
+
+  # Match the 'parent' argument to its possible values
   parent <- match.arg(parent)
+
+  # Prepare the genetic data for haplotype calculation
   g <- x$data$geno.dose
-  g[is.na(g)] <- -1
+  g[is.na(g)] <- -1  # Replace NA with -1
   ploidy.p1 <- x$data$ploidy.p1
   ploidy.p2 <- x$data$ploidy.p2
   dosage.p1 <- x$data$dosage.p1
   dosage.p2 <- x$data$dosage.p2
   ind.names <- x$data$screened.data$ind.names
 
-  # Assessing multi-point map availability
+  # Assess the availability of multi-point map data
   has.hmm.map <- sapply(x$maps[y$lg], function(x) sapply(x[[y$type]][3:5], function(x) !is.null(x$hmm.phase[[1]]$loglike)))
 
-  # Checking for minimal phase information
-  if(all(!has.hmm.map))
+  # Check for the presence of phase information
+  if(all(!has.hmm.map)) {
     stop("Provide an hmm estimated map.")
+  }
 
-  ## Selecting markers based on input
+  # Select markers based on the availability of phase information
   u <- t(has.hmm.map[parent, , drop = FALSE])
   v <- apply(u, 1, any)
-  if(all(!v))
+  if(all(!v)) {
     stop(paste("Provide a pre-phased sequence for groups", paste(names(v), collapse = " ")))
-  if(any(!v))
+  }
+  if(any(!v)) {
     warning(paste("Provide a pre-phased sequence for groups", paste(names(v[!v]), collapse = " ")))
+  }
   p <- apply(u[v,,drop = FALSE], 1, function(x) ifelse(x[1], "hmm.phase", NA))
+
+  # Prepare data for each map for parallel processing
   haplotypeData <- vector("list", length(p))
   names(haplotypeData) <- names(p)
   for(i in names(p)){
@@ -74,22 +79,38 @@ calc_haplotypes <- function(x,
                                parent.info = parent,
                                verbose = verbose)
   }
+
+  # Define the haplotype calculation function
   haplotypeFunc <- function(data) {
     return(calc_haplotypes_one(data$g, data$ph, data$ploidy.p1,
-                                          data$ploidy.p2, data$dosage.p1,
-                                          data$dosage.p2, data$phase.conf,
-                                          parent.info = data$parent.info,
-                                          verbose = data$verbose))
+                               data$ploidy.p2, data$dosage.p1,
+                               data$dosage.p2, data$phase.conf,
+                               parent.info = data$parent.info,
+                               verbose = data$verbose))
   }
+
+  # Execute the haplotype calculation in parallel
   if(ncpus > 1) {
-    cl <- makeCluster(ncpus)
-    results <- parLapply(cl, haplotypeData, haplotypeFunc)
-    stopCluster(cl)
+    os_type <- Sys.info()["sysname"]
+    ncpus <- min(ncpus, detectCores())
+    if (os_type == "Windows") {
+      cl <- makeCluster(ncpus)
+      on.exit(stopCluster(cl))
+      clusterExport(cl, varlist = c("haplotypeData", "haplotypeFunc", "calc_haplotypes_one"), envir = environment())
+      results <- parLapply(cl, haplotypeData, haplotypeFunc)
+    } else {
+      results <- mclapply(haplotypeData, haplotypeFunc, mc.cores = ncpus)
+    }
   } else {
+    # Single-core execution: Use lapply
     results <- lapply(haplotypeData, haplotypeFunc)
   }
-  for(i in names(p))
+
+  # Update the maps with the calculated haplotypes
+  for(i in names(p)) {
     x$maps[[i]][[y$type]][[parent]][["hmm.phase"]] <- results[[i]]
+  }
+
   return(x)
 }
 

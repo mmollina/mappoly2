@@ -379,6 +379,16 @@ plot_map <- function(x, lg = 1, type = c("mds", "genome"),
   assert_that(is.mapped.sequence(x, y$lg, y$type, parent),
               msg = "Requested map is not estimated")
   assert_that(length(y$lg) ==1 & is.numeric(lg))
+
+  v <- detect_hmm_est_map(x)
+  u <- apply(v[parent,,],1,all)
+  h <- names(u)[1:2][!u[1:2]]
+  if(length(h) == 1)
+    assert_that(u[type], msg = paste(h, "order has not been computed for", parent))
+  else
+    assert_that(u[type], msg = paste(h[1], "and", h[2],"orders have not been computed for", parent))
+
+
   old.par <- par(no.readonly = TRUE)
   on.exit(par(old.par))
   map.info <- prepare_map(x$maps[[y$lg]][[y$type]][[parent]],
@@ -776,8 +786,6 @@ plot.mappoly2.order.comparison <- function(x, ...){
   par(xpd = FALSE)
 }
 
-
-
 #' Plot Multiple Genetic Maps in a Grid Layout
 #'
 #' This function creates a visual representation of genetic maps from different biparental populations.
@@ -823,6 +831,9 @@ plot_multi_map <- function(x){
                                      pos = cumsum(c(0, imf_h(w$maps[[j]]$genome$p1p2$hmm.phase[[1]]$rf)))))
     }
   }
+
+  mrk.names <- n <- pos <- F1 <- category <- LG <- NULL
+
   # Count the occurrences of each marker name in 'mrk.names'
   marker_counts <- maps %>%
     count(mrk.names) %>%
@@ -848,5 +859,115 @@ plot_multi_map <- function(x){
     theme(legend.title = element_text(face = "bold")) +  # Optionally make the legend title bold
     guides(color = guide_legend(override.aes = list(shape = 15))) + # Square shape for legend keys
     theme_dark()
+}
+
+#' Plot Consensus Map
+#'
+#' This function plots consensus genetic maps along with individual population maps.
+#' It allows the option to plot only the consensus map or include individual population maps.
+#'
+#' @param x A list containing elements of 'mappoly2.prepared.integrated.data' class,
+#'          which includes both individual maps and consensus map data.
+#' @param only.consensus Logical, if TRUE, only the consensus map is plotted;
+#'          if FALSE, individual population maps are included (default is FALSE).
+#' @param col The color used for plotting the consensus map markers when
+#' 'only.consensus' is TRUE (default is "lightgray").
+#'
+#' @return A ggplot object representing the plotted genetic map(s).
+#'
+#' @importFrom ggplot2 ggplot geom_point facet_wrap xlab ylab scale_color_manual theme
+#' @importFrom dplyr filter count mutate left_join
+#' @importFrom viridis mako
+#' @export
+plot.mappoly2.consensus.map <- function(x, only.consensus = FALSE, col = "lightgray"){
+  z <- x$consensus.map
+  x <- x$individual.maps
+  # Ensure all elements in 'x' are of class 'mappoly2.sequence'
+  assert_that(all(sapply(x, function(x) is.mappoly2.sequence(x))),
+              msg = "all elements in 'x' must be of class 'mappoly2.sequence'")
+
+  # Construct names for each biparental population
+  names(x) <- sapply(x, function(x) paste0(x$data$name.p1 , "x", x$data$name.p2))
+
+  # Create a matrix to identify available maps for each population
+  map.mat <- sapply(x, function(x)  sapply(x$maps, function(x) !is.null(x[["genome"]][["p1p2"]])), simplify = "array")
+  map.mat <- matrix(map.mat, nrow = length(x[[1]]$maps), dimnames = list(names(x[[1]]$maps), names(x)))
+
+  # Check for populations without maps and throw an error if any are found
+  y <- apply(map.mat, 1, function(x) all(!x))
+  if(any(y))
+    stop("at least one population should have a map for group(s): ", paste(names(y)[y], collapse = " "))
+
+  if(only.consensus){
+    if(length(col) == 1)
+      col <- rep(col, nrow(map.mat))
+    max.dist <- max(sapply(z, function(x) sum(imf_h(x$rf))))
+    plot(0,
+         xlim = c(0, max.dist),
+         ylim = c(0,ncol(map.mat)+1),
+         type = "n", axes = FALSE,
+         xlab = "Map position (cM)",
+         ylab = "",
+         main = "Consensus Map")
+    axis(1)
+    axis(2, at = 1:nrow(map.mat), labels = rownames(map.mat), lwd = 0, las = 2)
+    for(i in 1:nrow(map.mat)){
+      d <- cumsum(c(0, imf_h(z[[rownames(map.mat)[i]]]$rf)))
+      mappoly2:::plot_one_map(d, i = i, horiz = TRUE, col = col[i])
+    }
+  }
+  else{
+    # Initialize a variable to store map data
+    maps1 <- NULL
+
+    # Loop through each population and extract map data
+    for(i in 1:length(x)){
+      w <- x[[i]]
+      for(j in rownames(map.mat)[map.mat[,i]]){
+        maps1 <- rbind(maps1, data.frame(POP = names(x)[i],
+                                         LG = j,
+                                         mrk.names = rownames(w$maps[[j]]$genome$p1p2$hmm.phase[[1]]$p1),
+                                         pos = cumsum(c(0, imf_h(w$maps[[j]]$genome$p1p2$hmm.phase[[1]]$rf)))))
+      }
+    }
+    maps2 <- NULL
+    ## Consnsus map
+    for(j in names(z)){
+      maps2 <- rbind(maps2, data.frame(POP = "Consensus",
+                                       LG = j,
+                                       mrk.names = rownames(z[[j]]$p1),
+                                       pos = cumsum(c(0, imf_h(z[[j]]$rf)))))
+    }
+    maps <- rbind(maps1, maps2)
+
+    mrk.names <- n <- pos <- POP <- category <- LG <- NULL
+
+    # Count the occurrences of each marker name in 'mrk.names', excluding 'Consensus'
+    marker_counts <- maps %>%
+      filter(POP != "Consensus") %>%
+      count(mrk.names) %>%
+      mutate(category = as.factor(n))
+
+    # Join the counts back to the original data frame
+    maps_with_counts <- maps %>%
+      left_join(marker_counts, by = "mrk.names")
+
+    # Generate a color set for each unique count category using viridis, excluding 'Consensus'
+    unique_counts <- sort(unique(marker_counts$category))
+    colors <- viridis::mako(length(unique_counts), direction = -1)
+    names(colors) <- unique_counts
+
+    # Update the plotting code
+    lo <- optimal_layout(nrow(map.mat))
+    ggplot(maps_with_counts, aes(x = pos, y = POP, group = as.factor(POP), color = category)) +
+      geom_point(shape = 108, size = 5, show.legend = TRUE) +
+      facet_wrap(vars(LG), nrow = lo[1], ncol = lo[2]) +
+      xlab("Position (cM)") +
+      ylab("") +
+      scale_color_manual(values = colors, name = "Marker\nFrequency\nAcross\nPopulations") +
+      theme(legend.title = element_text(face = "bold")) +
+      guides(color = guide_legend(override.aes = list(shape = 15))) +  # Square shape for legend keys
+      theme_dark()
+  }
 }
 

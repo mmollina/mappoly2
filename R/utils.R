@@ -471,3 +471,17 @@ drsimonj_colors <- function(n) {
 }
 
 
+detect_hmm_est_map <- function(x){
+  assert_that(is.mappoly2.sequence(x))
+  z <- lapply(x$maps, function(x) sapply(x, function(x) sapply(x[3:5], function(x) !is.null(x$hmm.phase))))
+  v <- unlist(z)
+  dim(v) <- c(3,3,length(z))
+  dimnames(v) = list(c("p1", "p2", "p1p2"), c("mds", "genome", "both"), names(z))
+  for(i in 1:dim(v)[3])
+      v[,3,i] <- apply(v[,1:2,i],1, all)
+  v
+}
+
+
+
+

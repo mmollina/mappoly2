@@ -228,8 +228,10 @@ get_sequence_mat <- function(x,
 
 #' @export
 print.mappoly2.sequence <- function(x,
-                                    type = c("mds", "genome"), ...){
+                                    type = c("mds", "genome", "data"), ...){
   type <- match.arg(type)
+  if(type == "data")
+    print(x$data)
   mat.p1 <- get_sequence_mat(x, type, "p1")
   mat.p2 <- get_sequence_mat(x, type, "p2")[,4:6,drop = FALSE]
   mat.p1p2 <- get_sequence_mat(x, type, "p1p2")[,4:6,drop = FALSE]
@@ -282,8 +284,16 @@ print.mappoly2.sequence <- function(x,
 map_summary <- function(x,
                         type = c("both", "mds", "genome"),
                         parent = c("p1p2", "p1", "p2")){
+  assert_that(is.mappoly2.sequence(x))
   type <- match.arg(type)
   parent <- match.arg(parent)
+  v <- detect_hmm_est_map(x)
+  u <- apply(v[parent,,],1,all)
+  h <- names(u)[1:2][!u[1:2]]
+  if(length(h) == 1)
+    assert_that(u[type], msg = paste(h, "order has not been computed for", parent))
+  else
+    assert_that(u[type], msg = paste(h[1], "and", h[2],"orders have not been computed for", parent))
   w <- lapply(x$maps, function(y) y[[type]])
   mrk.id <- m <- vector("list", length(w))
   names(mrk.id) <- names(m) <- names(w)
