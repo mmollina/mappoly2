@@ -872,14 +872,14 @@ plot_multi_map <- function(x){
 #'          if FALSE, individual population maps are included (default is FALSE).
 #' @param col The color used for plotting the consensus map markers when
 #' 'only.consensus' is TRUE (default is "lightgray").
+#' @param ... Additional arguments, not used in this method
 #'
 #' @return A ggplot object representing the plotted genetic map(s).
 #'
 #' @importFrom ggplot2 ggplot geom_point facet_wrap xlab ylab scale_color_manual theme
 #' @importFrom dplyr filter count mutate left_join
-#' @importFrom viridis mako
 #' @export
-plot.mappoly2.consensus.map <- function(x, only.consensus = FALSE, col = "lightgray"){
+plot.mappoly2.consensus.map <- function(x, only.consensus = FALSE, col = "lightgray", ...){
   z <- x$consensus.map
   x <- x$individual.maps
   # Ensure all elements in 'x' are of class 'mappoly2.sequence'
@@ -913,7 +913,7 @@ plot.mappoly2.consensus.map <- function(x, only.consensus = FALSE, col = "lightg
     axis(2, at = 1:nrow(map.mat), labels = rownames(map.mat), lwd = 0, las = 2)
     for(i in 1:nrow(map.mat)){
       d <- cumsum(c(0, imf_h(z[[rownames(map.mat)[i]]]$rf)))
-      mappoly2:::plot_one_map(d, i = i, horiz = TRUE, col = col[i])
+      plot_one_map(d, i = i, horiz = TRUE, col = col[i])
     }
   }
   else{
@@ -931,11 +931,11 @@ plot.mappoly2.consensus.map <- function(x, only.consensus = FALSE, col = "lightg
       }
     }
     maps2 <- NULL
-    ## Consnsus map
+    ## Consensus map
     for(j in names(z)){
       maps2 <- rbind(maps2, data.frame(POP = "Consensus",
                                        LG = j,
-                                       mrk.names = rownames(z[[j]]$p1),
+                                       mrk.names = rownames(z[[j]]$ph$PH[[1]]),
                                        pos = cumsum(c(0, imf_h(z[[j]]$rf)))))
     }
     maps <- rbind(maps1, maps2)

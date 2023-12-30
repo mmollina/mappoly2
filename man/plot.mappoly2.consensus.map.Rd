@@ -4,7 +4,7 @@
 \alias{plot.mappoly2.consensus.map}
 \title{Plot Consensus Map}
 \usage{
-\method{plot}{mappoly2.consensus.map}(x, only.consensus = FALSE, col = "lightgray")
+\method{plot}{mappoly2.consensus.map}(x, only.consensus = FALSE, col = "lightgray", ...)
 }
 \arguments{
 \item{x}{A list containing elements of 'mappoly2.prepared.integrated.data' class,
@@ -15,6 +15,8 @@ if FALSE, individual population maps are included (default is FALSE).}
 
 \item{col}{The color used for plotting the consensus map markers when
 'only.consensus' is TRUE (default is "lightgray").}
+
+\item{...}{Additional arguments, not used in this method}
 }
 \value{
 A ggplot object representing the plotted genetic map(s).

@@ -191,7 +191,7 @@ prepare_to_integrate <- function(x,
     for(i in names(phases)) {
       par.ord <- which(parents.mat == i, arr.ind = TRUE)
       colnames(par.ord) <- c("pop", "parent")
-      par.ord <- par.ord[order(par.ord[,1]),]
+      par.ord <- par.ord[order(par.ord[,1]), ,drop = FALSE]
       hom.res[[i]] <- match_homologs(x, par.ord, lg = j, pl = pl[i], par.name = i)
       phases[[i]] <- hom.res[[i]]$ph
     }
@@ -364,8 +364,7 @@ estimate_consensus_map <- function(x,
   result <- vector("list", length(x$phases))
   names(result) <- names(x$phases)
   for(i in names(result)){
-    result[[i]] <- list(p1 = x$phases[[i]]$PH[[1]],
-                        p2 = x$phases[[i]]$PH[[2]],
+    result[[i]] <- list(ph = x$phases[[i]],
                         loglike = w[[i]][[1]],
                         rf = w[[i]][[2]],
                         error = err,
@@ -380,5 +379,87 @@ estimate_consensus_map <- function(x,
 #' @export
 print.mappoly2.consensus.map  <- function(x,...){
   invisible(x)
+}
+
+
+#' Calculate Haplotype Probabilities for Consensus Maps
+#'
+#' This function calculates haplotype probabilities for each linkage group in a consensus
+#' map dataset of interconnected F1 populations. It utilizes parallel processing for
+#' efficient computation when multiple CPU cores are available.
+#'
+#' @param x An object of class 'mappoly2.consensus.map', representing consensus map data
+#'          for interconnected F1 populations.
+#' @param ncpus The number of CPU cores to use for parallel processing, defaults to 1.
+#'          If more than 1 core is specified, parallel processing is used.
+#'
+#' @return The input object `x` with haplotype probabilities calculated for each consensus map.
+#'
+#' @details The function processes the consensus map data to calculate haplotype probabilities
+#'          using a biallelic model. It leverages parallel processing capabilities when
+#'          multiple cores are available, significantly improving efficiency on large datasets.
+#' @export
+calc_consensus_haplo <- function(x,
+                                 ncpus = 1) {
+  # Validate that 'x' is a 'mappoly2.prepared.integrated.data' object
+  assert_that(inherits(x, "mappoly2.consensus.map"))
+
+  # Detect the operating system
+  os_type <- Sys.info()["sysname"]
+
+  # Adjust the number of cores to not exceed available cores
+  ncpus <- min(ncpus, detectCores())
+
+  # Conditional execution: Parallel or Serial
+  if (ncpus > 1) {
+    # For parallel execution
+    if (os_type == "Windows") {
+      # Windows OS: Use parLapply
+      cl <- makeCluster(ncpus)
+      on.exit(stopCluster(cl))
+      clusterExport(cl, varlist = c("pedigree"), envir = environment())
+
+      # Parallel execution using parLapply
+      w <- parLapply(cl, x$consensus.map, function(xi) {
+        u <- calc_haploprob_biallelic(PH = xi$ph$PH,
+                                      G = xi$ph$G,
+                                      pedigree = as.matrix(xi$ph$pedigree),
+                                      rf = xi$rf,
+                                      err = xi$error)
+        repeat_counts <- rowSums(xi$ph$pedigree[, 3:4])
+        repeated_rows <- xi$ph$pedigree[rep(1:nrow(xi$ph$pedigree), repeat_counts), ]
+        u <- cbind(as.matrix(repeated_rows[,1:2]),u)
+      })
+    } else {
+      # Non-Windows OS: Use mclapply
+      w <- mclapply(x$consensus.map, function(xi) {
+        u <- calc_haploprob_biallelic(PH = xi$ph$PH,
+                                      G = xi$ph$G,
+                                      pedigree = as.matrix(xi$ph$pedigree),
+                                      rf = xi$rf,
+                                      err = xi$error)
+        repeat_counts <- rowSums(xi$ph$pedigree[, 3:4])
+        repeated_rows <- xi$ph$pedigree[rep(1:nrow(xi$ph$pedigree), repeat_counts), ]
+        u <- cbind(as.matrix(repeated_rows[,1:2]),u)
+      }, mc.cores = ncpus)
+    }
+  } else {
+    # For serial execution
+    w <- lapply(x$consensus.map, function(xi) {
+      u <- calc_haploprob_biallelic(PH = xi$ph$PH,
+                                    G = xi$ph$G,
+                                    pedigree = as.matrix(xi$ph$pedigree),
+                                    rf = xi$rf,
+                                    err = xi$error)
+      repeat_counts <- rowSums(xi$ph$pedigree[, 3:4])
+      repeated_rows <- xi$ph$pedigree[rep(1:nrow(xi$ph$pedigree), repeat_counts), ]
+      u <- cbind(as.matrix(repeated_rows[,1:2]),u)
+    })
+  }
+  for(i in 1:length(x$consensus.map))
+  {
+    x$consensus.map[[i]]$haploprob <- w[[i]]
+  }
+  return(x)
 }
 
