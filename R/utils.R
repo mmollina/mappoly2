@@ -483,5 +483,45 @@ detect_hmm_est_map <- function(x){
 }
 
 
+detect_comp_haplotype <- function(x){
+  assert_that(is.mappoly2.sequence(x))
+  z <- lapply(x$maps, function(x) sapply(x, function(x) sapply(x[3:5], function(x) !is.null(x$hmm.phase[[1]]$haploprob))))
+  v <- unlist(z)
+  dim(v) <- c(3,3,length(z))
+  dimnames(v) = list(c("p1", "p2", "p1p2"), c("mds", "genome", "both"), names(z))
+  for(i in 1:dim(v)[3])
+    v[,3,i] <- apply(v[,1:2,i],1, all)
+  v
+}
 
 
+get_palette <- function(all_parents, parent, n) {
+  if (parent == levels(all_parents)[1])
+    return(colorRampPalette(c("lightblue", "darkblue"))(n))
+  else if (parent == levels(all_parents)[2])
+    return(colorRampPalette(c("lightcoral", "darkred"))(n))
+  else if (parent == levels(all_parents)[3])
+    return(colorRampPalette(c("lightgreen", "darkgreen"))(n))
+  else if (parent == levels(all_parents)[4])
+    return(colorRampPalette(c("gold", "goldenrod2"))(n))
+  else if (parent == levels(all_parents)[6])
+    return(colorRampPalette(c("mediumpurple", "mediumpurple4"))(n))
+  else if (parent == levels(all_parents)[7])
+    return(colorRampPalette(c("hotpink", "hotpink4"))(n))
+  else if (parent == levels(all_parents)[8])
+    return(colorRampPalette(c("olivedrab1", "olivedrab4"))(n))
+}
+
+
+optimal_layout <- function(n) {
+  # Start with a square layout as close as possible
+  rows <- floor(sqrt(n))
+  cols <- ceiling(n / rows)
+
+  # Adjust rows and cols if necessary
+  while (rows * cols < n) {
+    rows <- rows + 1
+  }
+
+  return(c(rows, cols))
+}

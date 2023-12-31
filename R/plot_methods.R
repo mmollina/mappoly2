@@ -155,18 +155,6 @@ plot_data <- function(x,
 }
 
 
-optimal_layout <- function(n) {
-  # Start with a square layout as close as possible
-  rows <- floor(sqrt(n))
-  cols <- ceiling(n / rows)
-
-  # Adjust rows and cols if necessary
-  while (rows * cols < n) {
-    rows <- rows + 1
-  }
-
-  return(c(rows, cols))
-}
 
 #' Plot Recombination Fraction Matrices for Genetic Maps
 #'
@@ -438,7 +426,7 @@ plot_map <- function(x, lg = 1, type = c("mds", "genome"),
          pch = "|", cex = 1.5,
          ylim = c(0,2))
   axis(side = 1)
-  ####Parent 2#####
+  ##Parent1
   x1 <- seq(x[id.left], x[id.right], length.out = length(curx))
   x.control <- diff(x1[1:2])/2
   if(length(x1) < 150)
@@ -482,7 +470,7 @@ plot_map <- function(x, lg = 1, type = c("mds", "genome"),
            #col = d.col[as.character(d.p2[id.left:id.right])],
            pch = 19, cex = .7)
   }
-  ####Parent 1#####
+  ##Parent2
   for(i in 1:map.info$ploidy.p1)
   {
     lines(range(x1), c(zy.p1[i], zy.p1[i]), lwd = 12, col = "gray")
@@ -971,6 +959,130 @@ plot.mappoly2.consensus.map <- function(x, only.consensus = FALSE, col = "lightg
   }
 }
 
+#' Plot Haplotype Probabilities for Genetic Maps
+#'
+#' This function plots haplotype probabilities for specified linkage groups in a genetic mapping dataset.
+#' It supports visualization of haplotype probabilities for individual or multiple linkage groups.
+#'
+#' @param x An object representing genetic mapping data, typically of a class storing genetic information.
+#' @param lg Optional vector specifying the linkage group indices to plot.
+#'           If NULL, the first linkage group is processed.
+#' @param ind Index or name of the individual for which haplotypes are to be plotted.
+#'            Should be a single numeric index or a character name.
+#' @param type Character vector indicating the type of map to process, either "mds" or "genome".
+#' @param parent Character vector specifying the parent or parents to be considered
+#'               in the haplotype probability visualization. Options are "p1p2", "p1", and "p2".
+#'
+#' @return A ggplot object representing the plotted haplotype probabilities.
+#'
+#' @importFrom ggplot2 ggplot geom_density facet_grid theme_minimal ylab xlab scale_color_identity scale_fill_identity
+#' @importFrom reshape2 melt
+#' @importFrom assertthat assert_that
+#' @export
+plot_haplotypes <- function(x,
+                            lg = NULL,
+                            ind = 1,
+                            type = c("mds", "genome"),
+                            parent = c("p1p2", "p1", "p2")) {
+  assert_that(is.mappoly2.sequence(x))
+  if(is.null(lg))
+    lg <- 1:length(x$maps)
+
+  type <- match.arg(type)
+  parent <- match.arg(parent)
+
+  y <- parse_lg_and_type(x,lg,type)
+
+  for(i in 1:length(y$lg))
+    assert_that(is.haplotype.sequence(x, y$lg[i], y$type, parent),
+                msg = "Requested haplotype probabilities were not computed")
+
+  ### Asserting haplotype
+  v <- detect_comp_haplotype(x)
+  u <- apply(v[parent,,],1,all)
+  h <- names(u)[1:2][!u[1:2]]
+  if(length(h) == 1){
+    assert_that(u[y$type], msg = paste(h, "order has not been computed for", parent))
+  } else {
+    assert_that(u[y$type], msg = paste(h[1], "and", h[2],"orders have not been computed for", parent))
+  }
+
+  if(is.character(ind) & length(ind) == 1){
+    ind.num <- match(ind, x$data$screened.data$ind.names)
+  } else if(is.numeric(ind) & length(ind) == 1){
+    ind.num <- ind
+    ind <- x$data$screened.data$ind.names[ind]
+  } else {
+    stop("indivdual is not valid")
+  }
+  if(is.na(ind.num))
+    stop("individual not found")
+
+  all_parents <- as.factor(c(x$data$name.p1, x$data$name.p2))
+
+  hap <- lapply(x$maps[y$lg], function(map_item){
+    M <- as.matrix(map_item[[y$type]][[parent]]$hmm.phase[[1]]$haploprob)
+    ind.num <- match(ind, x$data$screened.data$ind.names)
+    id <- which(ind.num==M[,2])
+    hom_df <- as.data.frame(M[id,])
+    map.pos <- cumsum(imf_h(c(0, map_item[[y$type]][[parent]]$hmm.phase[[1]]$rf)))
+    map.pos <- rep(map.pos, each = length(id))
+    # Adding column names for clarity
+    colnames(hom_df) <- c("parent", "ind", "homolog", paste0("V", 4:ncol(hom_df)))
+
+    # Using melt from reshape2 to transform the data
+    # id.vars are the columns that identify each row (here, parent, ind, homolog)
+    # measure.vars are the columns that contain the measurements to be reshaped (in this case, the rest of the columns)
+    long_df <- reshape2::melt(hom_df, id.vars = c("parent", "homolog"), measure.vars = colnames(hom_df)[4:ncol(hom_df)])
+
+    # Creating the final dataframe with required columns
+    result_df <- data.frame(parent = as.factor(all_parents[long_df$parent]),
+                            homolog = as.factor(paste0("h", long_df$homolog)),
+                            prob = long_df$value,
+                            map.pos = map.pos)
+  })
+  result_df <- reshape2::melt(hap,
+                              id.vars = c("parent", "homolog",  "prob",  "map.pos"),
+                              value.name = "LG")
+
+  # Create a new column for colors
+  result_df$color <- NA
+
+  # Assign colors to each homolog within each parent
+  for (p in levels(result_df$parent)) {
+    homolog_levels <- levels(result_df$homolog[result_df$parent == p])
+    palette <- get_palette(all_parents, p, length(homolog_levels))
+    for (h in homolog_levels) {
+      result_df$color[result_df$parent == p & result_df$homolog == h] <- palette[which(homolog_levels == h)]
+    }
+  }
+
+  color <- map.pos <- prob <- NULL
+  if(length(y$lg) == 1){
+    p <- ggplot(result_df, aes(x = map.pos, y = prob, color = color, fill = color)) +
+      geom_density(stat = "identity", alpha = 0.7) +
+      ggplot2::ggtitle(paste(ind, "   LG", y$lg)) +
+      facet_grid(parent + homolog  ~ .) +
+      theme_minimal() +
+      ylab("Homologs Probability") +
+      xlab("Map Position") +
+      scale_color_identity() +
+      scale_fill_identity()
+  }else{
+    p <- ggplot(result_df, aes(x = map.pos, y = prob, color = color, fill = color)) +
+      ggplot2::geom_density(stat = "identity", alpha = 0.7, position = "stack") +
+      ggplot2::ggtitle(ind) +
+      #ggplot2::facet_grid(rows = ggplot2::vars(LG)) +
+      facet_grid(L1 + parent  ~ .) +
+      theme_minimal() +
+      ylab("Homologs Probability") +
+      xlab("Map Position") +
+      scale_color_identity() +
+      scale_fill_identity()
+  }
+  return(p)
+}
+
 
 #' Plot Consensus Map with Homolog Probabilities
 #'
@@ -993,7 +1105,7 @@ plot_consensus_haplo <- function(x,
                                  lg = 1,
                                  ind = 1,
                                  ...){
-
+  ##FIXME allow for multiple lg's
   pedigree <- x$consensus.map[[lg]]$ph$pedigree
   all_parents <- as.factor(names(x$consensus.map[[lg]]$ph$PH))
 
@@ -1029,24 +1141,6 @@ plot_consensus_haplo <- function(x,
                           prob = long_df$value,
                           map.pos = map.pos)
 
-  # Function to create a palette of n colors (shades of blue or red)
-  get_palette <- function(all_parents, parent, n) {
-    if (parent == levels(all_parents)[1])
-      return(colorRampPalette(c("lightblue", "darkblue"))(n))
-    else if (parent == levels(all_parents)[2])
-      return(colorRampPalette(c("lightcoral", "darkred"))(n))
-    else if (parent == levels(all_parents)[3])
-      return(colorRampPalette(c("lightgreen", "darkgreen"))(n))
-    else if (parent == levels(all_parents)[4])
-      return(colorRampPalette(c("gold", "goldenrod2"))(n))
-    else if (parent == levels(all_parents)[6])
-      return(colorRampPalette(c("mediumpurple", "mediumpurple4"))(n))
-    else if (parent == levels(all_parents)[7])
-      return(colorRampPalette(c("hotpink", "hotpink4"))(n))
-    else if (parent == levels(all_parents)[8])
-      return(colorRampPalette(c("olivedrab1", "olivedrab4"))(n))
-  }
-
   # Create a new column for colors
   result_df$color <- NA
   color <- prob <- NULL
@@ -1071,3 +1165,8 @@ plot_consensus_haplo <- function(x,
 
   return(p)
 }
+
+
+
+
+
