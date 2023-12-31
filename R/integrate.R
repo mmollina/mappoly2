@@ -258,13 +258,20 @@ print.mappoly2.prepared.integrated.data  <- function(x,...){
 plot.mappoly2.prepared.integrated.data  <- function(x, lg = 1, ...){
   pl <- x$ploidy
   assert_that(is.numeric(lg) & lg <= length(x$phases))
-  a <- optimal_layout(length(pl))
-  op <- par(mfrow = a, pty = "s")
-  on.exit(par(op))
   w <- x[[lg]]
   hc <- lapply(x$homolog.correspondence, function(x) x$hc)
   hc <-  hc[!sapply(hc, function(x) all(is.na(x)))]
+  a <- optimal_layout(length(hc))
+  flag <- FALSE
+  if(identical(a, c(1,1))){
+    a <- c(1,3)
+    flag <- TRUE
+  }
+  op <- par(mfrow = a, pty = "s")
+  on.exit(par(op))
   for(i in 1:length(hc)){
+    if(flag)
+      plot(0,0, type = "n", axes = FALSE, xlab = "", ylab = "")
     d <- as.dendrogram(hc[[i]])
     d <- d %>%
       dendextend::color_branches(k = pl[i], col = drsimonj_colors(pl[i])) %>%
@@ -426,9 +433,12 @@ calc_consensus_haplo <- function(x,
                                       pedigree = as.matrix(xi$ph$pedigree),
                                       rf = xi$rf,
                                       err = xi$error)
-        repeat_counts <- rowSums(xi$ph$pedigree[, 3:4])
-        repeated_rows <- xi$ph$pedigree[rep(1:nrow(xi$ph$pedigree), repeat_counts), ]
-        u <- cbind(as.matrix(repeated_rows[,1:2]),u)
+        par_col <- unlist(apply(as.matrix(xi$ph$pedigree), 1, function(x) c(rep(x[1], x[3]),
+                                                                            rep(x[2], x[4])),
+                                simplify = FALSE))
+        u <- cbind(par_col,u)
+        colnames(u)[1:3] <- c("parent", "ind", "homolog")
+        u
       })
     } else {
       # Non-Windows OS: Use mclapply
@@ -438,9 +448,12 @@ calc_consensus_haplo <- function(x,
                                       pedigree = as.matrix(xi$ph$pedigree),
                                       rf = xi$rf,
                                       err = xi$error)
-        repeat_counts <- rowSums(xi$ph$pedigree[, 3:4])
-        repeated_rows <- xi$ph$pedigree[rep(1:nrow(xi$ph$pedigree), repeat_counts), ]
-        u <- cbind(as.matrix(repeated_rows[,1:2]),u)
+        par_col <- unlist(apply(as.matrix(xi$ph$pedigree), 1, function(x) c(rep(x[1], x[3]),
+                                                                            rep(x[2], x[4])),
+                                simplify = FALSE))
+        u <- cbind(par_col,u)
+        colnames(u)[1:3] <- c("parent", "ind", "homolog")
+        u
       }, mc.cores = ncpus)
     }
   } else {
@@ -451,9 +464,12 @@ calc_consensus_haplo <- function(x,
                                     pedigree = as.matrix(xi$ph$pedigree),
                                     rf = xi$rf,
                                     err = xi$error)
-      repeat_counts <- rowSums(xi$ph$pedigree[, 3:4])
-      repeated_rows <- xi$ph$pedigree[rep(1:nrow(xi$ph$pedigree), repeat_counts), ]
-      u <- cbind(as.matrix(repeated_rows[,1:2]),u)
+      par_col <- unlist(apply(as.matrix(xi$ph$pedigree), 1, function(x) c(rep(x[1], x[3]),
+                                                                          rep(x[2], x[4])),
+                              simplify = FALSE))
+      u <- cbind(par_col,u)
+      colnames(u)[1:3] <- c("parent", "ind", "homolog")
+      u
     })
   }
   for(i in 1:length(x$consensus.map))

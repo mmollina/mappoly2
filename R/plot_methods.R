@@ -904,7 +904,7 @@ plot.mappoly2.consensus.map <- function(x, only.consensus = FALSE, col = "lightg
     max.dist <- max(sapply(z, function(x) sum(imf_h(x$rf))))
     plot(0,
          xlim = c(0, max.dist),
-         ylim = c(0,ncol(map.mat)+1),
+         ylim = c(0,nrow(map.mat)+1),
          type = "n", axes = FALSE,
          xlab = "Map position (cM)",
          ylab = "",
@@ -971,3 +971,103 @@ plot.mappoly2.consensus.map <- function(x, only.consensus = FALSE, col = "lightg
   }
 }
 
+
+#' Plot Consensus Map with Homolog Probabilities
+#'
+#' This function generates a density plot for homolog probabilities across map positions
+#' for a specified individual within a given linkage group. It uses haplotype probability data
+#' from a consensus map to create the plot, with different colors representing different parents.
+#'
+#' @param x A list containing consensus map data, specifically `consensus.map`, `ph`, `pedigree`, and `haploprob` structures.
+#' @param lg An integer specifying the linkage group to plot. Defaults to 1.
+#' @param ind An identifier for the individual to plot. This can be either a numeric index or a character string corresponding to the individual's name. If it is a character string, the function matches it with the rownames of the pedigree. Defaults to 1.
+#' @param ... Additional arguments to pass on to the plotting function.
+#'
+#' @return A ggplot object representing the density plot of homolog probabilities for the specified individual across map positions.
+#'
+#' @export
+#'
+#' @importFrom ggplot2 ggplot aes geom_density ggtitle facet_grid theme_minimal ylab xlab scale_color_identity scale_fill_identity
+#' @importFrom reshape2 melt
+plot_consensus_haplo <- function(x,
+                                 lg = 1,
+                                 ind = 1,
+                                 ...){
+
+  pedigree <- x$consensus.map[[lg]]$ph$pedigree
+  all_parents <- as.factor(names(x$consensus.map[[lg]]$ph$PH))
+
+  M <- as.matrix(x$consensus.map[[lg]]$haploprob)
+
+  if(is.character(ind) & length(ind) == 1)
+    ind.num <- match(ind, rownames(pedigree))
+  else if(is.numeric(ind) & length(ind) == 1){
+    ind.num <- ind
+    ind <- rownames(pedigree)[ind]
+  } else {
+    stop("indivdual is not valid")
+  }
+  if(is.na(ind.num))
+    stop("individual not found")
+
+  id <- which(ind.num==M[,2])
+  hom_df <- as.data.frame(M[id,])
+  map.pos <- cumsum(imf_h(c(0, x$consensus.map[[lg]]$rf)))
+  map.pos <- rep(map.pos, each = length(id))
+
+  # Adding column names for clarity
+  colnames(hom_df) <- c("parent", "ind", "homolog", paste0("V", 4:ncol(hom_df)))
+
+  # Using melt from reshape2 to transform the data
+  # id.vars are the columns that identify each row (here, parent, ind, homolog)
+  # measure.vars are the columns that contain the measurements to be reshaped (in this case, the rest of the columns)
+  long_df <- reshape2::melt(hom_df, id.vars = c("parent", "homolog"), measure.vars = colnames(hom_df)[4:ncol(hom_df)])
+
+  # Creating the final dataframe with required columns
+  result_df <- data.frame(parent = as.factor(names(x$consensus.map[[lg]]$ph$PH))[long_df$parent],
+                          homolog = as.factor(paste0("h", long_df$homolog)),
+                          prob = long_df$value,
+                          map.pos = map.pos)
+
+  # Function to create a palette of n colors (shades of blue or red)
+  get_palette <- function(all_parents, parent, n) {
+    if (parent == levels(all_parents)[1])
+      return(colorRampPalette(c("lightblue", "darkblue"))(n))
+    else if (parent == levels(all_parents)[2])
+      return(colorRampPalette(c("lightcoral", "darkred"))(n))
+    else if (parent == levels(all_parents)[3])
+      return(colorRampPalette(c("lightgreen", "darkgreen"))(n))
+    else if (parent == levels(all_parents)[4])
+      return(colorRampPalette(c("gold", "goldenrod2"))(n))
+    else if (parent == levels(all_parents)[6])
+      return(colorRampPalette(c("mediumpurple", "mediumpurple4"))(n))
+    else if (parent == levels(all_parents)[7])
+      return(colorRampPalette(c("hotpink", "hotpink4"))(n))
+    else if (parent == levels(all_parents)[8])
+      return(colorRampPalette(c("olivedrab1", "olivedrab4"))(n))
+  }
+
+  # Create a new column for colors
+  result_df$color <- NA
+  color <- prob <- NULL
+  # Assign colors to each homolog within each parent
+  for (p in levels(result_df$parent)) {
+    homolog_levels <- levels(result_df$homolog[result_df$parent == p])
+    palette <- get_palette(all_parents, p, length(homolog_levels))
+    for (h in homolog_levels) {
+      result_df$color[result_df$parent == p & result_df$homolog == h] <- palette[which(homolog_levels == h)]
+    }
+  }
+  # Plotting
+  p <- ggplot(result_df, aes(x = map.pos, y = prob, color = color, fill = color)) +
+    geom_density(stat = "identity", alpha = 0.7) +
+    ggplot2::ggtitle(paste(ind, "   LG", lg)) +
+    facet_grid(parent + homolog  ~ .) +
+    theme_minimal() +
+    ylab("Homologs Probability") +
+    xlab("Map Position") +
+    scale_color_identity() +
+    scale_fill_identity()# Use the actual colors assigned in the color column
+
+  return(p)
+}
