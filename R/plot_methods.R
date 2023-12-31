@@ -1039,10 +1039,12 @@ plot_haplotypes <- function(x,
     result_df <- data.frame(parent = as.factor(all_parents[long_df$parent]),
                             homolog = as.factor(paste0("h", long_df$homolog)),
                             prob = long_df$value,
-                            map.pos = map.pos)
+                            map.pos = map.pos,
+                            parent_pos = rep(c(rep("p1", x$data$ploidy.p1), rep("p2", x$data$ploidy.p2)),
+                                             length(map.pos)/(x$data$ploidy.p1 + x$data$ploidy.p2)))
   })
   result_df <- reshape2::melt(hap,
-                              id.vars = c("parent", "homolog",  "prob",  "map.pos"),
+                              id.vars = c("parent", "homolog",  "prob",  "map.pos", "parent_pos"),
                               value.name = "LG")
 
   # Create a new column for colors
@@ -1056,7 +1058,7 @@ plot_haplotypes <- function(x,
       result_df$color[result_df$parent == p & result_df$homolog == h] <- palette[which(homolog_levels == h)]
     }
   }
-
+  result_df$parent <- paste0(result_df$parent, "-", result_df$parent_pos)
   color <- map.pos <- prob <- NULL
   if(length(y$lg) == 1){
     p <- ggplot(result_df, aes(x = map.pos, y = prob, color = color, fill = color)) +
@@ -1111,9 +1113,9 @@ plot_consensus_haplo <- function(x,
 
   M <- as.matrix(x$consensus.map[[lg]]$haploprob)
 
-  if(is.character(ind) & length(ind) == 1)
+  if(is.character(ind) & length(ind) == 1){
     ind.num <- match(ind, rownames(pedigree))
-  else if(is.numeric(ind) & length(ind) == 1){
+  } else if(is.numeric(ind) & length(ind) == 1){
     ind.num <- ind
     ind <- rownames(pedigree)[ind]
   } else {
@@ -1139,7 +1141,10 @@ plot_consensus_haplo <- function(x,
   result_df <- data.frame(parent = as.factor(names(x$consensus.map[[lg]]$ph$PH))[long_df$parent],
                           homolog = as.factor(paste0("h", long_df$homolog)),
                           prob = long_df$value,
-                          map.pos = map.pos)
+                          map.pos = map.pos,
+                          parent_pos = rep(c(rep("p1", pedigree[ind.num,3]),
+                                             rep("p2", pedigree[ind.num,4])),
+                                           length(map.pos)/sum(pedigree[ind.num,3:4])))
 
   # Create a new column for colors
   result_df$color <- NA
@@ -1147,11 +1152,12 @@ plot_consensus_haplo <- function(x,
   # Assign colors to each homolog within each parent
   for (p in levels(result_df$parent)) {
     homolog_levels <- levels(result_df$homolog[result_df$parent == p])
-    palette <- get_palette(all_parents, p, length(homolog_levels))
+    palette <- get_palette(all_parents, parent = p, length(homolog_levels))
     for (h in homolog_levels) {
       result_df$color[result_df$parent == p & result_df$homolog == h] <- palette[which(homolog_levels == h)]
     }
   }
+  result_df$parent <- paste0(result_df$parent, "-", result_df$parent_pos)
   # Plotting
   p <- ggplot(result_df, aes(x = map.pos, y = prob, color = color, fill = color)) +
     geom_density(stat = "identity", alpha = 0.7) +

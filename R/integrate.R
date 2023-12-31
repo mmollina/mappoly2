@@ -20,16 +20,22 @@
 #' @importFrom stats dist
 #' @noRd
 #' @keywords internal
-match_homologs <- function(x,
+match_homologs <- function(map.list,
                            par.ord,
                            lg,
                            pl,
                            par.name){
   # Number of full-sibs with the analyzed parent
   n <- nrow(par.ord)
+  names(map.list) <- sapply(map.list, function(x) paste0(x$data$name.p1, "x", x$data$name.p2))
+
+  x <- map.list[rownames(par.ord)]
 
   # Identify shared markers across all maps for a given linkage group and parent
   idn <- Reduce(intersect, lapply(x, function(x) rownames(x$maps[[lg]]$genome$p1p2$hmm.phase[[1]]$p1)))
+
+  if(length(idn) < 4)
+    stop("There is less then 4 markers connecting populations with ", par.name)
 
   # Collect all markers and their positions from each map
   pos.all <- lapply(x, function(x) data.frame(x$data$mrk.names, x$data$genome.pos))
@@ -45,7 +51,7 @@ match_homologs <- function(x,
   ph.list <- vector("list", n)
   ph.names <- ph.mat <- NULL
   for(i in 1:n){
-    ph <- x[[par.ord[i,1]]]$maps[[lg]]$genome$p1p2$hmm.phase[[1]][[par.ord[i,2]]]
+    ph <- x[[rownames(par.ord)[i]]]$maps[[lg]]$genome$p1p2$hmm.phase[[1]][[par.ord[i,2]]]
     colnames(ph) <- paste0("H", 1:pl, "_pop_", par.ord[i,1], "_par_",  par.ord[i,2])
     ph.list[[i]] <- ph
     ph.mat <- rbind(ph.mat, t(ph[idn,]))
@@ -88,8 +94,7 @@ match_homologs <- function(x,
     remaining <- setdiff(rownames(pos), rownames(ph.out))
     if(length(remaining) > 0)
       ph.out <- rbind(ph.out, matrix(NA, length(remaining), pl, dimnames = list(remaining, colnames(ph.out))))
-  }
-  else {
+  } else {
     hc <- NA
     ph.out <- ph.list[[1]]
     for(i in 1:length(x)){
@@ -130,13 +135,13 @@ prepare_to_integrate <- function(x,
                                  verbose = TRUE) {
   type <- match.arg(type)
 
-  # Parse linkage group and type for each map
-  z <- lapply(x, parse_lg_and_type, lg, type)
-  lg <- z[[1]]$lg
-
   # Check if map type is 'mds', if so, stop the process as it's not supported yet
   if(type == "mds")
     stop("Map integration is only available for genome-ordered maps. Integration for mds-ordered maps will be available soon.")
+
+  # Parse linkage group and type for each map
+  z <- lapply(x, parse_lg_and_type, lg, type)
+  lg <- z[[1]]$lg
 
   # Ensure all elements in 'x' are of class 'mappoly2.sequence'
   assert_that(all(sapply(x, function(x) is.mappoly2.sequence(x))),
@@ -158,8 +163,26 @@ prepare_to_integrate <- function(x,
   # Create a transposed matrix of parent names for each element in x
   parents.mat <- t(sapply(x, function(x) c(x$data$name.p1, x$data$name.p2)))
 
+  # Gathering genome position for all markers
+  q <- x
+  names(q) <- NULL
+  all.geno.pos <- sort(unlist(lapply(q, function(x) x$data$genome.pos)))
+  u <- vector("list", length(x))
+  names(u) <- names(x)
+  for(j in 1:length(x)) #population
+    u[[j]] <- split(names(x[[j]]$data$chrom), as.factor(x[[j]]$data$chrom))
+
+  v <- vector("list", length(lg))
+  for(i in lg){ #lg
+    for(j in 1:length(u)){
+      v[[i]] <- unique(c(v[[i]], u[[j]][[i]]))
+    }
+    v[[i]] <- sort(all.geno.pos[v[[i]]])
+  }
+
   # Gathering parent's phases and ploidy levels
-  w <- table(as.vector(parents.mat))
+  pt <- as.vector(t(parents.mat))
+  w <- table(pt)[unique(pt)]
   hom.res <- phases <- vector("list", length(w))
   names(hom.res) <- names(phases) <- names(w)
 
@@ -193,9 +216,11 @@ prepare_to_integrate <- function(x,
       colnames(par.ord) <- c("pop", "parent")
       par.ord <- par.ord[order(par.ord[,1]), ,drop = FALSE]
       hom.res[[i]] <- match_homologs(x, par.ord, lg = j, pl = pl[i], par.name = i)
-      phases[[i]] <- hom.res[[i]]$ph
+      ph.temp <- matrix(NA, nrow = length(v[[j]]), ncol = pl[i],
+                        dimnames = list(names(v[[j]]), colnames(hom.res[[i]]$ph)))
+      ph.temp[rownames(hom.res[[i]]$ph),] <- hom.res[[i]]$ph
+      phases[[i]] <- ph.temp
     }
-
     # Construct the genetic matrix
     G <- construct_dose_matrix(phases, pedigree, parents.mat, x)
 
@@ -212,6 +237,7 @@ prepare_to_integrate <- function(x,
                  individual.maps = x),
             class = "mappoly2.prepared.integrated.data")
 }
+
 
 create_pedigree <- function(parents.mat, x, pl) {
   pedigree <- NULL
@@ -281,8 +307,10 @@ plot.mappoly2.prepared.integrated.data  <- function(x, lg = 1, ...){
   }
   # Add the overall title
   par(mfrow = c(1,1))
+  l <- -5
+  if(length(hc) > 3) l <- -2
   mtext("Correspondence among homologs across populations",
-        side = 3, line = -5, outer = TRUE)
+        side = 3, line = l, outer = TRUE)
 }
 
 #' Estimate Consensus Genetic Map

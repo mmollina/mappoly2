@@ -258,7 +258,7 @@ List main_hmm_full(NumericVector ploidy_p1,
                                            T[ploidy_p1[ind]][k-1],
                                                             T[ploidy_p2[ind]][k-1]);
         // Normalization to avoid underflow
-        // NOTE: The LogSumExp (LSE) method is not used here for efficiency reasons,
+        // NOTE: The LogSumExp (LSE) method is not used here for efficiency reason,
         // as it has been observed that this normalization technique performs adequately.
         double zeta = 0;
         for(int j=0; (unsigned)j < temp4.size(); j++)

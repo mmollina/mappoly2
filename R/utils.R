@@ -504,11 +504,11 @@ get_palette <- function(all_parents, parent, n) {
     return(colorRampPalette(c("lightgreen", "darkgreen"))(n))
   else if (parent == levels(all_parents)[4])
     return(colorRampPalette(c("gold", "goldenrod2"))(n))
-  else if (parent == levels(all_parents)[6])
+  else if (parent == levels(all_parents)[5])
     return(colorRampPalette(c("mediumpurple", "mediumpurple4"))(n))
-  else if (parent == levels(all_parents)[7])
+  else if (parent == levels(all_parents)[6])
     return(colorRampPalette(c("hotpink", "hotpink4"))(n))
-  else if (parent == levels(all_parents)[8])
+  else if (parent == levels(all_parents)[7])
     return(colorRampPalette(c("olivedrab1", "olivedrab4"))(n))
 }
 
