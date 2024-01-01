@@ -438,7 +438,7 @@ print.mappoly2.consensus.map  <- function(x,...){
   cat("Ploidy of founders:             ", a1[,1], "\n")
   cat("Total No. individuals:          ", sum(y), "\n")
   cat("Total No. markers               ", sum(n.mrk), "\n")
-  cat("Haplotype probability computed: ", ifelse(all(a2), "Yes", "No"), "\n\n")
+  cat("Haplotype probability computed: ", ifelse(all(a2), "No", "Yes"), "\n\n")
   cat("Number of individuals per crosse:\n")
   print_matrix(y, spaces = 0, equal.space = FALSE)
   map.len <- sapply(x$consensus.map, function(x) round(sum(imf_h(x$rf)),2))

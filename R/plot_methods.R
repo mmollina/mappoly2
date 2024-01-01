@@ -918,6 +918,7 @@ plot.mappoly2.consensus.map <- function(x, only.consensus = FALSE, col = "lightg
                                          pos = cumsum(c(0, imf_h(w$maps[[j]]$genome$p1p2$hmm.phase[[1]]$rf)))))
       }
     }
+    # Append the consensus map data to the maps data frame
     maps2 <- NULL
     ## Consensus map
     for(j in names(z)){
@@ -928,6 +929,10 @@ plot.mappoly2.consensus.map <- function(x, only.consensus = FALSE, col = "lightg
     }
     maps <- rbind(maps1, maps2)
 
+    # Adjust the factor levels of POP so that Consensus is first
+    maps$POP <- factor(maps$POP, levels = c("Consensus", unique(maps$POP[maps$POP != "Consensus"])))
+
+    # Continue with your existing code
     mrk.names <- n <- pos <- POP <- category <- LG <- NULL
 
     # Count the occurrences of each marker name in 'mrk.names', excluding 'Consensus'
@@ -956,6 +961,7 @@ plot.mappoly2.consensus.map <- function(x, only.consensus = FALSE, col = "lightg
       theme(legend.title = element_text(face = "bold")) +
       guides(color = guide_legend(override.aes = list(shape = 15))) +  # Square shape for legend keys
       theme_dark()
+
   }
 }
 
