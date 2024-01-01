@@ -277,7 +277,19 @@ construct_dose_matrix <- function(phases, pedigree, parents.mat, x) {
 
 #' @export
 print.mappoly2.prepared.integrated.data  <- function(x,...){
-  invisible(x)
+  y <- table(x$pedigree$Par1, x$pedigree$Par2)
+  parent.names <- names(x$phases[[1]]$PH)
+  dimnames(y) <- list(parent.names[as.numeric(rownames(y))], parent.names[as.numeric(colnames(y))])
+  fds <- length(parent.names)
+  n.mrk <- sapply(x$phases, function(x) nrow(x$PH[[1]]))
+  {
+    cat("    Founder names:                          ",  parent.names, "\n")
+    cat("    Ploidy of founders:                     ", x$ploidy, "\n")
+    cat("    No. individuals:                        ", sum(y), "\n")
+    cat("    No. markers                             ", sum(n.mrk), "\n\n")
+    cat("    Number of individuals per crosses:\n")
+    print_matrix(as.matrix(y))
+  }
 }
 
 #' @export
