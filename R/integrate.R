@@ -283,12 +283,12 @@ print.mappoly2.prepared.integrated.data  <- function(x,...){
   fds <- length(parent.names)
   n.mrk <- sapply(x$phases, function(x) nrow(x$PH[[1]]))
   {
-    cat("    Founder names:                          ",  parent.names, "\n")
-    cat("    Ploidy of founders:                     ", x$ploidy, "\n")
-    cat("    No. individuals:                        ", sum(y), "\n")
-    cat("    No. markers                             ", sum(n.mrk), "\n\n")
-    cat("    Number of individuals per crosses:\n")
-    print_matrix(as.matrix(y))
+    cat("Founder names:           ",  paste(parent.names, collapse = " / "), "\n")
+    cat("Ploidy of founders:      ", x$ploidy, "\n")
+    cat("No. individuals:         ", sum(y), "\n")
+    cat("No. markers              ", sum(n.mrk), "\n\n")
+    cat("Number of individuals per crosses:\n")
+    print_matrix(y, spaces = 0, equal.space = FALSE)
   }
 }
 
@@ -320,7 +320,7 @@ plot.mappoly2.prepared.integrated.data  <- function(x, lg = 1, ...){
   # Add the overall title
   par(mfrow = c(1,1))
   l <- -5
-  if(length(hc) > 3) l <- -2
+  if(length(hc) > 3) l <- -1
   mtext("Correspondence among homologs across populations",
         side = 3, line = l, outer = TRUE)
 }
@@ -425,7 +425,31 @@ estimate_consensus_map <- function(x,
 
 #' @export
 print.mappoly2.consensus.map  <- function(x,...){
-  invisible(x)
+  y <- table(x$consensus.map[[1]]$ph$pedigree$Par1,
+             x$consensus.map[[1]]$ph$pedigree$Par2)
+  parent.names <- names(x$consensus.map[[1]]$ph$PH)
+  dimnames(y) <- list(parent.names[as.numeric(rownames(y))], parent.names[as.numeric(colnames(y))])
+  fds <- length(parent.names)
+  n.mrk <- sapply(x$consensus.map, function(x) length(x$rf)+1)
+  a1<-sapply(x$consensus.map, function(x) sapply(x$ph$PH, function(x) ncol(x)))
+  a2<-sapply(x$consensus.map, function(x) is.null(x$haploprob))
+  msg(paste0("Consensus Map for Parents: ", paste(parent.names, collapse = " / ")),
+      col = "blue")
+  cat("Ploidy of founders:             ", a1[,1], "\n")
+  cat("Total No. individuals:          ", sum(y), "\n")
+  cat("Total No. markers               ", sum(n.mrk), "\n")
+  cat("Haplotype probability computed: ", ifelse(all(a2), "Yes", "No"), "\n\n")
+  cat("Number of individuals per crosse:\n")
+  print_matrix(y, spaces = 0, equal.space = FALSE)
+  map.len <- sapply(x$consensus.map, function(x) round(sum(imf_h(x$rf)),2))
+  cat("\nConsensus Map:\n---------------\n")
+  R <- data.frame('LG' = names(n.mrk),
+                  'Map_length_(cM)' = map.len,
+                  'Markers/cM' = round(n.mrk/map.len, 3),
+                  'Total mrk' = n.mrk,
+                  'Max_gap' = sapply(x$consensus.map, function(x) round(max(imf_h(x$rf)),2)))
+  print_matrix(R, row.names = FALSE, spaces = 0, equal.space = FALSE)
+  msg("", col = "blue")
 }
 
 
