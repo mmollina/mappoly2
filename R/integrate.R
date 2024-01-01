@@ -52,10 +52,10 @@ match_homologs <- function(map.list,
   ph.names <- ph.mat <- NULL
   for(i in 1:n){
     ph <- x[[rownames(par.ord)[i]]]$maps[[lg]]$genome$p1p2$hmm.phase[[1]][[par.ord[i,2]]]
-    colnames(ph) <- paste0("H", 1:pl, "_pop_", par.ord[i,1], "_par_",  par.ord[i,2])
+    colnames(ph) <- paste0("H", 1:pl, "_Pop", par.ord[i,1], "_P",  par.ord[i,2])
     ph.list[[i]] <- ph
     ph.mat <- rbind(ph.mat, t(ph[idn,]))
-    ph.names <- c(ph.names, paste0("pop_", par.ord[i,1], "_par_",  par.ord[i,2]))
+    ph.names <- c(ph.names, paste0("Pop", par.ord[i,1], "_P",  par.ord[i,2]))
   }
   names(ph.list) <- ph.names
   value <- pop <- L1 <- NULL
@@ -312,8 +312,8 @@ plot.mappoly2.prepared.integrated.data  <- function(x, lg = 1, ...){
       plot(0,0, type = "n", axes = FALSE, xlab = "", ylab = "")
     d <- as.dendrogram(hc[[i]])
     d <- d %>%
-      dendextend::color_branches(k = pl[i], col = drsimonj_colors(pl[i])) %>%
-      dendextend::color_labels(k = pl[i], col = drsimonj_colors(pl[i])) %>%
+      dendextend::color_branches(k = pl[i], col = mp_pal(pl[i])) %>%
+      dendextend::color_labels(k = pl[i], col = mp_pal(pl[i])) %>%
       dendextend::set("branches_lwd", 4)
     plot(d, main = names(pl)[i], axes = FALSE)
   }

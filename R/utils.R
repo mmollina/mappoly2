@@ -448,22 +448,35 @@ mappoly_to_csv_mappoly2 <- function(x, path = NULL, parent.names = NULL){
   }
 }
 
-#' drsimonj pallet
+
+
+
+#' MAPpoly v1 main palette
 #'
 #' @param void internal function to be documented
 #' @keywords internal
 #' @export
-drsimonj_colors <- function(n) {
-  color_set <- c(`red`        = "#d11141",
-                 `green`      = "#00b159",
-                 `blue`       = "#00aedb",
-                 `orange`     = "#f37735",
-                 `yellow`     = "#ffc425",
-                 `light grey` = "#cccccc",
-                 `dark grey`  = "#8c8c8c")
-
-  if (n <= 7) {
-    return(color_set[seq_len(n)])
+mp_pal <- function(n) {
+  color_set <- c("#ffe119",#1
+                 "#f58231",#2
+                 "#e6194b",#3
+                 "#800000",#4
+                 "#911eb4",#5
+                 "#000075",#6
+                 "#4363d8",#7
+                 "#42d4f4",#8
+                 "#469990",#9
+                 "#3cb44b")#10
+  if (n == 2) {
+      return(color_set[c(3,7)])
+  } else if(n ==3){
+    color_set[c(3,7,10)]
+  } else if(n ==4){
+    color_set[c(3,7,10,5)]
+  } else if(n ==5){
+    color_set[c(5,8,10,1,3)]
+  } else if(n ==6){
+    color_set[c(3,2,1,10,9,6)]
   } else {
     color_palette <- colorRampPalette(color_set)
     return(color_palette(n))

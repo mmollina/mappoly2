@@ -1173,6 +1173,33 @@ plot_consensus_haplo <- function(x,
 }
 
 
+#' Plot Shared Markers in Genetic Maps
+#'
+#' This function visualizes shared markers across multiple genetic maps
+#' in a 'mappoly2.prepared.integrated.data' object. It uses Euler diagrams to represent the intersection of markers.
+#'
+#' @param x An object of class 'mappoly2.prepared.integrated.data'.
+#'          It should contain individual maps from which shared markers are to be identified.
+#'
+#' @return An Euler diagram plot showing shared markers across the individual maps in `x`.
+#'
+#' @details The function extracts markers from each map within the provided 'mappoly2.prepared.integrated.data'
+#'          object and then plots an Euler diagram to show the intersections (shared markers) among these maps.
+#'          This visualization helps in understanding the overlap of genetic information across different maps.
+#'
+#' @importFrom eulerr euler
+#' @importFrom graphics plot
+#' @export
+plot_shared_markers <- function(x){
+  assert_that(inherits(x, "mappoly2.prepared.integrated.data"))
+  set_list <- sapply(x$individual.maps, function(z)
+    unlist(sapply(z$maps, function(x)
+      rownames(x$genome$p1p2$hmm.phase[[1]]$p1)),
+      use.names = FALSE))
+  colors <- mp_pal(length(set_list))
+  plot(euler(set_list, shape = "circle"), quantities = TRUE, fills = colors)
+}
+
 
 
 
