@@ -332,11 +332,10 @@ test_one_marker <- function(x,
   phasing_results
 }
 
-#' Remove Markers Causing Gaps in Genetic Maps
+#' Refine Genetic Map by Removing Problematic Markers
 #'
-#' This function identifies and removes markers from genetic maps that potentially cause gaps.
-#' These gaps may be due to misplaced markers, incorrect phasing, or markers with anomalous behavior.
-#' It aims to improve the quality and accuracy of the map by excluding such problematic markers.
+#' Identifies and removes markers from a genetic map that contribute to significant gaps or inaccuracies,
+#' potentially due to misplaced markers, incorrect phasing, or anomalous behavior.
 #'
 #' @param x A genetic mapping object, typically of a class "mappoly2.sequence".
 #' @param lg Optional vector specifying the linkage group indices to process.
@@ -365,18 +364,18 @@ test_one_marker <- function(x,
 #'          re-estimates the hidden Markov model and recalculates haplotype probabilities
 #'          to refine the map.
 #' @export
-remove_gap_markers <- function(x,
-                               lg = NULL,
-                               type = c("mds", "genome"),
-                               parent = c("p1p2", "p1", "p2"),
-                               gap.threshold = 5,
-                               size.rem.cluster =1,
-                               ncpus = 1,
-                               reestimate.hmm.map = TRUE,
-                               recompute.haplotype.prob = TRUE,
-                               verbose = TRUE,
-                               tol = 10e-4,
-                               error = NULL){
+refine_map <- function(x,
+                       lg = NULL,
+                       type = c("mds", "genome"),
+                       parent = c("p1p2", "p1", "p2"),
+                       gap.threshold = 5,
+                       size.rem.cluster =1,
+                       ncpus = 1,
+                       reestimate.hmm.map = TRUE,
+                       recompute.haplotype.prob = TRUE,
+                       verbose = TRUE,
+                       tol = 10e-4,
+                       error = NULL){
   # Extract the linkage group and type information from the input object
   y <- parse_lg_and_type(x, lg, type)
 
