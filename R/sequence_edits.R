@@ -135,9 +135,9 @@ add_marker <- function(x,
                        thresh.rf.to.add = NULL){
   y <- parse_lg_and_type(x, lg, type)
   ph.res <- test_one_marker(x,mrk,lg,type, parent,
-                  thresh.LOD.ph, thresh.LOD.rf,
-                  thresh.rf,max.phases,
-                  verbose, tol)
+                            thresh.LOD.ph, thresh.LOD.rf,
+                            thresh.rf,max.phases,
+                            verbose, tol)
 
   if(length(ph.res$loglike) != 1 & diff(ph.res$loglike[1:2]) < thresh.LOD.ph.to.insert){
     if(verbose) message("LOD score below threshold.\nreturning original seqeunce.")
@@ -173,15 +173,15 @@ add_marker <- function(x,
     preceding <- cur.mrk[idp]
     succeeding <- cur.mrk[ids]
     x$maps[[y$lg]][[y$type]][[parent]]$hmm.phase[[1]]$p1 <- rbind(x$maps[[y$lg]][[y$type]][[parent]]$hmm.phase[[1]]$p1[preceding,],
-                                      ph.res$phases$p1[1,],
-                                      x$maps[[y$lg]][[y$type]][[parent]]$hmm.phase[[1]]$p1[succeeding,])
+                                                                  ph.res$phases$p1[1,],
+                                                                  x$maps[[y$lg]][[y$type]][[parent]]$hmm.phase[[1]]$p1[succeeding,])
     x$maps[[y$lg]][[y$type]][[parent]]$hmm.phase[[1]]$p2 <- rbind(x$maps[[y$lg]][[y$type]][[parent]]$hmm.phase[[1]]$p2[preceding,],
-                                      ph.res$phases$p2[1,],
-                                      x$maps[[y$lg]][[y$type]][[parent]]$hmm.phase[[1]]$p2[succeeding,])
+                                                                  ph.res$phases$p2[1,],
+                                                                  x$maps[[y$lg]][[y$type]][[parent]]$hmm.phase[[1]]$p2[succeeding,])
     rownames(x$maps[[y$lg]][[y$type]][[parent]]$hmm.phase[[1]]$p1) <- rownames(x$maps[[y$lg]][[y$type]][[parent]]$hmm.phase[[1]]$p2) <- c(preceding, mrk, succeeding)
     x$maps[[y$lg]][[y$type]][[parent]]$hmm.phase[[1]]$rf <- c(x$maps[[y$lg]][[y$type]][[parent]]$hmm.phase[[1]]$rf[idp[-length(idp)]],
-                                  ph.res$rf.vec[1,],
-                                  x$maps[[y$lg]][[y$type]][[parent]]$hmm.phase[[1]]$rf[ids[-length(ids)]])
+                                                              ph.res$rf.vec[1,],
+                                                              x$maps[[y$lg]][[y$type]][[parent]]$hmm.phase[[1]]$rf[ids[-length(ids)]])
   }
   if(reestimate.map.and.haplo){
     x <- mapping(x, y$lg, y$type, parent, error = err,
@@ -306,15 +306,15 @@ test_one_marker <- function(x,
     for(k in 1:nrow(L2[[1]])){
       PH <- list(L1[[1]][j,], L2[[1]][k,])
       z[[count]]<-est_hmm_map_biallelic_insert_marker(PH,
-                                                                 G,
-                                                                 pedigree,
-                                                                 homolog_prob,
-                                                                 rf = c(0.01,0.01),
-                                                                 idx,
-                                                                 verbose = FALSE,
-                                                                 detailed_verbose = FALSE,
-                                                                 tol = tol,
-                                                                 ret_H0 = FALSE)
+                                                      G,
+                                                      pedigree,
+                                                      homolog_prob,
+                                                      rf = c(0.01,0.01),
+                                                      idx,
+                                                      verbose = FALSE,
+                                                      detailed_verbose = FALSE,
+                                                      tol = tol,
+                                                      ret_H0 = FALSE)
       w1 <- rbind(w1, L1[[1]][j,])
       w2 <- rbind(w2, L2[[1]][k,])
       count <- count + 1
@@ -330,4 +330,107 @@ test_one_marker <- function(x,
                                         p2 = w2[id,,drop=FALSE]),
                           pos = flanking)
   phasing_results
+}
+
+#' Remove Markers Causing Gaps in Genetic Maps
+#'
+#' This function identifies and removes markers from genetic maps that potentially cause gaps.
+#' These gaps may be due to misplaced markers, incorrect phasing, or markers with anomalous behavior.
+#' It aims to improve the quality and accuracy of the map by excluding such problematic markers.
+#'
+#' @param x A genetic mapping object, typically of a class "mappoly2.sequence".
+#' @param lg Optional vector specifying the linkage group indices to process.
+#'           If NULL, all linkage groups in `x` are processed.
+#' @param type Character vector indicating the type of map to process, either "mds" or "genome".
+#' @param parent Character vector specifying the parent or parents to be considered
+#'               in the marker removal process. Options are "p1p2" (both parents),
+#'               "p1" (first parent), and "p2" (second parent).
+#' @param gap.threshold The threshold for identifying significant gaps in the map.
+#'                      Markers causing gaps larger than this threshold will be considered for removal.
+#' @param size.rem.cluster Minimum number of consecutive markers to retain.
+#'                         Segments with fewer markers than this threshold will be removed.
+#' @param ncpus The number of CPU cores to use for parallel processing. Defaults to 1.
+#' @param reestimate.hmm.map If TRUE, re-estimates the hidden Markov model for the map after marker removal.
+#' @param recompute.haplotype.prob If TRUE, recalculates haplotype probabilities after marker removal.
+#' @param verbose Logical; if \code{TRUE}, function prints messages during execution (default is \code{TRUE}).
+#' @param tol Tolerance level for the mapping algorithm.
+#' @param error Optional; error rate to be used in the hidden Markov model estimation.
+#'              If NULL, it uses the error rate from the input object.
+#'
+#' @return An updated genetic mapping object with problematic markers removed and, if specified,
+#'         re-estimated HMM and recalculated haplotype probabilities.
+#'
+#' @details The function analyzes the genetic map to identify markers causing gaps
+#'          larger than the specified threshold. It then removes these markers and, optionally,
+#'          re-estimates the hidden Markov model and recalculates haplotype probabilities
+#'          to refine the map.
+#' @export
+remove_gap_markers <- function(x,
+                               lg = NULL,
+                               type = c("mds", "genome"),
+                               parent = c("p1p2", "p1", "p2"),
+                               gap.threshold = 5,
+                               size.rem.cluster =1,
+                               ncpus = 1,
+                               reestimate.hmm.map = TRUE,
+                               recompute.haplotype.prob = TRUE,
+                               verbose = TRUE,
+                               tol = 10e-4,
+                               error = NULL){
+  # Extract the linkage group and type information from the input object
+  y <- parse_lg_and_type(x, lg, type)
+
+  assert_that(is.mappoly2.sequence(x))
+
+  # Match the 'parent' argument to its possible values
+  parent <- match.arg(parent)
+
+  if(is.null(error))
+    error <- x$maps[[1]][[y$type]][[parent]]$hmm.phase[[1]]$error
+
+  cte <- 0
+  for(i in y$lg){
+    if(verbose)
+      cat("Lg: ", i, "\n")
+    assert_that(is.mapped.sequence(x, i, y$type, parent))
+    adj.dist <- imf_h(x$maps[[i]][[y$type]][[parent]]$hmm.phase[[1]]$rf)
+    n.mrk <- length(adj.dist) + 1
+    id <- which( adj.dist > gap.threshold)
+    if(length(id) == 0){
+      cte <- cte +1
+      next()
+    }
+    id <- cbind(c(1, id+1), c(id, n.mrk))
+    include.segments <- id[apply(id, 1, diff) > size.rem.cluster - 1, , drop = FALSE]
+    remove.segments <-  id[apply(id, 1, diff) < size.rem.cluster, , drop = FALSE]
+    if(nrow(remove.segments) == 0){
+      cte <- cte +1
+      next()
+    }
+    if(length(include.segments) == 0) {
+      cte <- cte +1
+      next()
+    }
+    rm <- NULL
+    for(j in 1:nrow(remove.segments))
+      rm <- c(rm, remove.segments[j,1]:remove.segments[j,2])
+    mrk.rm <- rownames(x$maps[[i]][[y$type]][[parent]]$hmm.phase[[1]]$p1)[rm]
+    x <- drop_marker(x, mrk = mrk.rm, lg = i, parent = parent,
+                     type = y$type, verbose = verbose)
+  }
+  if(reestimate.hmm.map)
+    x <- mapping(x,
+                 lg = y$lg,
+                 type = y$type,
+                 parent = parent,
+                 ncpus = ncpus,
+                 error = error,
+                 tol = tol)
+  if(recompute.haplotype.prob)
+    x <- calc_haplotypes(x,
+                         lg = y$lg,
+                         type = y$type,
+                         parent = parent,
+                         ncpus = ncpus)
+  return(x)
 }

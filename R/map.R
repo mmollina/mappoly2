@@ -273,9 +273,8 @@ mapping_one <- function(g,
 #' @param thresh.rf Threshold for recombination fraction.
 #' @param max.phases The maximum number of phase configurations allowed for a marker.
 #' @param thresh.LOD.ph.to.insert Threshold LOD score for inserting a marker into the map.
-#' @param thresh.rf.to.insert Optional threshold for recombination fraction when
-#'                            inserting markers. If NULL, the maximum recombination
-#'                            fraction in the map is used.
+#' @param thresh.dist.to.insert Optional threshold for marker distance (in cM) when
+#'                            inserting markers. If NULL, the maximum distance in the map is used.
 #' @param reestimate.hmm Logical flag indicating whether to reestimate the HMM
 #'                       (Hidden Markov Model) after marker insertion.
 #' @param tol Tolerance level for numerical computations.
@@ -303,11 +302,11 @@ augment_phased_map <- function(x,
                                thresh.rf = 0.5,
                                max.phases = 5,
                                thresh.LOD.ph.to.insert = 10,
-                               thresh.rf.to.insert = NULL,
+                               thresh.dist.to.insert = NULL,
                                reestimate.hmm = TRUE,
                                tol = 10e-3,
                                final.tol = 10e-4,
-                               final.error = 0.0,
+                               final.error = NULL,
                                verbose = TRUE){
   # Extract the linkage group and type information from the input object
   y <- parse_lg_and_type(x, lg, type)
@@ -326,6 +325,9 @@ augment_phased_map <- function(x,
   ind.names <- x$data$screened.data$ind.names
   n.ind <- length(ind.names)  # Number of individuals
 
+  if(is.null(final.error))
+    final.error <- x$maps[[1]][[y$type]]$p1p2$hmm.phase[[1]]$error
+
   # Extract genotype dosage information and replace NA values with -1
   g <- x$data$geno.dose[,ind.names]
   g[is.na(g)] <- -1  # Handling missing data in genotype dosages
@@ -335,6 +337,8 @@ augment_phased_map <- function(x,
   ploidy.p2 <- x$data$ploidy.p2
   dosage.p1 <- x$data$dosage.p1
   dosage.p2 <- x$data$dosage.p2
+
+  thresh.rf.to.insert <- mf_h(thresh.dist.to.insert)
 
   # Retrieving how many alternate alleles share homologs based
   # on pairwise linkage analysis
@@ -405,6 +409,7 @@ augment_phased_map <- function(x,
   if(reestimate.hmm){
     cat("\nReestimating multilocus map ...\n")
     x <- mapping(x,
+                 lg = y$lg,
                  parent = "p1p2",
                  type = y$type,
                  tol = final.tol,
@@ -456,6 +461,7 @@ augment_phased_map_one <- function(map, mrk, mat, geno, max.phases,
     warning("No markers were selected for 'max.phases' = ", max.phases,
             "\n increasing 'max.phases' to ", min(n.conf) + 1)
     max.phases <- min(n.conf) + 1
+    mrk.sel <- which(n.conf <= max.phases)
   }
 
   # Update phase information for selected markers

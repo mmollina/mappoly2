@@ -14,11 +14,11 @@ augment_phased_map(
   thresh.rf = 0.5,
   max.phases = 5,
   thresh.LOD.ph.to.insert = 10,
-  thresh.rf.to.insert = NULL,
+  thresh.dist.to.insert = NULL,
   reestimate.hmm = TRUE,
   tol = 0.01,
   final.tol = 0.001,
-  final.error = 0,
+  final.error = NULL,
   verbose = TRUE
 )
 }
@@ -43,9 +43,8 @@ phasing.}
 
 \item{thresh.LOD.ph.to.insert}{Threshold LOD score for inserting a marker into the map.}
 
-\item{thresh.rf.to.insert}{Optional threshold for recombination fraction when
-inserting markers. If NULL, the maximum recombination
-fraction in the map is used.}
+\item{thresh.dist.to.insert}{Optional threshold for marker distance (in cM) when
+inserting markers. If NULL, the maximum distance in the map is used.}
 
 \item{reestimate.hmm}{Logical flag indicating whether to reestimate the HMM
 (Hidden Markov Model) after marker insertion.}
