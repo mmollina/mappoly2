@@ -387,7 +387,7 @@ refine_map <- function(x,
   if(is.null(error))
     error <- x$maps[[1]][[y$type]][[parent]]$hmm.phase[[1]]$error
 
-  cte <- 0
+  cte <- logical(length(y$lg))
   for(i in y$lg){
     if(verbose)
       cat("Lg: ", i, "\n")
@@ -396,18 +396,18 @@ refine_map <- function(x,
     n.mrk <- length(adj.dist) + 1
     id <- which( adj.dist > gap.threshold)
     if(length(id) == 0){
-      cte <- cte +1
+      cte[i] <- TRUE
       next()
     }
     id <- cbind(c(1, id+1), c(id, n.mrk))
     include.segments <- id[apply(id, 1, diff) > size.rem.cluster - 1, , drop = FALSE]
     remove.segments <-  id[apply(id, 1, diff) < size.rem.cluster, , drop = FALSE]
     if(nrow(remove.segments) == 0){
-      cte <- cte +1
+      cte[i] <- TRUE
       next()
     }
     if(length(include.segments) == 0) {
-      cte <- cte +1
+      cte[i] <- TRUE
       next()
     }
     rm <- NULL
@@ -417,7 +417,8 @@ refine_map <- function(x,
     x <- drop_marker(x, mrk = mrk.rm, lg = i, parent = parent,
                      type = y$type, verbose = verbose)
   }
-  if(reestimate.hmm.map)
+  lg.temp <- lg[!cte]
+  if(reestimate.hmm.map & any(!cte))
     x <- mapping(x,
                  lg = y$lg,
                  type = y$type,
@@ -425,7 +426,7 @@ refine_map <- function(x,
                  ncpus = ncpus,
                  error = error,
                  tol = tol)
-  if(recompute.haplotype.prob)
+  if(recompute.haplotype.prob & any(!cte))
     x <- calc_haplotypes(x,
                          lg = y$lg,
                          type = y$type,

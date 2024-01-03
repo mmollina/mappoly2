@@ -27,7 +27,7 @@ match_homologs <- function(map.list,
                            par.name){
   # Number of full-sibs with the analyzed parent
   n <- nrow(par.ord)
-  names(map.list) <- sapply(map.list, function(x) paste0(x$data$name.p1, "x", x$data$name.p2))
+  names(map.list) <- sapply(map.list, function(x) paste0(x$data$name.p1, "_x_", x$data$name.p2))
 
   x <- map.list[rownames(par.ord)]
 
@@ -148,10 +148,13 @@ prepare_to_integrate <- function(x,
               msg = "All elements in 'x' must be of class 'mappoly2.sequence'")
 
   # Construct names for each biparental population
-  names(x) <- sapply(x, function(x) paste0(x$data$name.p1, "x", x$data$name.p2))
+  names(x) <- sapply(x, function(x) paste0(x$data$name.p1, "_x_", x$data$name.p2))
 
   # Create a matrix indicating the presence of genome information for each map in 'x'
-  map.mat <- sapply(x, function(x) sapply(x$maps, function(x) !is.null(x[[type]][["p1p2"]])), simplify = "array")
+  map.mat <- lapply(x, function(x) sapply(x$maps[lg], function(x) !is.null(x[[type]][["p1p2"]])))
+  temp <- Reduce(rbind, map.mat)
+  rownames(temp) <- names(map.mat)
+  map.mat <- t(temp)
 
   # Identify maps that are missing across all elements in 'x'
   y <- apply(map.mat, 1, function(x) all(!x))
@@ -160,22 +163,53 @@ prepare_to_integrate <- function(x,
   if(any(y))
     stop("At least one population should have a map for group(s): ", paste(names(y)[y], collapse = " "))
 
+  lg.names <- names(y)[!y]
+
   # Create a transposed matrix of parent names for each element in x
   parents.mat <- t(sapply(x, function(x) c(x$data$name.p1, x$data$name.p2)))
 
   # Gathering genome position for all markers
-  q <- x
-  names(q) <- NULL
-  all.geno.pos <- sort(unlist(lapply(q, function(x) x$data$genome.pos)))
+  chromo <- unique(unlist(lapply(x, function(x) unique(x$data$chrom))))
+  geno.pos <- vector("list", length(chromo))
+  names(geno.pos) <- chromo
+  for(i in chromo){
+    for(j in 1:length(x)){
+      geno.pos[[i]] <- unique(rbind(geno.pos[[i]],
+                                    data.frame(mrk = names(which(x[[j]]$data$chrom == i)),
+                                               chr = i,
+                                               pos = x[[j]]$data$genome.pos[names(which(x[[j]]$data$chrom == i))],
+                                               row.names = NULL)))
+    }
+  }
+  all.geno.pos <- NULL
+  for(i in chromo)
+    all.geno.pos <- rbind(all.geno.pos, geno.pos[[i]][order(geno.pos[[i]]$pos),])
+  n <- all.geno.pos$mrk
+  all.geno.pos <- all.geno.pos$pos
+  names(all.geno.pos) <- n
+
   u <- vector("list", length(x))
   names(u) <- names(x)
-  for(j in 1:length(x)) #population
-    u[[j]] <- split(names(x[[j]]$data$chrom), as.factor(x[[j]]$data$chrom))
-
+  for(j in 1:length(x)){#population
+    a1 <- reshape2::melt(x[[j]]$data$chrom)
+    ## FIXME melt in a better way
+    a2 <- reshape2::melt(lapply(x[[j]]$maps[lg], function(o) rownames(o$genome$p1p2$hmm.phase[[1]]$p1)))
+    if(ncol(a2)==3)
+      a <- cbind(a1[a2$value,,drop = FALSE], a2$Var2)
+    else
+      a <- cbind(a1[a2$value,,drop = FALSE], a2$L1)
+    a <- unique(a)
+    b <- a[,1]
+    names(b) <- a[,2]
+    temp <- split(names(x[[j]]$data$chrom), as.factor(x[[j]]$data$chrom))
+    u[[j]] <- temp[b[names(x[[j]]$maps)]]
+    u[[j]]  <- u[[j]] [!sapply(u[[j]] , is.null)]
+  }
   v <- vector("list", length(lg))
-  for(i in lg){ #lg
+  names(v) <- lg.names
+  for(i in lg.names){ #lg
     for(j in 1:length(u)){
-      v[[i]] <- unique(c(v[[i]], u[[j]][[i]]))
+      v[[i]] <- unique(c(v[[i]], u[[j]][[b[i]]]))
     }
     v[[i]] <- sort(all.geno.pos[v[[i]]])
   }
@@ -203,13 +237,25 @@ prepare_to_integrate <- function(x,
   }
 
   # Gathering pedigree information
-  pedigree <- create_pedigree(parents.mat, x, pl)
+  pedigree <- NULL
+  for(i in 1:length(x)){
+    id <- match(c(x[[i]]$data$name.p1, x[[i]]$data$name.p2), parents)
+    temp <- data.frame(ind = x[[i]]$data$screened.data$ind.names,
+                       Par1 = id[1],
+                       Par2 = id[2],
+                       pl1 = as.integer(pl[id][1]),
+                       pl2 = as.integer(pl[id][2]),
+                       pop = i)
+    temp <- tibble::column_to_rownames(temp, var = "ind")
+    pedigree <- rbind(pedigree, temp)
+  }
 
   # Initialize results container
-  results <- vector("list", length(lg))
+  homolog.correspondence <- results <- vector("list", length(lg))
+  names(homolog.correspondence) <- names(results) <- lg.names
 
   # Process each linkage group
-  for(j in lg){
+  for(j in lg.names){
     # Process each unique parent
     for(i in names(phases)) {
       par.ord <- which(parents.mat == i, arr.ind = TRUE)
@@ -219,48 +265,47 @@ prepare_to_integrate <- function(x,
       ph.temp <- matrix(NA, nrow = length(v[[j]]), ncol = pl[i],
                         dimnames = list(names(v[[j]]), colnames(hom.res[[i]]$ph)))
       ph.temp[rownames(hom.res[[i]]$ph),] <- hom.res[[i]]$ph
+      ### Checking dose consistency across populations
+      bla <- apply(par.ord, 1, function(y) x[[y[1]]]$data[c("dosage.p1", "dosage.p2")][[y[2]]])
+      ble <- unique(unlist(lapply(bla, names)))
+      bli <- matrix(NA, nrow = length(ble), ncol = length(bla), dimnames = list(ble, names(bla)))
+      for(k in 1:ncol(bli)){
+        bli[names(bla[[k]]),k] <- bla[[k]]
+      }
+      untrusty.mrk <- names(which(apply(bli, 1, function(x) length(unique(x)) != 1)))
+      ph.temp[intersect(rownames(ph.temp), untrusty.mrk),][]<-NA
       phases[[i]] <- ph.temp
     }
+    id <- apply(sapply(phases, function(x) apply(x, 1, sum)), 1, function(x) !all(is.na(x)))
+    for(i in 1:length(phases)){
+      phases[[i]] <- phases[[i]][id,]
+    }
     # Construct the genetic matrix
-    G <- construct_dose_matrix(phases, pedigree, parents.mat, x)
+    G <- matrix(NA, nrow = nrow(phases[[1]]), ncol = nrow(pedigree),
+                dimnames = list(rownames(phases[[1]]), rownames(pedigree)))
+
+    for(i in 1:nrow(parents.mat)) {
+      z <- x[[i]]$data$geno.dose
+      row_intersect <- intersect(rownames(z), rownames(phases[[1]]))
+      col_intersect <- intersect(colnames(z), rownames(pedigree))
+      G[row_intersect, col_intersect] <- z[row_intersect, col_intersect]
+    }
 
     # Store results for the current linkage group
     results[[j]] <- list(PH = phases, G = G, pedigree = pedigree)
+
+    homolog.correspondence[[j]] <- hom.res
   }
 
   # Return results with a specific class
-  names(results) <- names(y)
   structure(list(phases = results,
                  pedigree = pedigree,
-                 homolog.correspondence = hom.res,
+                 homolog.correspondence = homolog.correspondence,
                  ploidy = pl,
                  individual.maps = x),
             class = "mappoly2.prepared.integrated.data")
 }
 
-
-create_pedigree <- function(parents.mat, x, pl) {
-  pedigree <- NULL
-  char_vector <- as.vector(parents.mat)
-  unique_strings <- unique(char_vector)
-  string_to_int <- setNames(seq_along(unique_strings), unique_strings)
-  int_vector <- string_to_int[char_vector]
-  par.idx <- matrix(int_vector, nrow = nrow(parents.mat))
-
-  for(i in 1:length(x)) {
-    all.ind <- x[[i]]$data$screened.data$ind.names
-    temp_pedigree <- data.frame(Ind = all.ind,
-                                Par1 = par.idx[i, 1],
-                                Par2 = par.idx[i, 2],
-                                pl1 = as.integer(pl[par.idx[i, 1]]),
-                                pl2 = as.integer(pl[par.idx[i, 2]]),
-                                pop = i)
-    pedigree <- rbind(pedigree, temp_pedigree)
-  }
-
-  pedigree <- tibble::column_to_rownames(pedigree, var = "Ind")
-  return(pedigree)
-}
 
 construct_dose_matrix <- function(phases, pedigree, parents.mat, x) {
   G <- matrix(NA, nrow = nrow(phases[[1]]), ncol = nrow(pedigree),
@@ -296,8 +341,8 @@ print.mappoly2.prepared.integrated.data  <- function(x,...){
 plot.mappoly2.prepared.integrated.data  <- function(x, lg = 1, ...){
   pl <- x$ploidy
   assert_that(is.numeric(lg) & lg <= length(x$phases))
-  w <- x[[lg]]
-  hc <- lapply(x$homolog.correspondence, function(x) x$hc)
+  w <- x$homolog.correspondence[[lg]]
+  hc <- lapply(w, function(x) x$hc)
   hc <-  hc[!sapply(hc, function(x) all(is.na(x)))]
   a <- optimal_layout(length(hc))
   flag <- FALSE
@@ -315,7 +360,7 @@ plot.mappoly2.prepared.integrated.data  <- function(x, lg = 1, ...){
       dendextend::color_branches(k = pl[i], col = mp_pal(pl[i])) %>%
       dendextend::color_labels(k = pl[i], col = mp_pal(pl[i])) %>%
       dendextend::set("branches_lwd", 4)
-    plot(d, main = names(pl)[i], axes = FALSE)
+    plot(d, main = paste(names(pl)[i], "-",names(x$homolog.correspondence)[lg]), axes = FALSE)
   }
   # Add the overall title
   par(mfrow = c(1,1))

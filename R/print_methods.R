@@ -54,9 +54,9 @@ print.mappoly2.data <- function(x,
         x$pairwise.rf$mrk.scope,
         " (",
         paste(unique(x$chrom[colnames(x$pairwise.rf$rec.mat)]), collapse = ", "),
-        ")\n\n", sep = "")
+        ")\n", sep = "")
   } else
-    cat("\n",  txt[[9]], "unavailable\n\n")
+    cat("\n",  txt[[9]], "unavailable\n")
   #### Screened ####
   if(has.mappoly2.screened(x)){
     msg("Filtering information", col = "blue")
@@ -93,7 +93,7 @@ print.mappoly2.data <- function(x,
     cat("\n", txt[[10]], x$screened.data$thresholds$prob.lower)
     cat("\n", txt[[11]], x$screened.data$thresholds$prob.upper)
     cat("\n", txt[[12]], length(x$screened.data$mrk.names))
-    cat("\n", txt[[13]], length(x$screened.data$ind.names), "\n\n")
+    cat("\n", txt[[13]], length(x$screened.data$ind.names), "\n")
   }
   #### Detailed ####
   w <- table(x$chrom, useNA = "always")
@@ -104,7 +104,6 @@ print.mappoly2.data <- function(x,
       msg("No. markers per chromosome", col = "blue")
       print(data.frame(chrom = paste0("       ", names(w)), No.mrk = as.numeric(w)), row.names = FALSE)
     }
-    cat("\n")
     msg("No. of markers per dosage in both parents", col = "blue")
     freq <- table(paste(x$dosage.p1,
                         x$dosage.p2, sep = "-"))

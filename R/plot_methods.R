@@ -270,12 +270,17 @@ plot_rf_matrix_one <- function(x,
 
 #' @export
 plot.mappoly2.group <- function(x, ...) {
+  op <- par(lwd=1.5)
+  on.exit(par(op))
   dend <- as.dendrogram(x$hc.snp)
-  dend1 <- dendextend::color_branches(dend, k = x$expected.groups)
+  dend1 <- dendextend::color_branches(dend, k = x$expected.groups, col = mp_pal(x$expected.groups))
   plot(dend1, leaflab = "none")
   z <- list(names(x$groups.snp))
-  if(x$expected.groups != 1)
-    z <- rect.hclust(x$hc.snp, k = x$expected.groups, border = "red")
+  if(x$expected.groups != 1){
+    par(lwd=4)
+    z <- rect.hclust(x$hc.snp, k = x$expected.groups, border = "black")
+    par(lwd = 1)
+  }
   xy <- sapply(z, length)
   xt <- as.numeric(cumsum(xy)-ceiling(xy/2))
   yt <- .1
@@ -594,9 +599,12 @@ plot_genome_vs_map <- function(x,
                                     chr = as.factor(x$data$chrom[mrk.names])))
   }
   geno.vs.map$chr <- factor(geno.vs.map$chr, levels = sort(levels(geno.vs.map$chr)))
+  num_colors <- length(unique(geno.vs.map$LG))  # Number of unique levels in LG
+  color_palette <- mp_pal(num_colors)  # Get the right number of colors from your palette
   if(same.ch.lg){
     p <- ggplot2::ggplot(geno.vs.map, ggplot2::aes(genomic.pos, map.pos)) +
       ggplot2::geom_point(alpha = alpha, ggplot2::aes(colour = LG), size = size) +
+      ggplot2::scale_colour_manual(values = color_palette) +  # Apply custom color palette
       ggplot2::facet_wrap(~LG, nrow = floor(sqrt(length(w)))) +
       ggplot2::labs(subtitle = "Linkage group", x = "Genome position (Mbp)", y = "Map position (cM)") +
       ggplot2::theme_bw() +
@@ -605,12 +613,16 @@ plot_genome_vs_map <- function(x,
   } else {
     p <- ggplot2::ggplot(geno.vs.map, ggplot2::aes(genomic.pos, map.pos)) +
       ggplot2::geom_point(alpha = alpha, ggplot2::aes(colour = LG), size = size) +
+      ggplot2::scale_colour_manual(values = color_palette) +  # Apply custom color palette
       ggplot2::facet_grid(LG~chr) +
       ggplot2::labs(x = "Genome position (Mbp)", y = "Map position (cM)") +
       ggplot2::theme_bw() +
       ggplot2::theme(axis.text.x = ggplot2::element_text(angle = 45, hjust = 1), legend.position = "none")
   }
-  p
+
+  # Print the plot
+  print(p)
+
 }
 
 #' Plot a List of Genetic Maps
@@ -639,7 +651,7 @@ plot_genome_vs_map <- function(x,
 plot_map_list <- function(x, horiz = TRUE,
                           type = c("mds", "genome"),
                           parent = c("p1p2", "p1", "p2"),
-                          col = "lightgray"){
+                          col = "lightblue"){
   assert_that(is.mappoly2.sequence(x))
   type <- match.arg(type)
   parent <- match.arg(parent)
@@ -737,14 +749,21 @@ plot_mds_vs_genome <- function(x,
     a <- match(x.genome[[i]],x.mds[[i]])
     d <- rbind(d, data.frame(lg = names(x$maps)[i], x = seq_along(a), y = a))
   }
+  # Modify this part to include your custom color palette
+  num_colors <- length(unique(d$lg))  # Number of unique levels in lg
+  color_palette <- mp_pal(num_colors) # Get the right number of colors from your palette
+
   p <- ggplot2::ggplot(d, ggplot2::aes(x, y)) +
     ggplot2::geom_point(alpha = alpha, ggplot2::aes(colour = lg), size = size) +
-    ggplot2::facet_wrap(~lg, nrow = floor(sqrt(length((x$maps)))), scales="free") +
+    ggplot2::scale_colour_manual(values = color_palette) + # Apply custom color palette
+    ggplot2::facet_wrap(~lg, nrow = floor(sqrt(length(x$maps))), scales="free") +
     ggplot2::labs(subtitle = "Linkage group", x = "Genome position", y = "MDS position") +
     ggplot2::theme_bw() +
     ggplot2::theme(axis.text.x = ggplot2::element_text(angle = 45, hjust = 1),
                    legend.position = "none", plot.subtitle = ggplot2::element_text(hjust = 0.5))
-  p
+
+  # Display the plot
+  print(p)
 }
 
 #' @export
@@ -840,7 +859,7 @@ plot_multi_map <- function(x){
   lo <- optimal_layout(nrow(map.mat))
   ggplot(maps_with_counts, aes(x = pos, y = F1, group = as.factor(F1), color = category)) +
     geom_point(shape = 108, size = 5, show.legend = TRUE) +
-    facet_wrap(vars(LG), nrow = lo[1], ncol = lo[2]) +
+    facet_wrap(vars(LG), nrow = lo[1], ncol = lo[2], scales = "free_x") +
     xlab("Position (cM)") +
     ylab("Biparental Maps") +
     scale_color_manual(values = colors, name = "Marker\nFrequency\nAcross\nPopulations") +  # Set the legend title

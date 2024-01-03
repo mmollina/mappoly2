@@ -63,11 +63,16 @@ group <- function(x = NULL,
         expected.groups <- as.numeric(readline("Enter the number of expected groups: "))
 
       ## Plot dendrogram
-      dend1 <- dendextend::color_branches(dend.snp, k = expected.groups)
+      op <- par(lwd=1.5)
+      on.exit(par(op))
+      dend1 <- dendextend::color_branches(dend.snp, k = expected.groups, col = mp_pal(expected.groups), border = "black")
       plot(dend1, leaflab = "none")
       z <- list(colnames(MSNP))
-      if(expected.groups != 1)
-        z <- rect.hclust(hc.snp, k = expected.groups, border = "red")
+      if(expected.groups != 1){
+        par(lwd=4)
+        z <- rect.hclust(hc.snp, k = expected.groups)
+        par(lwd=1)
+      }
       groups.snp  <- cutree(tree = hc.snp, k = expected.groups)
       xy <- sapply(z, length)
       xt <- as.numeric(cumsum(xy)-ceiling(xy/2))

@@ -462,7 +462,7 @@ mp_pal <- function(n) {
                  "#e6194b",#3
                  "#800000",#4
                  "#911eb4",#5
-                 "#000075",#6
+                 "#0202a1",#6
                  "#4363d8",#7
                  "#42d4f4",#8
                  "#469990",#9
@@ -522,7 +522,15 @@ get_palette <- function(all_parents, parent, n) {
   else if (parent == levels(all_parents)[6])
     return(colorRampPalette(c("hotpink", "hotpink4"))(n))
   else if (parent == levels(all_parents)[7])
+    return(colorRampPalette(c("cyan", "darkcyan"))(n))
+  else if (parent == levels(all_parents)[8])
     return(colorRampPalette(c("olivedrab1", "olivedrab4"))(n))
+  else if (parent == levels(all_parents)[9])
+    return(colorRampPalette(c("lightsalmon", "lightsalmon4"))(n))
+  else if (parent == levels(all_parents)[10])
+    return(colorRampPalette(c("orchid1", "purple4"))(n))
+  else if (parent == levels(all_parents)[11])
+    return(colorRampPalette(c("antiquewhite", "antiquewhite4"))(n))
 }
 
 
