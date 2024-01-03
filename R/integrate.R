@@ -478,8 +478,7 @@ print.mappoly2.consensus.map  <- function(x,...){
   n.mrk <- sapply(x$consensus.map, function(x) length(x$rf)+1)
   a1<-sapply(x$consensus.map, function(x) sapply(x$ph$PH, function(x) ncol(x)))
   a2<-sapply(x$consensus.map, function(x) is.null(x$haploprob))
-  msg(paste0("Consensus Map for Parents: ", paste(parent.names, collapse = " / ")),
-      col = "blue")
+  msg("Consensus Map:", col = "blue")
   cat("Ploidy of founders:             ", a1[,1], "\n")
   cat("Total No. individuals:          ", sum(y), "\n")
   cat("Total No. markers               ", sum(n.mrk), "\n")
