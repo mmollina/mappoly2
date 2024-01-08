@@ -37,9 +37,9 @@ You can install the development version from Git Hub. Within R, you need to inst
 install.packages("devtools")
 ```
 
-If you are using Windows, please install the the latest recommended version of [Rtools](https://cran.r-project.org/bin/windows/Rtools/).
+If you are using Windows, please install the latest recommended version of [Rtools](https://cran.r-project.org/bin/windows/Rtools/).
 
-To install MAPpoly from Git Hub use
+To install MAPpoly from Git Hub, use
 
 ```R
 devtools::install_github("mmollina/mappoly", dependencies=TRUE)
