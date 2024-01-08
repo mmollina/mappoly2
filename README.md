@@ -1,31 +1,8 @@
 # MAPpoly2
 
-MAPpoly2 is an R package that builds upon the successful foundation of MAPpoly, 
-specifically tailored for genetic mapping in polyploids. It represents an advancement,
-especially in managing large datasets and in facilitating interactive applications. 
+MAPpoly2 is an R package designed to build maps in interconnected full-sib autopolyploid families. It has been enhanced for user-friendliness and accessibility. This version, developed for potential integration with R Shiny, aims to provide a user-intuitive interface for genetic mapping in polyploids. It can handle ploidy levels of 2, 4, and 6, including any combination of these.
 
-As an early-stage developmental version, MAPpoly2 has been 
-designed to enhance user-friendliness and accessibility. This version has been developed
-for potential integration with R Shiny, aiming to offer a dynamic and user-intuitive
-interface for genetic mapping in polyploids. 
-
-One of the key improvements in MAPpoly2 is its enhanced performance, largely attributable to the implementation of computationally intensive codes primarily in C++. This allows for efficient handling of large datasets. Additionally, the package enables the construction of individual maps for each parent using a Hidden Markov Model (HMM), which significantly speed up the map construction process. These individual maps can be subsequently merged, and a joint map is recomputed to include any remaining markers.
-
-Moreover, MAPpoly2 introduces a more streamlined mapping process. This improvement is particularly significant as it lays the groundwork for future integration with Shiny.
-
-## Main Functions:
-- `add_marker`: Add markers to a pre-mapped sequence
-- `augment_phased_map`: Augment a phased map with additional information
-- `drop_marker`: Remove markers from a sequence
-- `pairwise_phasing`: Perform pairwise phasing on sequences
-- `filter_data`, `filter_individuals`: Functions for data filtering
-- `genome_order`, `group`: Functions for ordering genome sequences and grouping
-- `make_sequence`, `mapping`: Create and map genetic sequences
-- `plot.mappoly2.data`, `plot_genome_vs_map`, `plot_map`: Visualization functions
-- `read_geno_csv`: Read genotype data from CSV
-- `rev_map`, `rf_filter`: Reverse mapping and filter recombination fractions
-- Other utility functions like `subset.mappoly2.data`, `plot_map_list`
-
+One of the key improvements in MAPpoly2 is its enhanced performance, largely due to the implementation of computationally intensive codes primarily in C++. This enables efficient handling of large datasets. Additionally, the package facilitates the construction of individual maps for each parent using a Hidden Markov Model (HMM), significantly speeding up the map construction process. These individual maps can then be merged, and a joint map is recomputed to include any remaining markers.
 
 ## Installation:
 
