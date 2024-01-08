@@ -45,7 +45,12 @@ To install MAPpoly from Git Hub use
 devtools::install_github("mmollina/mappoly", dependencies=TRUE)
 ```
 
-Test code
+
+## Tutorial
+
+[Building an integrated genetic linkage map of autotetraploid alfalfa populations using the MAPpoly2](https://rpubs.com/mmollin/tutorial_mappoly2)
+
+## Test code
 
 ```R
 # Clear the workspace
