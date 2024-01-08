@@ -852,7 +852,7 @@ plot_multi_map <- function(x){
 
   # Generate a color set for each unique count category using viridis
   unique_counts <- sort(unique(marker_counts$category))
-  colors <- rev(viridis::mako(length(unique_counts)))
+  colors <- rev(viridis::viridis(length(unique_counts)))
   names(colors) <- unique_counts
 
   # Update the plotting code
@@ -966,7 +966,7 @@ plot.mappoly2.consensus.map <- function(x, only.consensus = FALSE, col = "lightg
 
     # Generate a color set for each unique count category using viridis, excluding 'Consensus'
     unique_counts <- sort(unique(marker_counts$category))
-    colors <- viridis::mako(length(unique_counts), direction = -1)
+    colors <- viridis::viridis(length(unique_counts), direction = -1)
     names(colors) <- unique_counts
 
     # Update the plotting code

@@ -286,6 +286,12 @@ map_summary <- function(x,
   assert_that(is.mappoly2.sequence(x))
   type <- match.arg(type)
   parent <- match.arg(parent)
+  if(type == "both"){
+    x1 <- map_summary(x, type = "mds", parent)
+    cat("\n")
+    x2 <- map_summary(x, type = "genome", parent)
+    return(invisible(list(mds = x1, genome = x2)))
+  }
   v <- detect_hmm_est_map(x)
   u <- apply(v[parent,,],1,all)
   h <- names(u)[1:2][!u[1:2]]

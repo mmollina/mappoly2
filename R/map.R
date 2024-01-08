@@ -338,8 +338,6 @@ augment_phased_map <- function(x,
   dosage.p1 <- x$data$dosage.p1
   dosage.p2 <- x$data$dosage.p2
 
-  thresh.rf.to.insert <- mf_h(thresh.dist.to.insert)
-
   # Retrieving how many alternate alleles share homologs based
   # on pairwise linkage analysis
   M <- lapply(mrk.all.lg,
@@ -357,6 +355,11 @@ augment_phased_map <- function(x,
   names(mapData) <- names(mrk.all.lg)
 
   for(i in names(mrk.all.lg)){
+    if(is.null(thresh.dist.to.insert)) {
+      thresh.rf.to.insert <- max(p1p2.map[[i]]$rf)
+    } else {
+      thresh.rf.to.insert <- mf_h(thresh.dist.to.insert)
+    }
     mapData[[i]] <- list(map = p1p2.map[[i]],
                          mrk = mrk.all.lg[[i]],
                          mat = M[[i]],

@@ -9,7 +9,8 @@ vignette: >
 ---
 
 ```{r, include = FALSE}
-knitr::opts_chunk$set(
+ require(mappoly2)
+ knitr::opts_chunk$set(
   collapse = TRUE,
   comment = "#>",
   fig.width = 4, 
@@ -19,30 +20,644 @@ knitr::opts_chunk$set(
 options(rmarkdown.html_vignette.check_title = FALSE)
 ```
 
-## Introduction
+# Introduction
 
-MAPpoly2 is an R package currently under development, designed to construct genetic maps in autopolyploid species. Building upon its predecessor, MAPpoly, it retains many of its functionalities but introduces a more streamlined approach to map construction. MAPpoly2 enhances efficiency with new phasing and multilocus implementations, enabling it to handle large datasets. It is capable of accommodating parents with varying ploidy levels of 2, 4, and 6, operating under regular meiosis.
+In this tutorial, we will explore MAPpoly2, an R package under development for constructing genetic maps in autopolyploid species. MAPpoly2 is an extension of MAPpoly, designed to handle a wider range of ploidy levels and to provide a more user-friendly experience with additional graphical functions and potential integration with R Shiny. Our focus will be on constructing integrated maps for multiple full-sib families of alfalfa, an important autotetraploid crop. Let's begin by installing MAPpoly2 from GitHub.
 
-One feature of MAPpoly2 is its ability to construct multilocus based maps within individual parents, focusing on markers that are informative for the specific parent. This approach significantly speeds up the process for large datasets. Subsequently, these maps can be merged, unmapped markers can be assigned, and final edits applied. While the MDS algorithm remains the primary method for 'de novo' marker ordering, the availability of genome information allows users to incorporate this data into their analysis, facilitating a comparison of the resulting maps.
+# Installing MAPpoly2
 
-Furthermore, MAPpoly2 incorporates several graphical functions, and its structure is conducive to integration with R Shiny. This integration is anticipated in the near future, which we expect will enhance the package's usability and interactivity.
+MAPpoly2 is currently available in its development version on GitHub. 
+To install it, we first need the `devtools` package:
 
+```R
+install.packages("devtools")
+```
 
-```{r loading dataset}
-require(mappoly2)
-tempfl <- list.files(system.file('extdata', package = 'mappoly2'),
-                     full.names = TRUE)
-alfalfa.bc <- read_geno_csv(file.in = tempfl,
+Windows users should install the latest version of 
+[Rtools](https://cran.r-project.org/bin/windows/Rtools/).
+
+Install MAPpoly2 using the following command:
+```R
+devtools::install_github("mmollina/mappoly2", dependencies=TRUE)
+```
+
+Then, load MAPpoly2:
+```R
+library(mappoly2)
+```
+
+# About the alfalfa populations
+
+We are going to use two datasets distributed along with MAPpoly2: 
+
+- **alfa_f1** This dataset comprises 184 offspring from a cross between two tetraploid alfalfa parents, `I195` and `J432`, which are resistant and susceptible to *Aphanomyces euteiches*, respectively. The biparental population was presented in [Zhao et al., (2023)](https://www.doi.org/10.46265/genresj.EMOR6509) and genotyped with the alfalfa DArTag panel described in the same publication.
+
+- **alfa_bc** This dataset comprises 93 offspring from a cross between two tetraploid alfalfa parents, `I195` and `F1.85.209`, the latter being derived from **alfa_f1** cross. 
+
+```{r, alfalfa_pub, out.width='90%', fig.align='center', fig.cap='Alfalfa publication', echo=FALSE}
+knitr::include_graphics("https://raw.githubusercontent.com/mmollina/mappoly2_vignettes/main/alfalfa_pub.png")
+```
+
+# Loading datasets {#datasets}
+
+MAPpoly2 supports CSV file format for input datasets. Here, we will demonstrate how to read and prepare your data in CSV format suitable for MAPpoly2. The first line in the CSV file should contain headers, and subsequent lines will have marker data including dosage, chromosome number, genome position, and allele information.
+
+For example, here's how your dataset might look:
+
+```{r, data set_example, out.width='90%', fig.align='center', fig.cap='Example of CSV data set', echo=FALSE}
+knitr::include_graphics("https://raw.githubusercontent.com/mmollina/mappoly2_vignettes/main/mp2_input.png")
+```
+
+To load the dataset, we utilize the `read_geno_csv` function. This function requires specifying the ploidy level of the parents, which could be 2, 4, 6, or a combination thereof. If the names of the parents are provided, they will override any parent names present in the corresponding columns of the CSV file.
+
+```{r loading dataset, eval = FALSE}
+alfalfa.f1 <- read_geno_csv(file.in = "I195_x_J432.csv",
                             ploidy.p1 = 4,
+                            ploidy.p2 = 4,
                             name.p1 = "I195",
-                            name.p2 = "F1.85.209")
-print(alfalfa.bc, detailed = TRUE)
+                            name.p2 = "J432")
 ```
 
-## Plot data
-
-You can also embed plots, for example:
-
-```{r plot_data}
-plot(alfalfa.bc)
+```{r, echo=FALSE, results='hide'}
+alfalfa.f1 <- alfa_f1
 ```
+
+Let's take a look at the dataset and its graphical representation:
+```{r, print plot dataset}
+alfalfa.f1
+plot(alfalfa.f1)
+```
+
+For the purposes of this tutorial, we have introduced the `read_geno_csv` function 
+to provide an understanding of how datasets can be loaded into MAPpoly2. However, 
+you can use the `alfa_f1` dataset that comes bundled with the MAPpoly package. 
+
+```{r, bundled dataset, eval=FALSE}
+alfalfa.f1 <- alfa_f1
+```
+
+# Dataset quality control {#qaqc}
+Quality control is a fundamental part of genetic mapping, ensuring the reliability 
+and accuracy of the resulting genetic maps. In this section, we focus on two critical
+aspects of quality control: addressing missing data and identifying and removing 
+non-F1 individuals.
+
+## Addressing Missing Data
+Screening out missing data under specified thresholds involves setting thresholds 
+for the acceptable amount of missing data and then filtering out markers and individuals 
+that exceed these limits. In MAPpoly2, you can use the `filter_data` function to 
+apply these thresholds. Here is an example of how to screen out missing data based 
+on predetermined thresholds:
+
+```{r QA_QC_miss}
+alfalfa.f1 <- filter_data(alfalfa.f1, mrk.thresh = 0.2, ind.thresh = 0.1)
+plot(alfalfa.f1)
+alfalfa.f1
+```
+
+## Identifying and Removing Non-F1 Individuals
+Non-F1 individuals, or those not derived from the specified parent cross, can significantly affect the mapping process. Their presence may introduce erroneous genetic variation that does not represent the true recombination patterns of the population under study. This can lead to incorrect marker ordering, inflated map distances, and even the formation of artificial linkage groups.
+```{r, filter ind, eval=FALSE}
+alfalfa.f1 <- filter_individuals(alfalfa.f1)
+```
+
+```{r, fint ind2, fig.align='center', fig.cap='screening individuals using filter_individuals', echo=FALSE}
+knitr::include_graphics("https://raw.githubusercontent.com/mmollina/mappoly2_vignettes/main/filter_individuals.png")
+```
+
+```{r, filter ind3, results='hide', echo=FALSE, fig.keep='none'}
+alfalfa.f1 <- filter_individuals(alfalfa.f1, ind.to.remove = "154", inter = FALSE)
+```
+
+```{r, filter ind4}
+alfalfa.f1
+```
+
+## Assessing Marker Density
+Evaluating marker density in our genetic map helps reveal gaps which could indicate 
+missing data, phasing errors, or natural recombination variations, thereby guiding 
+us in enhancing the map's accuracy and resolution.
+```{r}
+plot(alfalfa.f1, type = "density")
+```
+
+# Estimating Pairwise Recombination Frequency
+
+Once we have selected our markers, the next step is to compute pairwise recombination 
+frequencies. For this, we use the `pairwise_rf` function in MAPpoly2, 
+which offers three modes of calculation:
+
+- mrk.scope = "all" calculates recombination fractions between all marker pairs 
+across the entire dataset. This method is computationally intensive due to the 
+sheer volume of pairwise comparisons involved.
+
+- mrk.scope = "per.chrom" limits the calculation to pairwise comparisons within 
+each chromosome. This approach is significantly less intensive as it reduces the 
+number of comparisons, focusing only on marker pairs on the same chromosome.
+
+- mrk.scope = "chrom": In this mode, you can specify certain chromosomes for 
+which to calculate pairwise recombination frequencies. It requires you to 
+provide the chromosome numbers and is less intensive than the 'all' mode but usually 
+more specific than the 'per.chrom' mode.
+
+To manage computation efficiently, parallel processing can be utilized by 
+specifying the number of cores your machine will allocate for this task. Ensure 
+your machine has sufficient RAM, and remember to leave one core free for system 
+operations.
+
+```{r, two_points,fig.width = 6, fig.height= 6,}
+t1 <- system.time(alfalfa.f1.all <- pairwise_rf(alfalfa.f1, mrk.scope = "all", ncpus = 8))
+plot(alfalfa.f1.all)
+t2 <- system.time(alfalfa.f1.chr <- pairwise_rf(alfalfa.f1, mrk.scope = "per.chrom", ncpus = 8))
+plot(alfalfa.f1.chr)
+rbind(t1, t2)
+```
+
+The Figure bellow illustrates the computational time and memory usage associated with calculating pairwise recombination frequencies using two different mrk.scope settings: 'all' and 'per.chrom'. The left graph shows the time in minutes, and the right graph shows memory usage in gigabytes, both plotted against the increasing number of markers.
+
+In the left graph, the 'all' setting (red line) shows a steep increase in time as the number of markers increases, highlighting its computational intensity. In contrast, the 'per.chrom' setting (cyan line) demonstrates a much more gradual increase, reflecting its lower computational demand.
+
+Similarly, the right graph shows that memory usage for the 'all' setting rises sharply with the number of markers, which can be demanding on computational resources. The 'per.chrom' setting, however, maintains a relatively flat line, indicating minimal impact on memory usage regardless of marker numbers.
+
+```{r, twopt time compairson, echo=FALSE}
+knitr::include_graphics("https://raw.githubusercontent.com/mmollina/mappoly2_vignettes/main/twopt_comp2.png")
+```
+
+The simulation results showcased in this Figure were obtained using an Intel(R) Xeon(R) 
+Gold 6226R CPU running at 2.90GHz, combined with 376 GB of RAM and 32 processing cores. 
+All 32 cores were utilized for these simulations.
+
+# Screening based on recombination frequency
+
+The function `rf_filter` targets markers that are unlikely to be linked, as well 
+as those that might falsely appear to be highly linked across the entire genome, 
+potentially indicating false positives. The filtering is governed by specific 
+thresholds:
+
+- `thresh.LOD.ph`: Sets the minimum LOD score for the linkage phase configuration, ensuring that only recombination fractions with LOD scores above this threshold, relative to the second most likely phase configuration, are selected.
+- `thresh.LOD.rf`: Defines the LOD score cut-off when compared with unlinked markers, allowing for the differentiation between truly linked markers and those that are likely unlinked due to random chance.
+- `thresh.rf`: Represents the recombination fraction threshold, beyond which markers are considered too distantly linked to be included in the analysis.
+
+The function tallies and creates a distribution of values that meet these filtering criteria. It then eliminates the tails of this distribution as specified by the `probs` argument, typically removing markers that do not exhibit linkage (lower tail) or exhibit implausible linkage across the genome (upper tail) to the analyzed marker set.
+
+```{r, rf_based_filter1}
+alfalfa.f1.all <- rf_filter(alfalfa.f1.all, 
+                            thresh.LOD.ph = 5, 
+                            thresh.LOD.rf = 5, 
+                            thresh.rf = 0.15, 
+                            probs = c(0.025, 0.975))
+alfalfa.f1.all
+plot(alfalfa.f1.all)
+```
+
+# Grouping
+
+Grouping markers is essential for organizing them into linkage groups, which are clusters of markers that are inherited together due to their proximity on a chromosome. The group function in MAPpoly2 uses two primary sources of information to assemble these groups:
+
+- `Chromosome Assignment`: When available, chromosome assignment provides a pre-determined categorization of markers based on genomic data. 
+
+- `Linkage Information`: In the absence of chromosome assignments, or to supplement them, linkage information is derived from the recombination fractions between markers. The group function applies UPGMA (Unweighted Pair Group Method with Arithmetic Mean) clustering on the matrix of recombination fractions to infer the linkage groups.
+
+The group function is designed to be interactive, allowing users to adjust the number of expected groups and inspect the resultant partitioned dendrogram. If chromosome information is available, the function offers a comparison between the UPGMA-derived groups and the chromosome assignments. Users can inspect the results in a tabular format, which combines the groupings from both sources for examination. In the subsequent `make_sequence function`, we will show how these two sources of information—chromosome assignment and linkage information—are integrated to construct linkage groups. 
+
+```{r groupping}
+g <- group(x = alfalfa.f1.all, expected.groups = 8, comp.mat = TRUE, inter = FALSE)
+g
+plot(g)
+```
+
+# Creating an working sequence from a grouped object
+
+The `make_sequence` function compiles a working sequence of markers from grouped 
+objects. This function takes a grouped object as input, along with two lists: `lg`
+and `ch`. The `lg` list corresponds to linkage groups derived from UPGMA clustering, 
+and the `ch` list corresponds to chromosomes. These lists should be of equal length, 
+with the `lg` list representing the rows and the `ch` list representing the columns 
+as observed in the tabular group output. The intersection of these two lists results 
+in the assignment of markers to their respective linkage groups and chromosomes.
+
+ If no values are provided, the function defaults to using the UPGMA clustering 
+ alone to assemble the linkage groups. If only the chromosome list is given, the 
+ function relies solely on genomic information for the assembly of linkage groups.
+
+In our analysis, we utilize a combination of both sources of information. By 
+intersecting the UPGMA clustering (rows) with the chromosome assignments (columns), 
+we select the combination with the highest counts. This intersection method ensures 
+that the working sequence leverages the most consistent and prevalent groupings 
+across both linkage and chromosomal information, thereby enhancing the accuracy 
+of the marker sequence.
+
+```{r, make_seq}
+s <- make_sequence(g, 
+                   lg = list(1, 7, 6, 4, 2, 8, 3, 5),
+                   ch = list(1, 2, 3, 4, 5, 6, 7, 8))
+print(s, type = "mds")
+print(s, type = "genome")
+```
+
+The output from the `make_sequence` creates an object of class `mappoly2.sequence` 
+which is displayed in a tabular form and provides a summary of mapping results for 
+each linkage group (lg) within a genome. 
+
+Here's a breakdown of the information presented in the output:
+
+- `Ch` (Chromosome): This indicates the chromosome number or the linkage group identifier.
+- `n.mrk` (Number of Markers): The number of markers present within each linkage group.
+- `ord` (Order): A 'Y' (Yes) or 'N' (No) indicating whether the markers' order within the linkage group is established.
+- `phase` (Phase Configuration): : Displays the number of phase configurations determined from the pairwise recombination fractions. The accompanying percentage indicates the proportion of markers with established phases for parent 1 (p1), parent 2 (p2), and both parents (p1p2).    
+- `map` (cM) (Map Length in Centimorgans): Indicates the genetic length of the linkage group. The '.' implies that the mapping step has not been performed yet.
+- `haplo` (Haplotypes Computed): A 'Y' (Yes) or 'N' (No) indicating whether haplotype probabilities have been computed for the linkage group.
+
+The initial output from `make_seq` sets the foundation for the mapping process. 
+The values, especially in the `ord`, `phase`, and `haplo` columns, will be updated 
+as you proceed through the mapping pipeline with subsequent 
+functions.
+
+# Ordering
+
+After creating the working sequences, the next step is to determine the order of 
+the markers within each group. 
+
+MAPpoly2 offers two approaches for ordering markers:
+
+- `MDS-based Ordering ("mds")`: This method uses multi-dimensional scaling (MDS) 
+to order markers based on their pairwise recombination fractions. It's particularly 
+useful when chromosome assignment information is not available, as MDS relies 
+solely on linkage information.
+
+- `Genome-based Ordering ("genome")`: When chromosome assignment data is available, 
+genome-based ordering utilizes this additional layer of genomic information to 
+refine the order of markers. 
+
+The `order_sequence` function in MAPpoly2 is designed to handle both of these 
+ordering methods. It takes a sequence object, which contains the groups of markers 
+and their associated data, and arranges the markers within each group according 
+to the selected ordering method. In the near future, we plan to introduce a 
+custom ordering option, which will allow users to specify their own order for 
+the markers. 
+
+From here onwards, let's apply both methods and contruct the maps using the resulting 
+orders.
+
+```{r, ordering}
+s <- order_sequence(s, type = "mds")
+print(s, type = "mds")
+s <- order_sequence(s, type = "genome")
+print(s, type = "genome")
+```
+
+Now, let us compare the resulting recombination fraction matrices for both methods and 
+
+```{r, comparing orders}
+plot_rf_matrix(s, type = "mds", fact = 2)
+plot_rf_matrix(s, type = "genome", fact = 2)
+plot_mds_vs_genome(s)
+```
+
+In our analysis, both the MDS-based and Genome-based ordering matrices display 
+monotonically increasing patterns. Such monotonicity suggests that, as we move 
+along the axes of the matrices, the genetic distance between markers increases 
+steadily. The similar patterns observed in both matrices imply that the linkage 
+data align well with the physical locations of the markers on the chromosomes. 
+The scatter plots illustrate the alignment of markers between the MDS-based and 
+Genome-based ordering methods. Ideally, we anticipate a 45-degree slope in these 
+plots, which would signify a perfect concordance between the marker orders derived 
+from both approaches. Any significant deviations from this diagonal line may 
+indicate discrepancies, potentially arising from noise within the linkage data 
+or inaccuracies in chromosomal assignments.
+
+The forthcoming capability to include a custom order will complement these 
+methods by accommodating additional data sources or expert insights into 
+the map construction process. This feature will be particularly valuable in 
+instances where the existing data may be incomplete or when we use a reference 
+genome that does not necessarily align with the parents in the population but 
+maintains a high degree of local synteny.
+
+# Screening based on recombination frequency per group
+
+Now let's apply the `rf_filter` function once more, but this time, we will consider 
+only recombination fraction matrices within linkage groups. Usually, this step 
+can be skipped, but we will include it in the tutorial for the sake of completeness.
+
+```{r rf_based_filter2}
+#### RF-based filter per groups ####
+s <- rf_filter(s, type = "mds", probs = c(0.025, 0.975), diag.markers = 50)
+s <- rf_filter(s, type = "genome", probs = c(0.025, 0.975), diag.markers = 50)
+mappoly2:::plot_rf_matrix(s, type = "genome", fact = 2)
+```
+
+# Pairwise rf-based phasing
+
+Phasing markers is among the most complex tasks in mapping within a polyploid context. 
+The `pairwise_phasing` function utilizes pairwise recombination information along 
+with their associated statistics in a branch-and-bound algorithm. This approach 
+seeks to identify a set of linkage phase configurations that will subsequently 
+be evaluated using a multilocus-based likelihood method.
+
+The arguments for the pairwise_phasing function are as follows:
+
+- `thresh.LOD.ph` This threshold sets the minimum LOD score for the linkage 
+phase configuration when compared to alternative configurations. A phase 
+configuration is considered reliable if its LOD score is at least `thresh.LOD.ph` 
+units higher than any other configuration.
+
+- `thresh.LOD.rf` This argument specifies the LOD score threshold for 
+considering recombination fractions as linked. Recombination fractions are deemed 
+significant if their LOD scores exceed this threshold, suggesting true linkage 
+rather than random association.
+
+- `thresh.rf` This argument sets the recombination fraction threshold. A recombination 
+fraction must be less than or equal to `thresh.rf` to be considered for phasing, 
+reflecting the maximum expected value for independent assortment.
+
+- `max.search.expansion.p1` and `max.search.expansion.p2` These arguments define
+the maximum number of phase configurations to explore for parents 1 and 2. It limits 
+the search space to a manageable number of possibilities, ensuring the algorithm 
+remains computationally feasible.
+
+```{r rf_phasing}
+s <- pairwise_phasing(s, type = "mds",
+                      thresh.LOD.ph = 3, 
+                      thresh.LOD.rf = 3, 
+                      thresh.rf = 0.5, 
+                      max.search.expansion.p1 = 10, 
+                      max.search.expansion.p2 = 10)
+print(s, type = "mds")
+s <- pairwise_phasing(s, 
+                      type = "genome",
+                      thresh.LOD.ph = 3, 
+                      thresh.LOD.rf = 3, 
+                      thresh.rf = 0.5, 
+                      max.search.expansion.p1 = 10, 
+                      max.search.expansion.p2 = 10)
+print(s, type = "genome")
+```
+The pairwise_phasing function in MAPpoly2 has successfully completed the phasing 
+of markers for both the Multi-Dimensional Scaling (MDS) and Genome-based ordering 
+methods. The output for each method updates the sequence table, providing the overview 
+of the phasing results for each linkage group (lg) across different parents and 
+their combined configurations (p1, p2, and p1p2).
+
+Here are some insights from the output:
+
+- Consistency Across Methods: Both the MDS-based and Genome-based approaches yield 
+consistent results, as evidenced by the identical numbers and percentages in the 
+`phase` columns for each linkage group. 
+
+- Phasing Efficiency: The high percentages in the `phase` columns, especially for the 
+combined parent configuration (p1p2), indicate a successful and efficient phasing process. 
+The majority of markers have been phased with confidence, laying a strong foundation for 
+the subsequent mapping steps. This fact is mostly due to the high quality of the dataset 
+used in this analysis.
+
+- Further Actions: Since the mapping (indicated by map (cM)) and haplotype computation 
+are pending (as shown by '.' and 'N' respectively), the next steps in the mapping process 
+will involve calculating these elements for each linkage group.
+
+
+# Multipoint estimation
+
+Now, let's reconstruct the genetic map for the linkage phases estimated by 
+pairwise_phasing. In this specific case, we have only one possible linkage phase 
+configuration per linkage group, which means the program does not need to compare 
+multiple linkage phase likelihoods to select the optimal one. However, if multiple 
+potential configurations were present in a different dataset, the program would 
+perform this comparison and retain only the most likely linkage phase.
+
+One might wonder why it's necessary to re-estimate the map using the multilocus 
+approach. This step is crucial because it utilizes the entire chromosomal structure 
+in the estimation. If there are any misplaced markers or incorrect linkage phase 
+assortments, these will be highlighted in the resulting map as an inflation of the 
+expected map length. Furthermore, the Hidden Markov Model (HMM) approach is 
+essential as it addresses the missing data inherent in polyploid cases, preparing 
+the dataset for subsequent computation of the homolog composition in offspring individuals.
+
+There are two primary strategies for reconstructing the multilocus map:
+
+- **Separate Parental Maps and Integration:** This approach involves constructing 
+individual maps for each parent, merging them, and then adding unmapped markers. 
+The procedure of constructing separate maps for each parent, inspired by the
+methodology of the `polymapR` package. As an addition, we include multilocus 
+estimations along the way. The strategy begins with the function `mapping` by selecting 
+markers informative to a specific parent using arguments`parent = "p1"` or 
+`parent = "p2"`. Technically, this strategy confines the number of hidden states 
+in the Markov model to the number of gametes a single parent can produce (e.g., 
+2 in diploids, 6 in tetraploids, 20 in hexaploids), as opposed to the combined 
+gametes of both parents (e.g., 4 in diploids, 36 in tetraploids, 400 in hexaploids). 
+Once individual maps are constructed and evaluated using diagnostic tools, they 
+are integrated into a full HMM model using the `merge_single_parent_maps` function. 
+To incorporate unmapped markers, posterior information from the pre-computed map 
+is computed with `calc_haplotypes`, and the unmapped markers are inserted using 
+the `augment_phased_map` function. This process avoids the computational intensity 
+of constructing the map for each marker insertion, performing it only once after 
+all markers have been appropriately phased.
+
+- **Joint Parental Approach:** This more straightforward method constructs the 
+map using both parents simultaneously. It generally doesn't require merging maps 
+or adding unmapped markers, though it is possible to do so using the `augment_phased_map`
+function if needed. For this tutorial, we will employ the first strategy, as it 
+involves more coding steps and thus provides a comprehensive learning experience. 
+However, with the dataset we're using, one could easily adopt the second strategy 
+by setting `parent = "p1p2"` and proceeding directly to the **Recomputing Haplotype 
+Probabilities** section.
+
+## Mapping Parent 1
+```{r hhm_single_p1}
+s <- mapping(s, type = "mds", parent = "p1", ncpus = 8)
+s <- mapping(s, type = "genome", parent = "p1", ncpus = 8)
+print(s, type = "mds")
+print(s, type = "genome")
+plot_map(s, lg = 1, type = "mds", parent = "p1")
+plot_map(s, lg = 1, type = "genome", parent = "p1")
+```
+
+## Mapping Parent 2
+```{r hhm_single_p2}
+s <- mapping(s, type = "mds", parent = "p2", ncpus = 8)
+s <- mapping(s, type = "genome", parent = "p2", ncpus = 8)
+print(s, type = "mds")
+print(s, type = "genome")
+plot_map(s, lg = 1, type = "mds", parent = "p2")
+plot_map(s, lg = 1, type = "genome", parent = "p2")
+```
+
+## Merging Maps
+```{r merge_maps}
+s <- merge_single_parent_maps(s, type = "genome", ncpus = 8, error = 0.05)
+s <- merge_single_parent_maps(s, type = "mds", ncpus = 8, error = 0.05)
+plot_map_list(s, type = "mds", parent = "p1p2")
+plot_map_list(s, type = "genome", parent = "p1p2")
+map_summary(s)
+plot_map(s, lg = 1, type = "mds", parent = "p1p2")
+plot_map(s, lg = 1, type = "genome", parent = "p1p2")
+s <- calc_haplotypes(s, type = "mds", ncpus = 8)
+s <- calc_haplotypes(s, type = "genome", ncpus = 8)
+```
+
+Merging maps resulted in a genetic map with a total length of 532.3 cM
+(MDS) and 495.9 cM (Genome) across all linkage groups, with a total of 898 (MDS) 
+and 894 (Genome) markers. The average markers per centimorgan were around 2, and 
+the maximum gap ranged from 15 cM (MDS) to 13 cM (Genome), indicating a well-distributed 
+marker set. 
+
+## Augmenting Merged Maps
+```{r augment_merged_maps}
+s <- augment_phased_map(s, type = "mds", ncpus = 8)
+s <- augment_phased_map(s, type = "genome", ncpus = 8)
+plot_map_list(s, type = "mds", parent = "p1p2")
+plot_map_list(s, type = "genome", parent = "p1p2")
+map_summary(s)
+plot_map(s, lg = 1, type = "mds", parent = "p1p2")
+plot_map(s, lg = 1, type = "genome", parent = "p1p2")
+```
+
+Post augmentation, however, the map length slightly increased to 572.4 cM (MDS) 
+and 531.9 cM (Genome), and the total number of markers significantly rose to 1696 (MDS) 
+and 1686 (Genome). This increase was primarily due to adding double-simplex and 
+multiplex markers, enhancing the map's resolution and potential accuracy. 
+Despite the increased number of markers, the overall map structure remained consistent, 
+though the maximum gap size marginally increased, notably in the MDS map, 
+where it reached 16.3 cM.
+
+## Comparing MDS and Genome-based orders
+
+Now, let us compare the MDS and Genome-ordered maps generated in our analysis. 
+For an effective comparison of these orders, it's crucial to employ a well-defined 
+objective metric. Here, we'll focus on two primary aspects: the multilocus likelihood 
+and the characteristics of the map, specifically its length, resulting recombination 
+frequency matrices, and the gaps between markers. 
+To proceed with this comparison, we utilize the function `compare_order.` This 
+function identifies markers common to both maps and recalculates the Hidden Markov Model 
+(HMM)-based likelihood for each linkage group. By assessing both the (log)likelihood 
+values and the structural aspects of the maps, we can determine which ordering method 
+is more consistent and informative for our dataset. 
+
+```{r, compare_mds_geno}
+maps.comp <- compare_order(s)
+maps.comp
+plot(maps.comp)
+```
+After evaluating the metrics mentioned earlier, we conclude that the Genome order 
+provided superior results for our dataset. However, it's noteworthy that the MDS 
+order also presents a strong case. Based on the map's characteristics, such as 
+its length, marker distribution, and gaps, the MDS order demonstrates a commendable 
+performance and could be effectively utilized in subsequent analyses. This 
+observation highlights the viability of the MDS order in scenarios where genome 
+order data might not be readily available or when a more linkage-focused approach 
+is preferred.
+
+# Computing Haplotype Probabilities
+
+Now, let us compute the haplotype probabilities of the offsprings of the cross 
+between parents `I195` and `J432` using function `calc_haplotypes`:
+
+```{r recompute_haplotype_probs}
+s <- calc_haplotypes(s, type = "mds", ncpus = 8)
+s <- calc_haplotypes(s, type = "genome", ncpus = 8)
+plot_haplotypes(s, lg = 1, ind = "F1.85.31")
+I195xJ432_map <- s
+save(I195xJ432_map, file = "I195_x_J432_map.rda")
+```
+
+The plot depicts the haplotype probabilities for individual F1.85.31 across linkage group 1. The graphical representation shows the probabilities of inheriting specific homologs from each parent, with each horizontal bar corresponding to one of the four homologs (h1 to h4). In the case of parent I195, the probabilities for each of the four homologs are clearly differentiated, with a crossover event indicated around the 30 cM position between homologs h1 and h2. For parent J432, depicted in shades of red, crossover events are suggested around the 45 and 50 cM positions, likely involving homologs h1 and h3, and h2 and h4.
+
+These results are extremely important for analyzing the genetic structure of offspring and identifying areas of significant linkage or recombination. They are fundamental to further analysis such as QTL mapping or marker-assisted selection, as they provide critical insights into the genetic makeup of the population under study
+
+# Final remarks about F1 map
+
+This concludes the construction of the map construction for the `I195` x `J432` cross. 
+Here are the final results:
+```{r final_f1}
+map_summary(I195xJ432_map, type = "genome")
+plot_map_list(I195xJ432_map, type = "genome", col = mp_pal(8))
+```
+
+# Loading BC map
+
+In this section, we will proceed to load a pre-constructed BC map. Although it's possible to generate the BC map using a process similar to the one we employed for the F1 map, please note that the BC population size is smaller. Therefore, it's advisable to experiment with various threshold values throughout this tutorial and fine-tune them for different linkage groups as needed to achieve optimal results.
+
+Here is the script to load the BC map:
+```{r load_bc}
+download.file("https://github.com/mmollina/mappoly2_vignettes/raw/main/I195_x_F1-85-209_map.rda", 
+              destfile = "temp_file.rda")
+load("temp_file.rda")
+I195xF1_85_209_map <- mapping(I195xF1_85_209_map, type = "genome", error = 0.05, ncpus = 8)
+print(I195xF1_85_209_map, type = "genome")
+map_summary(I195xF1_85_209_map, type = "genome")
+plot_map_list(I195xF1_85_209_map, type = "genome", col = mp_pal(8))
+```
+
+# Preparing maps to integrate
+
+Now that we have both maps at hand, our next step is to construct the consensus map. To ensure a consistent homolog correspondence for shared parents across populations, we need to prepare the data. This involves assembling a list containing the maps of the different populations. Once that's done, we can visually inspect the maps together using the `plot_multi_map` function, and then employ the `prepare_to_integrate` function to assess and establish homolog correspondence. Here's how we go about it:
+
+```{r, prepare1}
+MAPs <- list(I195xJ432 = I195xJ432_map, 
+             I195xF1_85_209 = I195xF1_85_209_map)
+plot_multi_map(MAPs)
+prep.maps <- prepare_to_integrate(MAPs)
+plot(prep.maps)
+```
+```{r, prepare2, out.width='60%'}
+plot_shared_markers(prep.maps)
+```
+
+Examining the dendrogram, we notice a pronounced collinearity among certain homologs from parent `I195` across different populations. For instance, homolog `h1` in population 1 (I195 x J432) corresponds to homolog `h3` in population 2 (I195 x F1.85.209), while `h2` corresponds to `h1`, `h3` to `h2`, and `h4` remains consistent across both populations. The Venn diagram corroborates this genetic linkage, showcasing that 929 markers are common between the two populations.
+
+# Estimating consensus map
+
+The next step is to estimate the consensus map considering all populations. The process of estimating a multi-population genetic map using MAPpoly2 involves several steps:
+
+- **Marker Assessment:** Initially, individual markers are assessed within each population (Pop 1, Pop 2, Pop 3, etc.). This assessment includes determining the marker's quality, its segregation pattern, and allelic dosages. 
+
+- **Single Map Construction:** For each population, a single genetic map is constructed based on the markers. We did that in the previous sections
+
+- **Markovian Connection:** Markers from different populations are connected using the Markovian properties of HMM. This means that the state of a marker (i.e., its genotype on the genetic map) in one population can influence the state of the same marker in another population, accounting for crossover and recombination events.
+
+- **Posterior Computation for Missing Data:** HMMs can handle missing data by computing the posterior probabilities of missing marker states based on the observed data. This step fills in gaps and ensures a more complete and accurate representation of the genetic linkage.
+
+- **Consensus Map Reconstruction:** Finally, the individual maps from each population are integrated to reconstruct the final consensus map. This map combines information from all populations and provides a comprehensive overview of the genetic architecture across the different populations.
+
+The animation might illustrate these steps dynamically, showing how individual markers (represented by colored dots) are first organized within their respective populations, then connected across populations, with the missing data being interpolated, and ultimately combined into a single, coherent genetic map that represents the consensus of all the populations analyzed.
+
+```{r, hmm_animated, out.width='110%', fig.align='center', echo=FALSE}
+knitr::include_graphics("https://raw.githubusercontent.com/mmollina/mappoly2_vignettes/main/multipop_hmm_animation.gif")
+```
+
+In MAPpoly, the function `estimate_consensus_map` streamlines the last three steps of the HMM-based map estimation process. This function incorporates the ability to account for genotype errors, which permits the posterior computations to consider states that would otherwise be deemed impossible. This feature enables the HMM to correct potential genotyping errors by allowing transitions to states that could not be reached without the consideration of such errors. 
+
+```{r est_consnsus}
+consensus.map <- estimate_consensus_map(prep.maps, ncpus = 8, err = 0.05)
+consensus.map
+plot(consensus.map)
+plot(consensus.map, only.consensus = TRUE, col = mp_pal(8))
+```
+The consensus map encompasses a total of 259 individuals and 1,997 markers. 
+This represents a significant increase in marker density compared to the 1,686 
+markers for the F1 map and the 1,240 markers for the BC map. The map spans genetic 
+distances ranging from 103.34 cM to 66.7 cM across various linkage groups. This 
+range can be attributed to the contribution of the more informative cross 
+(I195 x J432) , which compensates for the less informative population (I195 x F1.85.209), 
+thereby enhancing the overall robustness and resolution of the consensus map. 
+This interplay between the populations ensures that the less represented genomic 
+regions in the BC population are adequately covered, thanks to the richer genetic 
+information provided by the F1 population.
+
+# Computing consensus haplotype probability
+
+Just as we did with the F1 map construction, let's compute the haplotype 
+probabilities using the consensus map by employing the function 
+`calc_consensus_haplo`:
+
+```{r, comp_cons_hap_prob}
+consensus.map <- calc_consensus_haplo(consensus.map, ncpus = 8)
+plot_consensus_haplo(consensus.map, lg = 1, ind = "F1.85.70")
+plot_consensus_haplo(consensus.map, lg = 1, ind = "AphBC.21")
+```
+
+The results are quite similar, but we now have different colors depending on the parent that transmitted the homolog. Currently, this color representation is limited to 10 different founders. After this step, one can save the consensus map to be used in QTL analysis with QTLpoly.
+
+```{r save_image, echo=FALSE, results='hide'}
+save.image(file = "all.rda")
+```
+
