@@ -26,7 +26,7 @@ devtools::install_github("mmollina/mappoly", dependencies=TRUE)
 ## Tutorial
 
 [Building an integrated genetic linkage map of autotetraploid alfalfa populations using the MAPpoly2](https://rpubs.com/mmollin/tutorial_mappoly2)
-
+[Constructing Multi-Family Genetic Maps with MAPpoly2: A Simulation Example](https://rpubs.com/mmollin/multi_family_simulation)
 
 # Acknowledgment
 
