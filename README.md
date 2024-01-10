@@ -31,6 +31,8 @@ devtools::install_github("mmollina/mappoly", dependencies=TRUE)
 
 - [Constructing Multi-Family Genetic Maps with MAPpoly2: A Simulation Example](https://rpubs.com/mmollin/multi_family_simulation)
 
+- [Supplementary Slides](https://github.com/mmollina/mappoly2_vignettes/blob/main/Updates-Introducing_MAPpoly2-and_updates_QTLpoly-2024-workshop.pdf)
+
 # Acknowledgment
 
 This package has been developed as part of the project [AFRI-Grant: A Genetics-Based Data Analysis System for Breeders in Polyploid Breeding Programs](https://portal.nifa.usda.gov/web/crisprojectpages/1027948-a-genetics-based-data-analysis-system-for-breeders-in-polyploid-breeding-programs.html) and  [SCRI-Grant: Tools for polyploids](https://www.polyploids.org/), funded by USDA NIFA.
