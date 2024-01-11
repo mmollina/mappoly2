@@ -19,7 +19,7 @@ If you are using Windows, please install the latest recommended version of [Rtoo
 To install MAPpoly from Git Hub, use
 
 ```R
-devtools::install_github("mmollina/mappoly", dependencies=TRUE)
+devtools::install_github("mmollina/mappoly2", dependencies=TRUE)
 ```
 
 
