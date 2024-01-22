@@ -532,8 +532,6 @@ calc_consensus_haplo <- function(x,
       # Windows OS: Use parLapply
       cl <- makeCluster(ncpus)
       on.exit(stopCluster(cl))
-      clusterExport(cl, varlist = c("pedigree"), envir = environment())
-
       # Parallel execution using parLapply
       w <- parLapply(cl, x$consensus.map, function(xi) {
         u <- calc_haploprob_biallelic(PH = xi$ph$PH,
