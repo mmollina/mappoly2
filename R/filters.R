@@ -31,7 +31,7 @@ filter_redundant <- function(x)
   w <- data.frame(kept = rownames(dat.unique)[match(n2,n1)],
                   removed = rownames(dat.duplicated))
   x <- subset_data(x, select.mrk = setdiff(x$mrk.names,
-                                                        w$removed))
+                                           w$removed))
   w <- unique(rbind(x$redundant, w))
   x$redundant <- w[w$kept%in%rownames(x$geno.dose),]
   return(x)
@@ -73,10 +73,10 @@ filter_data <- function(x,
   if(is.null(chisq.pval.thresh))
     chisq.pval.thresh <- 0.05/length(chisq.val)
   id <- .get_mrk_ind_from_QAQC(x$QAQC.values,
-                                          miss.mrk.thresh = mrk.thresh,
-                                          miss.ind.thresh = ind.thresh,
-                                          chisq.pval.thresh = chisq.pval.thresh,
-                                          read.depth.thresh = read.depth.thresh)
+                               miss.mrk.thresh = mrk.thresh,
+                               miss.ind.thresh = ind.thresh,
+                               chisq.pval.thresh = chisq.pval.thresh,
+                               read.depth.thresh = read.depth.thresh)
   x$screened.data <- id
   x$screened.data$thresholds <- c(x$screened.data$thresholds,
                                   LOD.ph = 0,
@@ -255,10 +255,10 @@ filter_individuals <- function(x,
     x$QAQC.values$individuals[,"full.sib"] <- !rownames(x$QAQC.values$individuals)%in%ind.to.remove
     if(inherits(x, "screened")){
       id <- .get_mrk_ind_from_QAQC(x$QAQC.values,
-                                              miss.mrk.thresh = x$screened.data$thresholds$miss.mrk,
-                                              miss.ind.thresh = x$screened.data$thresholds$miss.ind,
-                                              chisq.pval.thresh = x$screened.data$thresholds$chisq.pval,
-                                              read.depth.thresh = x$screened.data$thresholds$read.depth)
+                                   miss.mrk.thresh = x$screened.data$thresholds$miss.mrk,
+                                   miss.ind.thresh = x$screened.data$thresholds$miss.ind,
+                                   chisq.pval.thresh = x$screened.data$thresholds$chisq.pval,
+                                   read.depth.thresh = x$screened.data$thresholds$read.depth)
     }
     x$screened.data <- id
     return(x)
@@ -285,10 +285,10 @@ filter_individuals <- function(x,
       x$QAQC.values$individuals[,"full.sib"] <- !rownames(x$QAQC.values$individuals)%in%ind.to.remove
       if(inherits(x, "screened")){
         id <- .get_mrk_ind_from_QAQC(x$QAQC.values,
-                                                miss.mrk.thresh = x$screened.data$thresholds$miss.mrk,
-                                                miss.ind.thresh = x$screened.data$thresholds$miss.ind,
-                                                chisq.pval.thresh = x$screened.data$thresholds$chisq.pval,
-                                                read.depth.thresh = x$screened.data$thresholds$read.depth)
+                                     miss.mrk.thresh = x$screened.data$thresholds$miss.mrk,
+                                     miss.ind.thresh = x$screened.data$thresholds$miss.ind,
+                                     chisq.pval.thresh = x$screened.data$thresholds$chisq.pval,
+                                     read.depth.thresh = x$screened.data$thresholds$read.depth)
       }
       x$screened.data <- id
       par(pty="m")
@@ -427,10 +427,10 @@ init_rf_filter <- function(x,
   probs <- range(probs)
   ## Getting filtered rf matrix
   M <-filter_rf_matrix(x,
-                                  type = "rf",
-                                  thresh.LOD.ph = thresh.LOD.ph,
-                                  thresh.LOD.rf = thresh.LOD.rf,
-                                  thresh.rf = thresh.rf)
+                       type = "rf",
+                       thresh.LOD.ph = thresh.LOD.ph,
+                       thresh.LOD.rf = thresh.LOD.rf,
+                       thresh.rf = thresh.rf)
   if(!is.null(mrk.order))
     M <- M[mrk.order, mrk.order]
   if(!is.null(diag.markers))
@@ -494,11 +494,11 @@ rf_filter_per_group <- function(x,
   ## Getting filtered rf matrix
   mrk.names <- x$maps[[lg]][[y$type]]$mkr.names
   M <-filter_rf_matrix(x$data,
-                                  type = "rf",
-                                  thresh.LOD.ph = thresh.LOD.ph,
-                                  thresh.LOD.rf = thresh.LOD.rf,
-                                  thresh.rf = thresh.rf,
-                                  mrk.names = mrk.names)
+                       type = "rf",
+                       thresh.LOD.ph = thresh.LOD.ph,
+                       thresh.LOD.rf = thresh.LOD.rf,
+                       thresh.rf = thresh.rf,
+                       mrk.names = mrk.names)
   if(!is.null(diag.markers))
     M[abs(col(M) - row(M)) > diag.markers] <- NA
   z <- apply(M, 1, function(x) sum(!is.na(x)))
@@ -565,3 +565,79 @@ filter_rf_matrix <- function(x,
   }
 }
 
+#' Edit sequence ordered by reference genome positions
+#' comparing to another set order
+#'
+#' @param input.seq object of class mappoly2.sequence with alternative order (not genomic order)
+#' @param group linkage group id
+#' @param invert vector of marker names to be inverted
+#' @param remove vector of marker names to be removed
+#'
+#'  
+#' @export
+edit_order <- function(input.seq, group = 1,invert = NULL, remove = NULL){
+  
+  if (!inherits(input.seq, "mappoly2.sequence")) {
+    stop(deparse(substitute(input.seq)), " is not an object of class 'mappoly2.sequence'")
+  }
+  
+  if (is.null(input.seq$maps$lg1$mds$order) | is.null(input.seq$maps$lg1$genome$order)) {
+    stop("Run `order_sequence` with type = `mds` and type = `genome` before editing your sequence")
+  }
+  
+  d <- lg <- y <- NULL
+  x.mds <- get_markers_from_ordered_sequence(input.seq, lg = group, 
+                                             "mds")
+  x.genome <- get_markers_from_ordered_sequence(input.seq, lg = group, 
+                                                type = "genome")
+  for (i in 1:length(x.mds)) {
+    a <- match(x.genome[[i]], x.mds[[i]])
+    d <- rbind(d, data.frame(x = seq_along(a), 
+                             y = a))
+  }
+  
+  rownames(d) <- x.genome[[1]]
+  plot(d$x, d$y, xlab="Genome position", ylab = "MDS position")
+  
+  inverted <- removed <- vector()
+  if(!is.null(invert) | !is.null(remove)){
+    if(!is.null(invert)){
+      inverted <- c(inverted, as.vector(invert))
+      repl <- d[rev(match(as.vector(invert),rownames(d))),]
+      d[match(as.vector(invert),rownames(d)),2] <- repl[,2]
+      rownames(d)[match(as.vector(invert), rownames(d))] <- rownames(repl) 
+    }
+    if(!is.null(remove)){
+      removed <- c(removed, as.vector(remove))
+      d <- d[-match(remove, rownames(d)),]
+    }
+    plot(d$x, d$y, xlab="Genome position", ylab = "MDS position")
+  } else {
+    cat("Mark at least three points on the plot and press `Esc` to continue.")
+    if(interactive()){
+      ANSWER <- "Y"
+      while(substr(ANSWER, 1, 1)  ==  "y" | substr(ANSWER, 1, 1)  ==  "yes" | substr(ANSWER, 1, 1)  ==  "Y" | ANSWER  == ""){
+        plot(d$x, d$y, xlab="Genome position", ylab = "MDS position")
+        mks.to.remove <- gatepoints::fhs(d, mark = TRUE)
+        if(length(which(rownames(d) %in% mks.to.remove)) > 0){
+          ANSWER2 <- readline("Enter 'invert/remove' to proceed with the edition: ")
+          if(ANSWER2 == "invert"){
+            inverted <- c(inverted, as.vector(mks.to.remove))
+            repl <- d[rev(match(as.vector(mks.to.remove),rownames(d))),]
+            d[match(as.vector(mks.to.remove),rownames(d)),2] <- repl[,2]
+            rownames(d)[match(as.vector(mks.to.remove), rownames(d))] <- rownames(repl) 
+          } else {
+            removed <- c(removed, as.vector(mks.to.remove))
+            d <- d[-match(mks.to.remove, rownames(d)),]
+          }
+        }
+        ANSWER <- readline("Enter 'Y/n' to proceed with interactive edition or quit: ")
+      }
+      plot(d$x, d$y, xlab="Genome position", ylab = "MDS position")
+    }
+  }
+  
+  custom_ord <- input.seq$maps[[group]]$genome$order[match(rownames(d), rownames(input.seq$maps[[group]]$genome$order)),]
+  input.seq$maps[[group]]$custom$order <- custom_ord
+  return(input.seq)
+}

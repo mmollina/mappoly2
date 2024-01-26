@@ -196,7 +196,7 @@ get_markers_from_ordered_sequence <- function(x, lg, type = c("mds", "genome", "
   if(y$type == "mds")
     w <-lapply(x$maps[y$lg], function(z, type) intersect(z[[type]]$order$locimap$locus,
                                                          z[[type]]$mkr.names), y$type)
-  else if(y$type == "genome")
+  else if(y$type == "genome" | y$type == "custom")
     w <- lapply(x$maps[y$lg], function(z, type) intersect(rownames(z[[type]]$order),
                                                           z[[type]]$mkr.names), y$type)
   w <- lapply(w, get_info_markers, x, parent)

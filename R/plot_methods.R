@@ -189,12 +189,14 @@ plot_rf_matrix <- function(x,
                            lg = NULL,
                            type = c("mds", "genome", "custom"),
                            fact = 1){
-  y <- parse_lg_and_type(x,lg,type)
-  mrk.id <- get_markers_from_ordered_sequence(x, y$lg, y$type)
-  op <- par(mfrow = optimal_layout(length(y$lg)), pty = "s")
+  y <- mappoly2:::parse_lg_and_type(x,lg,type)
+  mrk.id <- mappoly2:::get_markers_from_ordered_sequence(x, y$lg, y$type)
+  rm.group <- which(sapply(mrk.id, is.null))
+  if(length(rm.group) > 0) mrk.id <- mrk.id[-rm.group]
+  op <- par(mfrow = mappoly2:::optimal_layout(length(y$lg)), pty = "s")
   on.exit(par(op))
   for(i in 1:length(mrk.id)){
-    plot_rf_matrix_one(x$data$pairwise.rf,
+    mappoly2:::plot_rf_matrix_one(x$data$pairwise.rf,
                        ord = mrk.id[[i]],
                        main.text = paste(names(x$maps[i]), y$type, sep = "-"),
                        fact = fact)
