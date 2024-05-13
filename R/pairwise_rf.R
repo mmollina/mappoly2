@@ -162,7 +162,7 @@ pairwise_rf_full_mat <- function(x,
                                           count_matrix_number_R = count.matrix.number,
                                           count_matrix_pos_R = count.matrix.pos,
                                           count_matrix_length_R = count.matrix.length,
-                                          tol_R = tol, threads_R = ncpus)
+                                          tol_R = tol)
   res[res == -1] = NA
   colnames(res) = c("Sh_P1","Sh_P2","rf","LOD_rf","LOD_ph")
   n <- length(seq.mrk.names)

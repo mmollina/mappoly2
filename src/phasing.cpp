@@ -155,9 +155,21 @@ List twopt_phasing_cpp(CharacterVector mrk_id,
         Hres = filter_matrices(Hres);
 
       if(Hres.size() > max_conf_number || Hres.size() == 0){
-        //Rcpp::Rcout << "Skiping marker " << i << "\n";
+        //Rcpp::Rcout << "Skipping marker " << i << "\n";
         continue;
       }
+
+      // Insert HMM bound
+      // List est_hmm_map_biallelic(List PH,
+      //                            IntegerMatrix G,
+      //                            NumericMatrix pedigree,
+      //                            NumericVector rf,
+      //                            double err,
+      //                            bool verbose,
+      //                            bool detailed_verbose,
+      //                            double tol,
+      //                            bool ret_H0)
+
       H = Hres;
       idx.push_back(i);
     }

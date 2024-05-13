@@ -141,8 +141,8 @@ BEGIN_RCPP
 END_RCPP
 }
 // pairwise_rf_estimation_disc_rcpp
-RcppExport SEXP pairwise_rf_estimation_disc_rcpp(SEXP mrk_pairs_R, SEXP ploidy_p1_R, SEXP ploidy_p2_R, SEXP geno_R, SEXP dose_p1_R, SEXP dose_p2_R, SEXP count_vector_R, SEXP count_matrix_phases_R, SEXP count_matrix_rownames_R, SEXP count_matrix_number_R, SEXP count_matrix_pos_R, SEXP count_matrix_length_R, SEXP tol_R, SEXP threads_R);
-RcppExport SEXP _mappoly2_pairwise_rf_estimation_disc_rcpp(SEXP mrk_pairs_RSEXP, SEXP ploidy_p1_RSEXP, SEXP ploidy_p2_RSEXP, SEXP geno_RSEXP, SEXP dose_p1_RSEXP, SEXP dose_p2_RSEXP, SEXP count_vector_RSEXP, SEXP count_matrix_phases_RSEXP, SEXP count_matrix_rownames_RSEXP, SEXP count_matrix_number_RSEXP, SEXP count_matrix_pos_RSEXP, SEXP count_matrix_length_RSEXP, SEXP tol_RSEXP, SEXP threads_RSEXP) {
+RcppExport SEXP pairwise_rf_estimation_disc_rcpp(SEXP mrk_pairs_R, SEXP ploidy_p1_R, SEXP ploidy_p2_R, SEXP geno_R, SEXP dose_p1_R, SEXP dose_p2_R, SEXP count_vector_R, SEXP count_matrix_phases_R, SEXP count_matrix_rownames_R, SEXP count_matrix_number_R, SEXP count_matrix_pos_R, SEXP count_matrix_length_R, SEXP tol_R);
+RcppExport SEXP _mappoly2_pairwise_rf_estimation_disc_rcpp(SEXP mrk_pairs_RSEXP, SEXP ploidy_p1_RSEXP, SEXP ploidy_p2_RSEXP, SEXP geno_RSEXP, SEXP dose_p1_RSEXP, SEXP dose_p2_RSEXP, SEXP count_vector_RSEXP, SEXP count_matrix_phases_RSEXP, SEXP count_matrix_rownames_RSEXP, SEXP count_matrix_number_RSEXP, SEXP count_matrix_pos_RSEXP, SEXP count_matrix_length_RSEXP, SEXP tol_RSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -159,8 +159,7 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< SEXP >::type count_matrix_pos_R(count_matrix_pos_RSEXP);
     Rcpp::traits::input_parameter< SEXP >::type count_matrix_length_R(count_matrix_length_RSEXP);
     Rcpp::traits::input_parameter< SEXP >::type tol_R(tol_RSEXP);
-    Rcpp::traits::input_parameter< SEXP >::type threads_R(threads_RSEXP);
-    rcpp_result_gen = Rcpp::wrap(pairwise_rf_estimation_disc_rcpp(mrk_pairs_R, ploidy_p1_R, ploidy_p2_R, geno_R, dose_p1_R, dose_p2_R, count_vector_R, count_matrix_phases_R, count_matrix_rownames_R, count_matrix_number_R, count_matrix_pos_R, count_matrix_length_R, tol_R, threads_R));
+    rcpp_result_gen = Rcpp::wrap(pairwise_rf_estimation_disc_rcpp(mrk_pairs_R, ploidy_p1_R, ploidy_p2_R, geno_R, dose_p1_R, dose_p2_R, count_vector_R, count_matrix_phases_R, count_matrix_rownames_R, count_matrix_number_R, count_matrix_pos_R, count_matrix_length_R, tol_R));
     return rcpp_result_gen;
 END_RCPP
 }
@@ -260,7 +259,7 @@ static const R_CallMethodDef CallEntries[] = {
     {"_mappoly2_est_hmm_map_biallelic_insert_marker", (DL_FUNC) &_mappoly2_est_hmm_map_biallelic_insert_marker, 10},
     {"_mappoly2_est_hmm_map_biallelic", (DL_FUNC) &_mappoly2_est_hmm_map_biallelic, 9},
     {"_mappoly2_est_hmm_map_biallelic_single", (DL_FUNC) &_mappoly2_est_hmm_map_biallelic_single, 8},
-    {"_mappoly2_pairwise_rf_estimation_disc_rcpp", (DL_FUNC) &_mappoly2_pairwise_rf_estimation_disc_rcpp, 14},
+    {"_mappoly2_pairwise_rf_estimation_disc_rcpp", (DL_FUNC) &_mappoly2_pairwise_rf_estimation_disc_rcpp, 13},
     {"_mappoly2_twopt_phasing_cpp", (DL_FUNC) &_mappoly2_twopt_phasing_cpp, 6},
     {"_mappoly2_phasing_one", (DL_FUNC) &_mappoly2_phasing_one, 5},
     {"_mappoly2_est_hmm_map_biallelic_log_implementation", (DL_FUNC) &_mappoly2_est_hmm_map_biallelic_log_implementation, 9},

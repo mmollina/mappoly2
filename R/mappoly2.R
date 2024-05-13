@@ -5,8 +5,7 @@
 #' @section mappoly main functions:
 #' The mappoly2 functions ...
 #'
-#' @docType package
+#' "_PACKAGE"
 #' @name mappoly2
 #' @useDynLib mappoly2
 NULL
-#> NULL

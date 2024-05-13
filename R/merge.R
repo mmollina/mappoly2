@@ -75,8 +75,9 @@ merge_datasets <- function(..., filter.non.conforming = TRUE,
   return(res)
 }
 
-# Function to merge two datasets
-merge.mappoly2.data <- function(x, y){
+
+#' @export
+merge.mappoly2.data <- function(x, y, ...){
 
   # Identify union of markers and individuals
   union_markers <- union(names(x$dosage.p1), names(y$dosage.p1))

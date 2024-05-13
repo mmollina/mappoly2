@@ -172,7 +172,8 @@ mapping_one <- function(g,
                         error = 0.0,
                         verbose = TRUE,
                         tol = 10e-4,
-                        ret_H0 = FALSE){
+                        ret_H0 = FALSE,
+                        only.best = TRUE){
   if(all(phase.conf == "all"))
     phase.conf <- 1:length(ph)
   assert_that(all(phase.conf%in%1:length(ph)),
@@ -184,7 +185,7 @@ mapping_one <- function(g,
   assert_that(length(rf) == nrow(g) - 1)
   if (info.parent == "p1p2"){ ###FIXME: include detect_parent_info
     for(i in phase.conf){
-      cat("   Conf.", i,":")
+      if(verbose) cat("   Conf.", i,":")
       pedigree <- matrix(rep(c(1,2,ploidy.p1,ploidy.p2, 1),n.ind),
                          nrow = n.ind,
                          byrow = TRUE)
@@ -204,15 +205,15 @@ mapping_one <- function(g,
       ph[[i]]$p1 <- ph[[i]]$p1[mrk.id, ]
       ph[[i]]$p2 <- ph[[i]]$p2[mrk.id, ]
     }
-    cat("Done with map estimation\n")
+    if(verbose) cat("Done with map estimation\n")
     #return(ph)
-    return(sort_phase(ph))
+    return(sort_phase(ph, only.best))
   }
   else if(info.parent == "p1"){
     id <- which(ploidy.p2 == dosage.p2[mrk.id])
     g[id, ] <- g[id, ] - ploidy.p2/2
     for(i in phase.conf){
-      cat("   Conf.", i,":")
+      if(verbose) cat("   Conf.", i,":")
       w <- est_hmm_map_biallelic_single(PH = ph[[i]]$p1[mrk.id, ],
                                         G = g,
                                         rf = rf,
@@ -227,14 +228,14 @@ mapping_one <- function(g,
       ph[[i]]$p1 <- ph[[i]]$p1[mrk.id, ]
       ph[[i]]$p2 <- ph[[i]]$p2[mrk.id, ]
     }
-    cat("Done with map estimation\n")
-    return(sort_phase(ph))
+    if(verbose) cat("Done with map estimation\n")
+    return(sort_phase(ph, only.best))
   }
   else if(info.parent == "p2") {
     id <- which(ploidy.p1 == dosage.p1[mrk.id])
     g[id, ] <- g[id, ] - ploidy.p1/2
     for(i in phase.conf){
-      cat("   Conf.", i,":")
+      if(verbose) cat("   Conf.", i,":")
       w <- est_hmm_map_biallelic_single(PH = ph[[i]]$p2[mrk.id, ],
                                         G = g,
                                         rf = rf,
@@ -249,8 +250,8 @@ mapping_one <- function(g,
       ph[[i]]$p1 <- ph[[i]]$p1[mrk.id, ]
       ph[[i]]$p2 <- ph[[i]]$p2[mrk.id, ]
     }
-    cat("Done with map estimation\n")
-    return(sort_phase(ph))
+    if(verbose) cat("Done with map estimation\n")
+    return(sort_phase(ph, only.best))
   }
   else {stop("it should not get here")}
 }

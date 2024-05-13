@@ -433,8 +433,7 @@ RcppExport SEXP pairwise_rf_estimation_disc_rcpp(SEXP mrk_pairs_R,
                                                  SEXP count_matrix_number_R,
                                                  SEXP count_matrix_pos_R,
                                                  SEXP count_matrix_length_R,
-                                                 SEXP tol_R,
-                                                 SEXP threads_R)
+                                                 SEXP tol_R)
 {
   NumericMatrix mrk_pairs = mrk_pairs_R;
   NumericMatrix geno = geno_R;
