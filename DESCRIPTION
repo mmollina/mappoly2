@@ -60,6 +60,7 @@ Depends:
 Imports:
     Rcpp (>= 1.0.0),
     RcppParallel,
+    vcfR,
     assertthat,
     ggplot2,
     dendextend,
