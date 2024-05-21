@@ -52,3 +52,6 @@ is.haplotype.sequence <- function(x, lg, type, parent){
   !is.null(x$maps[[lg]][[type]][[parent]]$hmm.phase[[1]]$haploprob)
 }
 
+has.adequate.ploidy <- function(x){
+  assertthat::assert_that((x %% 2) == 0, msg = "At least one of the parents has an odd ploidy level.")
+}
