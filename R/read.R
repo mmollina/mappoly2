@@ -114,7 +114,7 @@ read_geno_csv <- function(file.in,
 #' @param ploidy.p2 An integer indicating the ploidy level of parent 2. Defaults to the value of \code{ploidy.p1}.
 #' @param name.p1 A character string containing the name of parent 1.
 #' @param name.p2 A character string containing the name of parent 2.
-#' @param name.offspring A character vector containing the names of the offspring. Defaults to \code{NULL}.
+#' @param name.offspring A character vector containing the names of the offspring. If \code{NULL}, all subjects except \code{name.p1} and \code{name.p2} will be considered as offspring.
 #' @param filter.non.conforming Logical, if \code{TRUE} (default), converts data points with unexpected genotypes to 'NA'. See \code{\link[mappoly]{segreg_poly}} for details on expected classes and frequencies.
 #' @param filter.redundant Logical, if \code{TRUE} (default), removes redundant markers during map construction, keeping them annotated for export to the final map.
 #' @param verbose Logical, if \code{TRUE} (default), displays progress information.
@@ -298,6 +298,8 @@ read_vcf <- function(file.in,
 
   return(out)
 }
+
+
 
 
 #' Conversion of data.frame to mappoly.data

@@ -316,3 +316,167 @@ arma::sp_mat calc_haploprob_biallelic_single(NumericMatrix PH,
   }
   return M;
 }
+
+
+// [[Rcpp::export]]
+arma::sp_mat calc_haploprob_biallelic_given_ve(NumericVector ploidy_p1,
+                                               NumericVector ploidy_p2,
+                                               std::vector<std::vector<std::vector<int> > > v,
+                                               std::vector<std::vector<std::vector<double> > > e,
+                                               NumericVector rf) {
+  std::vector<int> pl{2,4,6};
+  int k, k1;
+  int n_mrk  = v.size();
+  int n_ind  = v[0].size();
+  // Getting the maximum ploidy level among founders
+  int mpi1 = max(ploidy_p1);
+  int mpi2 = max(ploidy_p2);
+  int max_ploidy_id;
+  if(mpi1 >= mpi2)
+    max_ploidy_id = mpi1;
+  else
+    max_ploidy_id = mpi2;
+  //Initializing alpha, beta, and gamma
+  std::vector<std::vector<std::vector<double> > > alpha(n_ind);
+  std::vector<std::vector<std::vector<double> > > beta(n_ind);
+  std::vector<std::vector<std::vector<double> > > gamma(n_ind);
+  for(int ind=0; ind < n_ind; ind++)
+  {
+    for(int i=0; i < n_mrk; i++)
+    {
+      std::vector<double> temp3(v[i][ind].size()/2);
+      alpha[ind].push_back(temp3);
+      beta[ind].push_back(temp3);
+      gamma[ind].push_back(temp3);
+    }
+  }
+
+  //Initializing transition matrices
+  std::vector< std::vector< std::vector< std::vector<double> > > >T;
+  for(int j=0; j <= max_ploidy_id; j++)
+  {
+    std::vector< std::vector< std::vector<double> > > Ttemp;
+    for(int i=0; i < n_mrk-1; i++)
+    {
+      Ttemp.push_back(transition(pl[j], rf[i]));
+    }
+    T.push_back(Ttemp);
+  }
+  //Loop over all individuals
+  for(int ind=0; ind < n_ind; ind++)
+  {
+    R_CheckUserInterrupt();
+    for(int j=0; (unsigned)j < e[0][ind].size(); j++)
+      alpha[ind][0][j] = e[0][ind][j];
+
+    std::fill(beta[ind][n_mrk-1].begin(), beta[ind][n_mrk-1].end(), 1.0);
+    //forward-backward
+    for(k=1,k1=n_mrk-2; k < n_mrk; k++, k1--)
+    {
+      std::vector<double> temp4 (v[k][ind].size()/2);
+      temp4 = forward_emit(alpha[ind][k-1],
+                           v[k-1][ind],
+                                 v[k][ind],
+                                     e[k][ind],
+                                         T[ploidy_p1[ind]][k-1],
+                                                          T[ploidy_p2[ind]][k-1]);
+      // Normalization to avoid underflow
+      // NOTE: The LogSumExp (LSE) method is not used here for efficiency reasons,
+      // as it has been observed that this normalization technique performs adequately.
+      double zeta = 0;
+      for(int j=0; (unsigned)j < temp4.size(); j++)
+        zeta = zeta + temp4[j];
+      for(int j=0; (unsigned)j < temp4.size(); j++)
+      {
+        alpha[ind][k][j]=temp4[j]/zeta;
+      }
+      std::vector<double> temp5 (v[k1][ind].size()/2);
+      temp5=backward_emit(beta[ind][k1+1],
+                          v[k1][ind],
+                               v[k1+1][ind],
+                                      e[k1+1][ind],
+                                             T[ploidy_p1[ind]][k1],
+                                                              T[ploidy_p2[ind]][k1]);
+      // Normalization to avoid underflow
+      zeta = 0;
+      for(int j=0; (unsigned)j < temp5.size(); j++)
+        zeta = zeta + temp5[j];
+      for(int j=0; (unsigned)j < temp5.size(); j++)
+      {
+        beta[ind][k1][j]=temp5[j]/zeta;
+      }
+    }
+  } // End loop over individuals
+
+  //Computing gamma
+  for(int ind=0; ind < n_ind; ind++)
+  {
+    for(int k=0; k < n_mrk; k++)
+    {
+      double w = 0.0;
+      for(int j=0; (unsigned)j < alpha[ind][k].size(); j++)
+        w += alpha[ind][k][j]*beta[ind][k][j];
+      for(int j=0; (unsigned)j < alpha[ind][k].size(); j++)
+        gamma[ind][k][j] = alpha[ind][k][j]*beta[ind][k][j]/w;
+    }
+  }
+
+
+  int cte = 0, tot = 0;
+  for(int i = 0; i < n_ind; i++)
+    tot += pl[ploidy_p1[i]] + pl[ploidy_p2[i]];
+  arma::sp_mat M(tot, n_mrk + 2);
+  for(int i = 0; i < n_ind; i++) {
+    NumericVector x1(pl[ploidy_p1[i]]);
+    for(int i1 = 0; i1 < x1.size(); i1++)
+      x1[i1] = i1;
+    IntegerMatrix homolog_combn1  = combn(x1, x1.size()/2);
+    NumericVector x2(pl[ploidy_p2[i]]);
+    for(int i2 = 0; i2 < x2.size(); i2++)
+      x2[i2] = i2;
+    IntegerMatrix homolog_combn2  = combn(x2, x2.size()/2);
+    int id1 = x1.size(), id2 = x2.size();
+    NumericVector x3(id1 + id2);
+    std::copy(x1.begin(), x1.end(), x3.begin());
+    std::copy(x2.begin(), x2.end(), x3.begin() + id1);
+    for(int s = 0; s < pl[ploidy_p1[i]] + pl[ploidy_p2[i]]; s++){
+      M(cte + s,0) = i + 1;
+      M(cte + s,1) = x3[s] + 1;
+    }
+    for(int k = 2; k < n_mrk + 2; k++) {
+      int n3 = gamma[i][k-2].size();
+      for(int s = 0; s < n3; s++) {
+        if(gamma[i][k-2][s] > SparseThreshold){
+          IntegerVector y1  = homolog_combn1(_,v[k-2][i][s]);
+          IntegerVector y2 = homolog_combn2(_,v[k-2][i][s + n3]);
+          for(int j = 0; j < y1.size(); j++)
+            M(cte + y1[j], k) += gamma[i][k-2][s];
+          for(int j = 0; j < y2.size(); j++)
+            M(cte + y2[j] + pl[ploidy_p1[i]], k) += gamma[i][k-2][s];
+        }
+      }
+    }
+    cte += pl[ploidy_p1[i]] + pl[ploidy_p2[i]];
+  }
+  return M;
+}
+
+// [[Rcpp::export]]
+arma::sp_mat calc_haploprob_biallelic_given_ve2(List PH, //list of vectors
+                                                     IntegerVector G, //vector of dosages for inserted marker
+                                                     NumericMatrix pedigree,
+                                                     NumericMatrix  M,
+                                                     NumericVector rf) {
+  NumericVector ploidy_p1 = pedigree(_,2)/2 - 1;
+  NumericVector ploidy_p2 = pedigree(_,3)/2 - 1;
+  // HMM states that should be visited given the phase of
+  // the founders, genotype of the offspring and pedigree
+  List result = vs_inserted_mrk_end(PH, G, pedigree, M);
+  List ve = hmm_vectors(result);
+  std::vector<std::vector<std::vector<int> > > v = ve["v"];
+  std::vector<std::vector<std::vector<double> > > e = ve["e"];
+  return(calc_haploprob_biallelic_given_ve(ploidy_p1, ploidy_p2, v, e, rf));
+}
+
+
+

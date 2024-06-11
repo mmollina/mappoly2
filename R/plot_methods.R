@@ -372,16 +372,13 @@ plot_map <- function(x, lg = 1, type = c("mds", "genome"),
   assert_that(is.mapped.sequence(x, y$lg, y$type, parent),
               msg = "Requested map is not estimated")
   assert_that(length(y$lg) ==1 & is.numeric(lg))
-
-  v <- detect_hmm_est_map(x)
-  u <- apply(v[parent,,],1,all)
-  h <- names(u)[1:2][!u[1:2]]
-  if(length(h) == 1)
-    assert_that(u[type], msg = paste(h, "order has not been computed for", parent))
-  else
-    assert_that(u[type], msg = paste(h[1], "and", h[2],"orders have not been computed for", parent))
-
-
+  #v <- detect_hmm_est_map(x)
+  #u <- v[parent,,lg]
+  #h <- names(u)[1:2][!u[1:2]]
+  #if(length(h) == 1)
+  #  assert_that(u[type], msg = paste(h, "order has not been computed for", parent))
+  #else
+  #  assert_that(u[type], msg = paste(h[1], "and", h[2],"orders have not been computed for", parent))
   old.par <- par(no.readonly = TRUE)
   on.exit(par(old.par))
   map.info <- prepare_map(x$maps[[y$lg]][[y$type]][[parent]],

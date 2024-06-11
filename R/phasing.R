@@ -15,6 +15,7 @@
 #' @param max.search.expansion.p2 The maximum number of search expansions for parent 2.
 #'                                Defaults to the same as `max.search.expansion.p1`.
 #' @param verbose Logical; if TRUE, progress messages will be printed.
+#' @param mrk.id For internal use only.
 #'
 #' @return Returns the updated mappoly2 sequence object with the phased genetic maps.
 #'
@@ -35,11 +36,13 @@ pairwise_phasing <- function(x,
                              thresh.rf = 0.5,
                              max.search.expansion.p1 = 10,
                              max.search.expansion.p2 = max.search.expansion.p1,
-                             verbose = TRUE){
+                             verbose = TRUE,
+                             mrk.id = NULL){
   y <- parse_lg_and_type(x,lg,type)
   assert_that(has.mappoly2.screened(x$data))
   parent <- match.arg(parent)
-  mrk.id <- get_markers_from_ordered_sequence(x, y$lg, y$type, parent)
+  if(is.null(mrk.id))
+    mrk.id <- get_markers_from_ordered_sequence(x, y$lg, y$type, parent)
   for(i in 1:length(mrk.id)){
     if(verbose) cat("  -->", y$lg[i], "\n")
     x$maps[[y$lg[i]]][[y$type]][[parent]]$rf.phase <- pairwise_phasing_one(x,
@@ -55,16 +58,16 @@ pairwise_phasing <- function(x,
       temp <- x$maps[[y$lg[i]]][[y$type]][[parent]]$rf.phase
       idx <- get_info_markers(rownames(temp[[1]]$p1), x, "p1")
       for(j in 1:length(temp)){
-        temp[[j]]$p1 <- temp[[j]]$p1[idx,]
-        temp[[j]]$p2 <- temp[[j]]$p2[idx,]
+        temp[[j]]$p1 <- temp[[j]]$p1[idx, ,drop = FALSE]
+        temp[[j]]$p2 <- temp[[j]]$p2[idx, ,drop = FALSE]
       }
       x$maps[[y$lg[i]]][[y$type]][["p1"]]$rf.phase <- temp
       ## attributing phase to p1 informative markers
       temp <- x$maps[[y$lg[i]]][[y$type]][[parent]]$rf.phase
       idx <- get_info_markers(rownames(temp[[1]]$p1), x, "p2")
       for(j in 1:length(temp)){
-        temp[[j]]$p1 <- temp[[j]]$p1[idx,]
-        temp[[j]]$p2 <- temp[[j]]$p2[idx,]
+        temp[[j]]$p1 <- temp[[j]]$p1[idx, ,drop = FALSE]
+        temp[[j]]$p2 <- temp[[j]]$p2[idx, ,drop = FALSE]
       }
       x$maps[[y$lg[i]]][[y$type]][["p2"]]$rf.phase <- temp
     }

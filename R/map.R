@@ -173,7 +173,7 @@ mapping_one <- function(g,
                         verbose = TRUE,
                         tol = 10e-4,
                         ret_H0 = FALSE,
-                        only.best = TRUE){
+                        only.best = FALSE){
   if(all(phase.conf == "all"))
     phase.conf <- 1:length(ph)
   assert_that(all(phase.conf%in%1:length(ph)),

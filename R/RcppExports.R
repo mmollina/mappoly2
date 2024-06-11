@@ -9,6 +9,14 @@ calc_haploprob_biallelic_single <- function(PH, G, rf, err) {
     .Call('_mappoly2_calc_haploprob_biallelic_single', PACKAGE = 'mappoly2', PH, G, rf, err)
 }
 
+calc_haploprob_biallelic_given_ve <- function(ploidy_p1, ploidy_p2, v, e, rf) {
+    .Call('_mappoly2_calc_haploprob_biallelic_given_ve', PACKAGE = 'mappoly2', ploidy_p1, ploidy_p2, v, e, rf)
+}
+
+calc_haploprob_biallelic_given_ve2 <- function(PH, G, pedigree, M, rf) {
+    .Call('_mappoly2_calc_haploprob_biallelic_given_ve2', PACKAGE = 'mappoly2', PH, G, pedigree, M, rf)
+}
+
 find_valid_permutations <- function(H, d, x) {
     .Call('_mappoly2_find_valid_permutations', PACKAGE = 'mappoly2', H, d, x)
 }
@@ -17,12 +25,20 @@ vs_inserted_mrk <- function(PH, G, pedigree, M, idx) {
     .Call('_mappoly2_vs_inserted_mrk', PACKAGE = 'mappoly2', PH, G, pedigree, M, idx)
 }
 
+vs_inserted_mrk_end <- function(PH, G, pedigree, M) {
+    .Call('_mappoly2_vs_inserted_mrk_end', PACKAGE = 'mappoly2', PH, G, pedigree, M)
+}
+
 vs_biallelic_error <- function(PH, G, pedigree, err, logatithm) {
     .Call('_mappoly2_vs_biallelic_error', PACKAGE = 'mappoly2', PH, G, pedigree, err, logatithm)
 }
 
 est_hmm_map_biallelic_insert_marker <- function(PH, G, pedigree, M, rf, idx, verbose, detailed_verbose, tol, ret_H0) {
     .Call('_mappoly2_est_hmm_map_biallelic_insert_marker', PACKAGE = 'mappoly2', PH, G, pedigree, M, rf, idx, verbose, detailed_verbose, tol, ret_H0)
+}
+
+est_hmm_map_biallelic_insert_marker_at_the_end <- function(PH, G, pedigree, M, rf, verbose, detailed_verbose, tol, ret_H0) {
+    .Call('_mappoly2_est_hmm_map_biallelic_insert_marker_at_the_end', PACKAGE = 'mappoly2', PH, G, pedigree, M, rf, verbose, detailed_verbose, tol, ret_H0)
 }
 
 est_hmm_map_biallelic <- function(PH, G, pedigree, rf, err, verbose, detailed_verbose, tol, ret_H0) {
@@ -43,6 +59,22 @@ twopt_phasing_cpp <- function(mrk_id, ploidy, dose_vec, S, max_conf_number, verb
 
 phasing_one <- function(mrk_id, dose_vec, S, InitPh, verbose) {
     .Call('_mappoly2_phasing_one', PACKAGE = 'mappoly2', mrk_id, dose_vec, S, InitPh, verbose)
+}
+
+.vcf_get_probabilities <- function(mat, pl_pos) {
+    .Call('_mappoly2_vcf_get_probabilities', PACKAGE = 'mappoly2', mat, pl_pos)
+}
+
+.vcf_transform_dosage <- function(mat, gt_pos) {
+    .Call('_mappoly2_vcf_transform_dosage', PACKAGE = 'mappoly2', mat, gt_pos)
+}
+
+.vcf_get_ploidy <- function(mat, gt_pos) {
+    .Call('_mappoly2_vcf_get_ploidy', PACKAGE = 'mappoly2', mat, gt_pos)
+}
+
+.vcf_get_depth <- function(mat, dp_pos) {
+    .Call('_mappoly2_vcf_get_depth', PACKAGE = 'mappoly2', mat, dp_pos)
 }
 
 est_hmm_map_biallelic_log_implementation <- function(PH, G, pedigree, rf, err, verbose, detailed_verbose, tol, ret_H0) {

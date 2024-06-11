@@ -14,7 +14,8 @@ pairwise_phasing(
   thresh.rf = 0.5,
   max.search.expansion.p1 = 10,
   max.search.expansion.p2 = max.search.expansion.p1,
-  verbose = TRUE
+  verbose = TRUE,
+  mrk.id = NULL
 )
 }
 \arguments{
@@ -40,6 +41,8 @@ Options are "p1p2" (both parents), "p1" (first parent), or "p2" (second parent).
 Defaults to the same as \code{max.search.expansion.p1}.}
 
 \item{verbose}{Logical; if TRUE, progress messages will be printed.}
+
+\item{mrk.id}{For internal use only.}
 }
 \value{
 Returns the updated mappoly2 sequence object with the phased genetic maps.

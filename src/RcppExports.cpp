@@ -40,6 +40,36 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
+// calc_haploprob_biallelic_given_ve
+arma::sp_mat calc_haploprob_biallelic_given_ve(NumericVector ploidy_p1, NumericVector ploidy_p2, std::vector<std::vector<std::vector<int> > > v, std::vector<std::vector<std::vector<double> > > e, NumericVector rf);
+RcppExport SEXP _mappoly2_calc_haploprob_biallelic_given_ve(SEXP ploidy_p1SEXP, SEXP ploidy_p2SEXP, SEXP vSEXP, SEXP eSEXP, SEXP rfSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< NumericVector >::type ploidy_p1(ploidy_p1SEXP);
+    Rcpp::traits::input_parameter< NumericVector >::type ploidy_p2(ploidy_p2SEXP);
+    Rcpp::traits::input_parameter< std::vector<std::vector<std::vector<int> > > >::type v(vSEXP);
+    Rcpp::traits::input_parameter< std::vector<std::vector<std::vector<double> > > >::type e(eSEXP);
+    Rcpp::traits::input_parameter< NumericVector >::type rf(rfSEXP);
+    rcpp_result_gen = Rcpp::wrap(calc_haploprob_biallelic_given_ve(ploidy_p1, ploidy_p2, v, e, rf));
+    return rcpp_result_gen;
+END_RCPP
+}
+// calc_haploprob_biallelic_given_ve2
+arma::sp_mat calc_haploprob_biallelic_given_ve2(List PH, IntegerVector G, NumericMatrix pedigree, NumericMatrix M, NumericVector rf);
+RcppExport SEXP _mappoly2_calc_haploprob_biallelic_given_ve2(SEXP PHSEXP, SEXP GSEXP, SEXP pedigreeSEXP, SEXP MSEXP, SEXP rfSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< List >::type PH(PHSEXP);
+    Rcpp::traits::input_parameter< IntegerVector >::type G(GSEXP);
+    Rcpp::traits::input_parameter< NumericMatrix >::type pedigree(pedigreeSEXP);
+    Rcpp::traits::input_parameter< NumericMatrix >::type M(MSEXP);
+    Rcpp::traits::input_parameter< NumericVector >::type rf(rfSEXP);
+    rcpp_result_gen = Rcpp::wrap(calc_haploprob_biallelic_given_ve2(PH, G, pedigree, M, rf));
+    return rcpp_result_gen;
+END_RCPP
+}
 // find_valid_permutations
 NumericMatrix find_valid_permutations(NumericMatrix H, NumericVector d, int x);
 RcppExport SEXP _mappoly2_find_valid_permutations(SEXP HSEXP, SEXP dSEXP, SEXP xSEXP) {
@@ -65,6 +95,20 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< NumericMatrix >::type M(MSEXP);
     Rcpp::traits::input_parameter< IntegerVector >::type idx(idxSEXP);
     rcpp_result_gen = Rcpp::wrap(vs_inserted_mrk(PH, G, pedigree, M, idx));
+    return rcpp_result_gen;
+END_RCPP
+}
+// vs_inserted_mrk_end
+List vs_inserted_mrk_end(List PH, IntegerVector G, NumericMatrix pedigree, NumericMatrix M);
+RcppExport SEXP _mappoly2_vs_inserted_mrk_end(SEXP PHSEXP, SEXP GSEXP, SEXP pedigreeSEXP, SEXP MSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< List >::type PH(PHSEXP);
+    Rcpp::traits::input_parameter< IntegerVector >::type G(GSEXP);
+    Rcpp::traits::input_parameter< NumericMatrix >::type pedigree(pedigreeSEXP);
+    Rcpp::traits::input_parameter< NumericMatrix >::type M(MSEXP);
+    rcpp_result_gen = Rcpp::wrap(vs_inserted_mrk_end(PH, G, pedigree, M));
     return rcpp_result_gen;
 END_RCPP
 }
@@ -100,6 +144,25 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< double >::type tol(tolSEXP);
     Rcpp::traits::input_parameter< bool >::type ret_H0(ret_H0SEXP);
     rcpp_result_gen = Rcpp::wrap(est_hmm_map_biallelic_insert_marker(PH, G, pedigree, M, rf, idx, verbose, detailed_verbose, tol, ret_H0));
+    return rcpp_result_gen;
+END_RCPP
+}
+// est_hmm_map_biallelic_insert_marker_at_the_end
+List est_hmm_map_biallelic_insert_marker_at_the_end(List PH, IntegerVector G, NumericMatrix pedigree, NumericMatrix M, NumericVector rf, bool verbose, bool detailed_verbose, double tol, bool ret_H0);
+RcppExport SEXP _mappoly2_est_hmm_map_biallelic_insert_marker_at_the_end(SEXP PHSEXP, SEXP GSEXP, SEXP pedigreeSEXP, SEXP MSEXP, SEXP rfSEXP, SEXP verboseSEXP, SEXP detailed_verboseSEXP, SEXP tolSEXP, SEXP ret_H0SEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< List >::type PH(PHSEXP);
+    Rcpp::traits::input_parameter< IntegerVector >::type G(GSEXP);
+    Rcpp::traits::input_parameter< NumericMatrix >::type pedigree(pedigreeSEXP);
+    Rcpp::traits::input_parameter< NumericMatrix >::type M(MSEXP);
+    Rcpp::traits::input_parameter< NumericVector >::type rf(rfSEXP);
+    Rcpp::traits::input_parameter< bool >::type verbose(verboseSEXP);
+    Rcpp::traits::input_parameter< bool >::type detailed_verbose(detailed_verboseSEXP);
+    Rcpp::traits::input_parameter< double >::type tol(tolSEXP);
+    Rcpp::traits::input_parameter< bool >::type ret_H0(ret_H0SEXP);
+    rcpp_result_gen = Rcpp::wrap(est_hmm_map_biallelic_insert_marker_at_the_end(PH, G, pedigree, M, rf, verbose, detailed_verbose, tol, ret_H0));
     return rcpp_result_gen;
 END_RCPP
 }
@@ -194,6 +257,54 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
+// vcf_get_probabilities
+Rcpp::List vcf_get_probabilities(Rcpp::StringMatrix& mat, int pl_pos);
+RcppExport SEXP _mappoly2_vcf_get_probabilities(SEXP matSEXP, SEXP pl_posSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< Rcpp::StringMatrix& >::type mat(matSEXP);
+    Rcpp::traits::input_parameter< int >::type pl_pos(pl_posSEXP);
+    rcpp_result_gen = Rcpp::wrap(vcf_get_probabilities(mat, pl_pos));
+    return rcpp_result_gen;
+END_RCPP
+}
+// vcf_transform_dosage
+Rcpp::NumericMatrix vcf_transform_dosage(Rcpp::StringMatrix& mat, int gt_pos);
+RcppExport SEXP _mappoly2_vcf_transform_dosage(SEXP matSEXP, SEXP gt_posSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< Rcpp::StringMatrix& >::type mat(matSEXP);
+    Rcpp::traits::input_parameter< int >::type gt_pos(gt_posSEXP);
+    rcpp_result_gen = Rcpp::wrap(vcf_transform_dosage(mat, gt_pos));
+    return rcpp_result_gen;
+END_RCPP
+}
+// vcf_get_ploidy
+Rcpp::NumericMatrix vcf_get_ploidy(Rcpp::StringMatrix& mat, int gt_pos);
+RcppExport SEXP _mappoly2_vcf_get_ploidy(SEXP matSEXP, SEXP gt_posSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< Rcpp::StringMatrix& >::type mat(matSEXP);
+    Rcpp::traits::input_parameter< int >::type gt_pos(gt_posSEXP);
+    rcpp_result_gen = Rcpp::wrap(vcf_get_ploidy(mat, gt_pos));
+    return rcpp_result_gen;
+END_RCPP
+}
+// vcf_get_depth
+Rcpp::NumericMatrix vcf_get_depth(Rcpp::StringMatrix& mat, int dp_pos);
+RcppExport SEXP _mappoly2_vcf_get_depth(SEXP matSEXP, SEXP dp_posSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< Rcpp::StringMatrix& >::type mat(matSEXP);
+    Rcpp::traits::input_parameter< int >::type dp_pos(dp_posSEXP);
+    rcpp_result_gen = Rcpp::wrap(vcf_get_depth(mat, dp_pos));
+    return rcpp_result_gen;
+END_RCPP
+}
 // est_hmm_map_biallelic_log_implementation
 List est_hmm_map_biallelic_log_implementation(List PH, IntegerMatrix G, NumericMatrix pedigree, NumericVector rf, double err, bool verbose, bool detailed_verbose, double tol, bool ret_H0);
 RcppExport SEXP _mappoly2_est_hmm_map_biallelic_log_implementation(SEXP PHSEXP, SEXP GSEXP, SEXP pedigreeSEXP, SEXP rfSEXP, SEXP errSEXP, SEXP verboseSEXP, SEXP detailed_verboseSEXP, SEXP tolSEXP, SEXP ret_H0SEXP) {
@@ -253,15 +364,23 @@ END_RCPP
 static const R_CallMethodDef CallEntries[] = {
     {"_mappoly2_calc_haploprob_biallelic", (DL_FUNC) &_mappoly2_calc_haploprob_biallelic, 5},
     {"_mappoly2_calc_haploprob_biallelic_single", (DL_FUNC) &_mappoly2_calc_haploprob_biallelic_single, 4},
+    {"_mappoly2_calc_haploprob_biallelic_given_ve", (DL_FUNC) &_mappoly2_calc_haploprob_biallelic_given_ve, 5},
+    {"_mappoly2_calc_haploprob_biallelic_given_ve2", (DL_FUNC) &_mappoly2_calc_haploprob_biallelic_given_ve2, 5},
     {"_mappoly2_find_valid_permutations", (DL_FUNC) &_mappoly2_find_valid_permutations, 3},
     {"_mappoly2_vs_inserted_mrk", (DL_FUNC) &_mappoly2_vs_inserted_mrk, 5},
+    {"_mappoly2_vs_inserted_mrk_end", (DL_FUNC) &_mappoly2_vs_inserted_mrk_end, 4},
     {"_mappoly2_vs_biallelic_error", (DL_FUNC) &_mappoly2_vs_biallelic_error, 5},
     {"_mappoly2_est_hmm_map_biallelic_insert_marker", (DL_FUNC) &_mappoly2_est_hmm_map_biallelic_insert_marker, 10},
+    {"_mappoly2_est_hmm_map_biallelic_insert_marker_at_the_end", (DL_FUNC) &_mappoly2_est_hmm_map_biallelic_insert_marker_at_the_end, 9},
     {"_mappoly2_est_hmm_map_biallelic", (DL_FUNC) &_mappoly2_est_hmm_map_biallelic, 9},
     {"_mappoly2_est_hmm_map_biallelic_single", (DL_FUNC) &_mappoly2_est_hmm_map_biallelic_single, 8},
     {"_mappoly2_pairwise_rf_estimation_disc_rcpp", (DL_FUNC) &_mappoly2_pairwise_rf_estimation_disc_rcpp, 13},
     {"_mappoly2_twopt_phasing_cpp", (DL_FUNC) &_mappoly2_twopt_phasing_cpp, 6},
     {"_mappoly2_phasing_one", (DL_FUNC) &_mappoly2_phasing_one, 5},
+    {"_mappoly2_vcf_get_probabilities", (DL_FUNC) &_mappoly2_vcf_get_probabilities, 2},
+    {"_mappoly2_vcf_transform_dosage", (DL_FUNC) &_mappoly2_vcf_transform_dosage, 2},
+    {"_mappoly2_vcf_get_ploidy", (DL_FUNC) &_mappoly2_vcf_get_ploidy, 2},
+    {"_mappoly2_vcf_get_depth", (DL_FUNC) &_mappoly2_vcf_get_depth, 2},
     {"_mappoly2_est_hmm_map_biallelic_log_implementation", (DL_FUNC) &_mappoly2_est_hmm_map_biallelic_log_implementation, 9},
     {"_mappoly2_segreg_poly", (DL_FUNC) &_mappoly2_segreg_poly, 4},
     {"_mappoly2_mappoly_chisq_test", (DL_FUNC) &_mappoly2_mappoly_chisq_test, 1},

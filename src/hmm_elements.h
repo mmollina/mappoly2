@@ -55,6 +55,10 @@ List vs_inserted_mrk(List PH,
                      NumericMatrix pedigree,
                      NumericMatrix  M,
                      IntegerVector idx);
+List vs_inserted_mrk_end(List PH,
+                         IntegerVector G,
+                         NumericMatrix pedigree,
+                         NumericMatrix  M);
 List vs_biallelic(List PH,
                   IntegerMatrix G,
                   NumericMatrix pedigree);

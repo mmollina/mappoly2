@@ -440,6 +440,113 @@ List vs_inserted_mrk(List PH, //list of vectors
                       Named("emit") = E);
 }
 
+
+// Helper function for states to visit - marker in PH and G will be inserted between M(,1) and M(,2)
+// [[Rcpp::export]]
+List vs_inserted_mrk_end(List PH, //list of vectors
+                         IntegerVector G, //vector of dosages for inserted marker
+                         NumericMatrix pedigree,
+                         NumericMatrix  M) {
+  NumericMatrix unique_pop_mat = retainUniqueAndSortByLastColumn(pedigree);
+  int n_fullsib_pop = unique_pop_mat.nrow();
+  int n_ind = pedigree.nrow();
+  int n_mrk = 2;
+  NumericVector ploidy_p1 = unique_pop_mat(_,2);
+  NumericVector ploidy_p2 = unique_pop_mat(_,3);
+  List result = calculate_L_and_initialize_H(n_fullsib_pop, n_mrk, n_ind,
+                                             ploidy_p1,ploidy_p2);
+  List L = result["L"];
+  List H = result["H"];
+  List E = result["E"];
+  List H_k(n_ind);
+  List E_k(n_ind);
+  // For loop to retrieve the states associated with markers that have not yet been mapped
+  for(int pop_id = 0; pop_id < n_fullsib_pop; pop_id ++){ // ************ Pop id
+    // Emission function
+    NumericMatrix L_mat = as<NumericMatrix>(L[pop_id]);
+    NumericMatrix temp_emit(L_mat.nrow(), 1);
+    std::fill(temp_emit.begin(), temp_emit.end(), 1.0);
+    // States to visit
+    IntegerVector ind_id = which(pedigree(_,4) == pop_id + 1) - 1;
+    NumericVector v1 = PH[unique_pop_mat(pop_id,0) - 1];
+    NumericVector v2 = PH[unique_pop_mat(pop_id,1) - 1];
+    if (any(is_na(v1)).is_true() || any(is_na(v2)).is_true()) {
+      for(int j = 0; j < ind_id.size(); j++) { // ***************************** Ind Parents NA
+        H_k[ind_id[j]] = L[pop_id];
+        E_k[ind_id[j]] = temp_emit;
+      } // end individual loop when NA
+    } else {
+      IntegerMatrix x1 = combn(v1, v1.size() / 2);
+      IntegerMatrix x2 = combn(v2, v2.size() / 2);
+      IntegerVector x(x1.ncol() * x2.ncol());
+      for (int i = 0; i < x1.ncol(); i++) {
+        for (int j = 0; j < x2.ncol(); j++) {
+          x((i * x2.ncol()) + j) = sum(x1(_ ,i)) + sum(x2(_ ,j));
+        }
+      }
+      for(int j = 0; j < ind_id.size(); j++) { // ***************************** Ind ALL
+        if (G(ind_id[j]) < 0) {  // ************************************* Ind NA
+          H_k[ind_id[j]] = L[pop_id];
+          E_k[ind_id[j]] = temp_emit;
+        } else{  // *********************************************************** Ind Visit
+          IntegerVector y;
+          for (int i = 0; i < x.size(); i++) {
+            if (x(i) == G(ind_id[j])) {
+              y.push_back(i);
+            }
+          }
+          IntegerMatrix L_pop = L[pop_id];
+          IntegerMatrix subset_L_pop(y.size(), L_pop.ncol());
+          for (int row = 0; row < y.size(); ++row) {
+            subset_L_pop(row, _) = L_pop(y[row], _);
+          }
+          H_k[ind_id[j]] = subset_L_pop;
+          NumericMatrix temp_emit2(y.size(), 1);
+          std::fill(temp_emit2.begin(), temp_emit2.end(), 1.0);
+          E_k[ind_id[j]] = temp_emit2;
+        }
+      }
+    }
+  } // end population loop
+  H[1] = H_k;
+  E[1] = E_k;
+  // For loop to obtain the states of markers that are positioned adjacently to the un-mapped marker
+  for(int k = 0; k < 1; k++){
+    List H_k(n_ind);
+    List E_k(n_ind);
+    NumericMatrix L_mat = as<NumericMatrix>(L[0]);   // FIXME for multi-population: zero here refers to the first (and only bi-parental population)
+    int cte = 0;
+    for(int i = 0; i < n_ind; i++){
+      NumericVector v(ploidy_p1[0]+ploidy_p2[0]); // FIXME for multi-population
+      for(int j = 0; j < v.size(); j++) {
+        v[j] = M(j + cte, 0);
+      }
+      cte = cte + ploidy_p1[0]+ploidy_p2[0];      // FIXME for multi-population
+      NumericVector w = calculate_hmm_combinatorial_products(v,ploidy_p1[0],ploidy_p2[0]);
+      IntegerVector y;
+      for (int j = 0; j < w.size(); j++) {
+        if(w[j] > SparseThreshold){
+          y.push_back(j);
+        }
+      }
+      IntegerMatrix subset_L_pop(y.size(), L_mat.ncol());
+      NumericMatrix subset_E_pop(y.size(), 1);
+      for (int row = 0; row < y.size(); ++row) {
+        subset_L_pop(row, _) = L_mat(y[row], _);
+        subset_E_pop(row, 0) = w(y[row]);
+      }
+      H_k[i] = subset_L_pop;
+      E_k[i] = subset_E_pop;
+    }
+    H[0] = H_k;
+    E[0] = E_k;
+  }
+  return List::create(Named("states") = H,
+                      Named("emit") = E);
+}
+
+
+
 // Helper function for states to visit - biallelic
 List vs_biallelic(List PH,
                   IntegerMatrix G,
