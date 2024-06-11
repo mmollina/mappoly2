@@ -293,7 +293,7 @@ map_summary <- function(x,
     return(invisible(list(mds = x1, genome = x2)))
   }
   v <- detect_hmm_est_map(x)
-  u <- apply(v[parent,,],1,all)
+  u <- apply(v[parent,,,drop = FALSE],1,all)
   h <- names(u)[1:2][!u[1:2]]
   if(length(h) == 1)
     assert_that(u[type], msg = paste(h, "order has not been computed for", parent))
