@@ -110,7 +110,7 @@ group <- function(x = NULL,
     }
     if(length(seq.vs.grouped.snp) != 1){
       idtemp2 <- unique(apply(seq.vs.grouped.snp, 1, which.max))
-      b <- setdiff(1:(ncol(seq.vs.grouped.snp)-1), idtemp2)
+      b <- setdiff(1:(ncol(seq.vs.grouped.snp)), idtemp2)
       if(length(b)!=0){
         idtemp2 <- c(idtemp2, b)
         seq.vs.grouped.snp <- cbind(seq.vs.grouped.snp[,idtemp2])
