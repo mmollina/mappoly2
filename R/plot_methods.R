@@ -374,7 +374,7 @@ plot_map <- function(x, lg = 1, type = c("mds", "genome"),
   assert_that(length(y$lg) ==1 & is.numeric(lg))
 
   v <- detect_hmm_est_map(x)
-  u <- apply(v[parent,,,drop=FASLSE],1,all)
+  u <- apply(v[parent,,,drop=FALSE],1,all)
   h <- names(u)[1:2][!u[1:2]]
   if(length(h) == 1)
     assert_that(u[type], msg = paste(h, "order has not been computed for", parent))
