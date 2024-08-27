@@ -115,6 +115,11 @@ mapping <- function(x, lg = NULL, type = c("mds", "genome", "custom"),
                          ret_H0 = ret_H0)
   }
 
+  #Check if all groups have estimated phases
+  gtemps <- sapply(mapData, function(x) length(x[[1]]))
+  if(any(gtemps == 0)) stop(paste("Phases could not be estimated for groups:", paste0(names(gtemps)[which(gtemps == 0)], collapse = ", ")),
+                            "\n Suggestion: use both parents phases information to estimate the map")
+
   # Define the mapping function for each map
   mapFunc <- function(data) {
     if(data$verbose) cat("Processing linkage group\n")
