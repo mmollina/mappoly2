@@ -45,6 +45,22 @@ phasing_one <- function(mrk_id, dose_vec, S, InitPh, verbose) {
     .Call('_mappoly2_phasing_one', PACKAGE = 'mappoly2', mrk_id, dose_vec, S, InitPh, verbose)
 }
 
+.vcf_get_probabilities <- function(mat, pl_pos) {
+    .Call('_mappoly2_vcf_get_probabilities', PACKAGE = 'mappoly2', mat, pl_pos)
+}
+
+.vcf_transform_dosage <- function(mat, gt_pos) {
+    .Call('_mappoly2_vcf_transform_dosage', PACKAGE = 'mappoly2', mat, gt_pos)
+}
+
+.vcf_get_ploidy <- function(mat, gt_pos) {
+    .Call('_mappoly2_vcf_get_ploidy', PACKAGE = 'mappoly2', mat, gt_pos)
+}
+
+.vcf_get_depth <- function(mat, dp_pos) {
+    .Call('_mappoly2_vcf_get_depth', PACKAGE = 'mappoly2', mat, dp_pos)
+}
+
 est_hmm_map_biallelic_log_implementation <- function(PH, G, pedigree, rf, err, verbose, detailed_verbose, tol, ret_H0) {
     .Call('_mappoly2_est_hmm_map_biallelic_log_implementation', PACKAGE = 'mappoly2', PH, G, pedigree, rf, err, verbose, detailed_verbose, tol, ret_H0)
 }
