@@ -296,7 +296,7 @@ map_summary <- function(x,
   u <- apply(v[parent,,,drop = FALSE],1,all)
   h <- names(u)[1:2][!u[1:2]]
   if(length(h) == 1)
-    assert_that(u[type], msg = paste(h, "order has not been computed for", parent))
+    assert_that(u[parent], msg = paste(h, "order has not been computed for", parent))
   else
     assert_that(u[type], msg = paste(h[1], "and", h[2],"orders have not been computed for", parent))
   w <- lapply(x$maps, function(y) y[[type]])
