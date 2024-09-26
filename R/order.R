@@ -35,12 +35,13 @@ order_sequence <- function(x,
                            n = NULL,
                            ndim = 2,
                            weight.exponent = 2,
-                           verbose = TRUE){
+                           verbose = TRUE,
+                           replace_na = 1e-07){
   y <- parse_lg_and_type(x,lg,type)
   for(i in y$lg){
     if(verbose) cat("  -->", i)
     if(y$type == "mds")
-      x$maps[[i]][[y$type]]$order <- mds(x, x$maps[[i]][[y$type]]$mkr.names,p,n,ndim,weight.exponent,verbose)
+      x$maps[[i]][[y$type]]$order <- mds(x, mrk.id = x$maps[[i]][[y$type]]$mkr.names,p,n,ndim,weight.exponent,verbose, replace_na)
     else
       x$maps[[i]][[y$type]]$order <- genome_order(x, mrk.names = x$maps[[i]][[y$type]]$mkr.names, verbose = TRUE)
     if(verbose) cat("\n")
@@ -62,6 +63,7 @@ order_sequence <- function(x,
 #' @param ndim Integer; the number of dimensions to be considered in the MDS procedure (default = 2).
 #' @param weight.exponent Integer; the exponent used in the LOD score values to weight the MDS procedure (default = 2).
 #' @param verbose Boolean; if \code{TRUE} (default), displays information about the analysis.
+#' @param replace_na value to be used when no linkage information is provided by the marker combination
 #'
 #' @return A list containing various components related to MDS results, including the input
 #'         distance map, unconstrained MDS results, principal curve results, matrix of pairwise
@@ -90,13 +92,14 @@ mds <- function(x,
                 n = NULL,
                 ndim = 2,
                 weight.exponent = 2,
-                verbose = TRUE)
+                verbose = TRUE,
+                replace_na = 1e-07)
 {
   rf.mat <- x$data$pairwise.rf$rec.mat[mrk.id, mrk.id]
   lod.mat <- x$data$pairwise.rf$lod.mat[mrk.id, mrk.id]
   o <- is.na(rf.mat)
-  rf.mat[o] <- 1e-07
-  lod.mat[o] <- 1e-07
+  rf.mat[o] <- replace_na
+  lod.mat[o] <- replace_na
   if(weight.exponent != 1)
     lod.mat <- lod.mat^weight.exponent
   diag(lod.mat) <- diag(rf.mat) <- NA
