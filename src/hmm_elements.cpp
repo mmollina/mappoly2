@@ -249,6 +249,7 @@ double addlog(double a, double b)
 
 
 // Helper function for states to visit - multiallelic
+// [[Rcpp::export]]
 List vs_multiallelic_Rcpp(List PH,
                           List GENO,
                           NumericMatrix pedigree) {
@@ -274,6 +275,8 @@ List vs_multiallelic_Rcpp(List PH,
       // std::fill(temp_emit.begin(), temp_emit.end(), 1/temp_emit.size());
       // States to visit
       IntegerVector ind_id = which(pedigree(_,4) == pop_id + 1) - 1;
+      //for(int z = 0; z < ind_id.size(); z ++)
+      Rcout << "MRK:" << k << "  POP:" << pop_id << "  IND:" << ind_id[0] << "\n";
       NumericMatrix matrix_PH1 =  PH[unique_pop_mat(pop_id,0) - 1];
       NumericMatrix matrix_PH2 = PH[unique_pop_mat(pop_id,1) - 1];
       NumericVector v1 = matrix_PH1(k, _);

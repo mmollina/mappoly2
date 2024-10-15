@@ -21,6 +21,10 @@ find_valid_permutations <- function(H, d, x) {
     .Call('_mappoly2_find_valid_permutations', PACKAGE = 'mappoly2', H, d, x)
 }
 
+vs_multiallelic_Rcpp <- function(PH, GENO, pedigree) {
+    .Call('_mappoly2_vs_multiallelic_Rcpp', PACKAGE = 'mappoly2', PH, GENO, pedigree)
+}
+
 vs_inserted_mrk <- function(PH, G, pedigree, M, idx) {
     .Call('_mappoly2_vs_inserted_mrk', PACKAGE = 'mappoly2', PH, G, pedigree, M, idx)
 }
@@ -39,6 +43,10 @@ est_hmm_map_biallelic_insert_marker <- function(PH, G, pedigree, M, rf, idx, ver
 
 est_hmm_map_biallelic_insert_marker_at_the_end <- function(PH, G, pedigree, M, rf, verbose, detailed_verbose, tol, ret_H0) {
     .Call('_mappoly2_est_hmm_map_biallelic_insert_marker_at_the_end', PACKAGE = 'mappoly2', PH, G, pedigree, M, rf, verbose, detailed_verbose, tol, ret_H0)
+}
+
+est_hmm_map_multiellelic <- function(PH, GENO, pedigree, rf, verbose, detailed_verbose, tol, ret_H0) {
+    .Call('_mappoly2_est_hmm_map_multiellelic', PACKAGE = 'mappoly2', PH, GENO, pedigree, rf, verbose, detailed_verbose, tol, ret_H0)
 }
 
 est_hmm_map_biallelic <- function(PH, G, pedigree, rf, err, verbose, detailed_verbose, tol, ret_H0) {

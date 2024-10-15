@@ -567,14 +567,14 @@ List est_hmm_map_biallelic_insert_marker (List PH, //list of vectors
 
 // [[Rcpp::export]]
 List est_hmm_map_biallelic_insert_marker_at_the_end (List PH, //list of vectors
-                                          IntegerVector G, //vector of dosages for inserted marker
-                                          NumericMatrix pedigree,
-                                          NumericMatrix  M,
-                                          NumericVector rf,
-                                          bool verbose,
-                                          bool detailed_verbose,
-                                          double tol,
-                                          bool ret_H0) {
+                                                     IntegerVector G, //vector of dosages for inserted marker
+                                                     NumericMatrix pedigree,
+                                                     NumericMatrix  M,
+                                                     NumericVector rf,
+                                                     bool verbose,
+                                                     bool detailed_verbose,
+                                                     double tol,
+                                                     bool ret_H0) {
   NumericVector ploidy_p1 = pedigree(_,2)/2 - 1;
   NumericVector ploidy_p2 = pedigree(_,3)/2 - 1;
   // HMM states that should be visited given the phase of
@@ -587,6 +587,31 @@ List est_hmm_map_biallelic_insert_marker_at_the_end (List PH, //list of vectors
                          tol, verbose, detailed_verbose, ret_H0);
   return(z);
 }
+
+// [[Rcpp::export]]
+List est_hmm_map_multiellelic(List PH,
+                              List GENO,
+                              NumericMatrix pedigree,
+                              NumericVector rf,
+                              bool verbose,
+                              bool detailed_verbose,
+                              double tol,
+                              bool ret_H0) {
+  NumericVector ploidy_p1 = pedigree(_,2)/2 - 1;
+  NumericVector ploidy_p2 = pedigree(_,3)/2 - 1;
+  // HMM states that should be visited given the phase of
+  // the founders, genotype of the offspring and pedigree
+  List result = vs_multiallelic_Rcpp(PH, GENO, pedigree);
+  List ve = hmm_vectors(result);
+  std::vector<std::vector<std::vector<int> > > v = ve["v"];
+  std::vector<std::vector<std::vector<double> > > e = ve["e"];
+  List z = main_hmm_full(ploidy_p1, ploidy_p2, v,e,rf,
+                         tol, verbose,
+                         detailed_verbose,ret_H0);
+  return(z);
+}
+
+
 
 // [[Rcpp::export]]
 List est_hmm_map_biallelic(List PH,

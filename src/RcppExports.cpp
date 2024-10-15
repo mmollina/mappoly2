@@ -83,6 +83,19 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
+// vs_multiallelic_Rcpp
+List vs_multiallelic_Rcpp(List PH, List GENO, NumericMatrix pedigree);
+RcppExport SEXP _mappoly2_vs_multiallelic_Rcpp(SEXP PHSEXP, SEXP GENOSEXP, SEXP pedigreeSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< List >::type PH(PHSEXP);
+    Rcpp::traits::input_parameter< List >::type GENO(GENOSEXP);
+    Rcpp::traits::input_parameter< NumericMatrix >::type pedigree(pedigreeSEXP);
+    rcpp_result_gen = Rcpp::wrap(vs_multiallelic_Rcpp(PH, GENO, pedigree));
+    return rcpp_result_gen;
+END_RCPP
+}
 // vs_inserted_mrk
 List vs_inserted_mrk(List PH, IntegerVector G, NumericMatrix pedigree, NumericMatrix M, IntegerVector idx);
 RcppExport SEXP _mappoly2_vs_inserted_mrk(SEXP PHSEXP, SEXP GSEXP, SEXP pedigreeSEXP, SEXP MSEXP, SEXP idxSEXP) {
@@ -163,6 +176,24 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< double >::type tol(tolSEXP);
     Rcpp::traits::input_parameter< bool >::type ret_H0(ret_H0SEXP);
     rcpp_result_gen = Rcpp::wrap(est_hmm_map_biallelic_insert_marker_at_the_end(PH, G, pedigree, M, rf, verbose, detailed_verbose, tol, ret_H0));
+    return rcpp_result_gen;
+END_RCPP
+}
+// est_hmm_map_multiellelic
+List est_hmm_map_multiellelic(List PH, List GENO, NumericMatrix pedigree, NumericVector rf, bool verbose, bool detailed_verbose, double tol, bool ret_H0);
+RcppExport SEXP _mappoly2_est_hmm_map_multiellelic(SEXP PHSEXP, SEXP GENOSEXP, SEXP pedigreeSEXP, SEXP rfSEXP, SEXP verboseSEXP, SEXP detailed_verboseSEXP, SEXP tolSEXP, SEXP ret_H0SEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< List >::type PH(PHSEXP);
+    Rcpp::traits::input_parameter< List >::type GENO(GENOSEXP);
+    Rcpp::traits::input_parameter< NumericMatrix >::type pedigree(pedigreeSEXP);
+    Rcpp::traits::input_parameter< NumericVector >::type rf(rfSEXP);
+    Rcpp::traits::input_parameter< bool >::type verbose(verboseSEXP);
+    Rcpp::traits::input_parameter< bool >::type detailed_verbose(detailed_verboseSEXP);
+    Rcpp::traits::input_parameter< double >::type tol(tolSEXP);
+    Rcpp::traits::input_parameter< bool >::type ret_H0(ret_H0SEXP);
+    rcpp_result_gen = Rcpp::wrap(est_hmm_map_multiellelic(PH, GENO, pedigree, rf, verbose, detailed_verbose, tol, ret_H0));
     return rcpp_result_gen;
 END_RCPP
 }
@@ -367,11 +398,13 @@ static const R_CallMethodDef CallEntries[] = {
     {"_mappoly2_calc_haploprob_biallelic_given_ve", (DL_FUNC) &_mappoly2_calc_haploprob_biallelic_given_ve, 5},
     {"_mappoly2_calc_haploprob_biallelic_given_ve2", (DL_FUNC) &_mappoly2_calc_haploprob_biallelic_given_ve2, 5},
     {"_mappoly2_find_valid_permutations", (DL_FUNC) &_mappoly2_find_valid_permutations, 3},
+    {"_mappoly2_vs_multiallelic_Rcpp", (DL_FUNC) &_mappoly2_vs_multiallelic_Rcpp, 3},
     {"_mappoly2_vs_inserted_mrk", (DL_FUNC) &_mappoly2_vs_inserted_mrk, 5},
     {"_mappoly2_vs_inserted_mrk_end", (DL_FUNC) &_mappoly2_vs_inserted_mrk_end, 4},
     {"_mappoly2_vs_biallelic_error", (DL_FUNC) &_mappoly2_vs_biallelic_error, 5},
     {"_mappoly2_est_hmm_map_biallelic_insert_marker", (DL_FUNC) &_mappoly2_est_hmm_map_biallelic_insert_marker, 10},
     {"_mappoly2_est_hmm_map_biallelic_insert_marker_at_the_end", (DL_FUNC) &_mappoly2_est_hmm_map_biallelic_insert_marker_at_the_end, 9},
+    {"_mappoly2_est_hmm_map_multiellelic", (DL_FUNC) &_mappoly2_est_hmm_map_multiellelic, 8},
     {"_mappoly2_est_hmm_map_biallelic", (DL_FUNC) &_mappoly2_est_hmm_map_biallelic, 9},
     {"_mappoly2_est_hmm_map_biallelic_single", (DL_FUNC) &_mappoly2_est_hmm_map_biallelic_single, 8},
     {"_mappoly2_pairwise_rf_estimation_disc_rcpp", (DL_FUNC) &_mappoly2_pairwise_rf_estimation_disc_rcpp, 13},
