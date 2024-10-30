@@ -1,4 +1,4 @@
-# MAPpoly2
+# MAPpoly2 - Under development package
 
 MAPpoly2 is an R package designed to build maps in interconnected full-sib autopolyploid families. It has been enhanced for user-friendliness and accessibility. This version, developed for potential integration with R Shiny, aims to provide a user-intuitive interface for genetic mapping in polyploids. It can handle ploidy levels of 2, 4, and 6, including any combination of these.
 
@@ -22,7 +22,6 @@ To install MAPpoly from Git Hub, use
 devtools::install_github("mmollina/mappoly2", dependencies=TRUE)
 ```
 
-
 ## Tutorial
 
 - [Building an integrated genetic linkage map of autotetraploid alfalfa populations using the MAPpoly2](https://rpubs.com/mmollin/tutorial_mappoly2)
@@ -32,6 +31,55 @@ devtools::install_github("mmollina/mappoly2", dependencies=TRUE)
 - [Constructing Multi-Family Genetic Maps with MAPpoly2: A Simulation Example](https://rpubs.com/mmollin/multi_family_simulation)
 
 - [Supplementary Slides](https://github.com/mmollina/mappoly2_vignettes/blob/main/Updates-Introducing_MAPpoly2-and_updates_QTLpoly-2024-workshop.pdf)
+
+
+## To-Do List
+
+1. **Testing & Debugging**  
+   - Develop a comprehensive test script.
+   - Identify and resolve existing bugs.
+
+2. **Algorithm Development**
+   - Implement an algorithm similar to `mappoly::est_rf_hmm_sequential`.
+   - Design an algorithm for reconstructing offspring haplotypes, detailing crossover points and identifying homologs involved in the exchange.
+
+3. **Documentation**
+   - Create detailed documentation outlining the structure and components of the package objects.
+
+4. **Phase Estimation**
+   - Implement a joint phase estimation method for the entire population, incorporating a two-point linkage and algorithm.
+
+5. **Data Integration**
+   - Enable support for reading DarTAG data.
+   - Add functionality for reading multiparental population data.
+   - Create a function for reading diploid data.
+
+6. **Population Types**
+   - Extend support to include inbred-based diploid populations.
+
+7. **Map Augmentation**
+   - Develop functionality for augmenting maps for single-parent datasets.
+   - Support the integration of phase data from one order into another.
+
+8. **External Package Connectivity**
+   - Establish connections with AlphaSimR for simulation integration.
+   - Enable compatibility with R/qtl for QTL analysis.
+
+9. **Visualization**
+   - Implement multiple plotting and printing methods to enhance data visualization.
+
+10. **Data Validation**
+    - Verify segregation p-values for accuracy.
+
+11. **Data Filtering**
+    - Split the existing data filtering function into specific filters for:
+       - Individual data
+       - Marker data
+       - Segregation data
+       - Read depth
+
+12. **Phase Adjustment**
+    - Implement a function to split and rephase data as needed.
 
 # Acknowledgment
 
