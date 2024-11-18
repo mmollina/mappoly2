@@ -39,6 +39,5 @@ init_rf_filter(
 A modified \code{pairwise.rf} object with filtered data.
 }
 \description{
-Internal function to initialize filtering based on recombination fractions, LOD scores for linkage phase and recombination fraction.
+This function initializes filtering based on recombination fractions, LOD scores for linkage phase and recombination fraction.
 }
-\keyword{internal}

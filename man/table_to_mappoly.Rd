@@ -2,10 +2,10 @@
 % Please edit documentation in R/read.R
 \name{table_to_mappoly}
 \alias{table_to_mappoly}
-\title{Conversion of data.frame to mappoly.data}
+\title{Convert a Data Frame to mappoly2.data Object}
 \usage{
 table_to_mappoly(
-  dat,
+  x,
   ploidy.p1,
   ploidy.p2,
   name.p1 = NULL,
@@ -16,9 +16,25 @@ table_to_mappoly(
 )
 }
 \arguments{
-\item{void}{internal function to be documented}
+\item{x}{A data frame containing genetic marker data.}
+
+\item{ploidy.p1}{Ploidy level of parent 1.}
+
+\item{ploidy.p2}{Ploidy level of parent 2.}
+
+\item{name.p1}{Name of parent 1 (defaults to the name in the data frame).}
+
+\item{name.p2}{Name of parent 2 (defaults to the name in the data frame).}
+
+\item{filter.non.conforming}{Logical value indicating whether to filter out non-conforming markers
+(default is \code{TRUE}).}
+
+\item{filter.redundant}{Logical value indicating whether to filter out redundant markers (default is
+\code{TRUE}).}
+
+\item{verbose}{Logical value indicating whether to display progress information (default is \code{TRUE}).}
 }
 \description{
-Conversion of data.frame to mappoly.data
+Converts a data frame containing genetic marker data into an object of class \code{mappoly2.data}.
 }
 \keyword{internal}

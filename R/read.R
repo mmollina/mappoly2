@@ -1,128 +1,179 @@
 #' Read Genetic Marker Data from a CSV File
 #'
-#' This function reads genetic marker data from a comma-separated values (CSV)
-#' file and returns an object of class \code{mappoly2.data}.
+#' Reads genetic marker data from a CSV file and returns an object of class \code{mappoly2.data}.
 #'
-#' The CSV file should have rows representing markers, with the first row serving
-#' as the header. The first seven columns are expected to contain the marker
-#' names, the dosages in parents 1 and 2, chromosome information (e.g.,
-#' chromosome, scaffold, contig), the position of the marker within the
-#' sequence, and the alternate and reference alleles, if available.
-#' In the absence of allele information, the values should be NA. The remaining
-#' columns should contain the dosage for each member of the full-sib population.
-#'  See the \code{Examples} section for a tetraploid example.
+#' The CSV file should have markers in rows, with the first row serving as the header.
+#' The first seven columns must contain the following information, in order:
+#' \enumerate{
+#'   \item Marker names
+#'   \item Dosage in parent 1
+#'   \item Dosage in parent 2
+#'   \item Chromosome information (e.g., chromosome, scaffold, contig)
+#'   \item Position of the marker within the sequence
+#'   \item Alternate allele (if available)
+#'   \item Reference allele (if available)
+#' }
+#' If allele information is not available, the values should be set to \code{NA}.
+#' The remaining columns should contain the dosage for each individual in the full-sib population.
+#' Refer to the \code{Examples} section for a tetraploid example.
 #'
-#' @param file.in A character string specifying the name or full path to the
-#' input file.
-#'
+#' @param file.in A character string specifying the name or full path to the input CSV file.
 #' @param ploidy.p1 The ploidy level of parent 1.
-#'
-#' @param ploidy.p2 The ploidy level of parent 2.
-#'
+#' @param ploidy.p2 The ploidy level of parent 2 (defaults to \code{ploidy.p1}).
 #' @param name.p1 The name of parent 1.
-#'
 #' @param name.p2 The name of parent 2.
+#' @param filter.non.conforming Logical value indicating whether to convert non-conforming data points
+#'   (e.g., double reduction) to \code{NA} (default is \code{TRUE}).
+#' @param filter.redundant Logical value indicating whether to remove redundant markers during map construction,
+#'   retaining annotations for export in the final map (default is \code{TRUE}).
+#' @param verbose Logical value indicating whether to display progress updates (default is \code{TRUE}).
 #'
-#' @param filter.non.conforming Logical. If \code{TRUE} (default), data points
-#' with unexpected genotypes (e.g., double reduction) are converted to 'NA'.
-#' Refer to the \code{\link[mappoly]{segreg_poly}} function for details on
-#' expected genotype classes and their frequencies.
-#'
-#' @param filter.redundant Logical. If \code{TRUE} (default), removes redundant
-#' markers during map construction, retaining annotations for export in the
-#' final map.
-#'
-#' @param verbose Logical. If \code{TRUE} (default), displays progress updates;
-#' if \code{FALSE}, no output is provided.
-#'
-#'
-#' @return Returns an object of class \code{mappoly2.data} containing a
-#' list with the following components:
+#' @return An object of class \code{mappoly2.data}, which is a list containing the following components:
 #' \describe{
-#'   \item{ploidy.p1}{Ploidy level of the first parent.}
-#'   \item{ploidy.p2}{Ploidy level of the second parent.}
-#'   \item{n.ind}{Number of individuals.}
+#'   \item{ploidy.p1}{Ploidy level of parent 1.}
+#'   \item{ploidy.p2}{Ploidy level of parent 2.}
+#'   \item{n.ind}{Number of individuals in the population.}
 #'   \item{n.mrk}{Total number of markers.}
 #'   \item{ind.names}{Names or identifiers of the individuals.}
 #'   \item{mrk.names}{Names or identifiers of the genetic markers.}
-#'   \item{name.p1}{Name or identifier of the first parent.}
-#'   \item{name.p2}{Name or identifier of the second parent.}
-#'   \item{dosage.p1}{Dosage for the first parent.}
-#'   \item{dosage.p2}{Dosage for the second parent.}
+#'   \item{name.p1}{Name or identifier of parent 1.}
+#'   \item{name.p2}{Name or identifier of parent 2.}
+#'   \item{dosage.p1}{Dosage for parent 1.}
+#'   \item{dosage.p2}{Dosage for parent 2.}
 #'   \item{chrom}{Chromosome numbers for all markers.}
-#'   \item{genome.pos}{Physical positions on the genome for the genetic markers.}
-#'   \item{ref}{Reference DNA sequence data for the genetic markers.}
-#'   \item{alt}{Alternate DNA sequence data for the genetic markers.}
-#'   \item{all.mrk.depth}{Depth of coverage for all genetic markers. NULL when using CSV input files.}
-#'   \item{geno.dose}{A matrix containing the dosage for each marker (rows) for each individual (columns).}
-#'   \item{redundant}{A list of non-redundant markers and their equivalent redundant markers if \code{filter.redundant} is TRUE.}
-#'   \item{QAQC.values}{A list containing quality assurance and quality control values with the following components:
+#'   \item{genome.pos}{Physical positions of the markers within the genome.}
+#'   \item{ref}{Reference alleles for the markers.}
+#'   \item{alt}{Alternate alleles for the markers.}
+#'   \item{all.mrk.depth}{Depth of coverage for all markers (NULL when using CSV input files).}
+#'   \item{geno.dose}{Matrix of dosages for each marker (rows) and each individual (columns).}
+#'   \item{redundant}{List of non-redundant markers and their equivalent redundant markers if
+#'     \code{filter.redundant} is \code{TRUE}.}
+#'   \item{QAQC.values}{List containing quality assurance and quality control values:
 #'     \describe{
-#'       \item{$markers}{A data frame with statistics for each marker, including `miss` (missing data rate), `chisq.pval` (chi-squared test p-value), and `read.depth` (read depth).}
-#'       \item{$individuals}{A data frame with statistics for each individual, including `miss` (missing data rate) and `full.sib` (indicator of non-belonging to the analyzed bi-parental cross, generated by \code{\link[mappoly]{filter_individuals}}).}
+#'       \item{markers}{Data frame with statistics for each marker, including \code{miss}
+#'         (missing data rate) and \code{chisq.pval} (chi-squared test p-value).}
+#'       \item{individuals}{Data frame with statistics for each individual, including \code{miss}
+#'         (missing data rate) and \code{full.sib} (indicator of non-belonging to the analyzed
+#'         bi-parental cross).}
 #'     }
 #'   }
 #' }
+#'
 #' @examples
 #' \donttest{
-#' tempfl <- list.files(system.file('extdata', package = 'mappoly2'),
-#'                      full.names = TRUE)
-#' alfalfa.bc <- read_geno_csv(file.in = tempfl,
-#'                             ploidy.p1 = 4,
-#'                             name.p1 = "I195",
-#'                             name.p2 = "F1.85.209")
+#' # Read a tetraploid dataset from a CSV file
+#' tempfl <- list.files(system.file('extdata', package = 'mappoly2'), full.names = TRUE)
+#' alfalfa.bc <- read_geno_csv(
+#'   file.in = tempfl,
+#'   ploidy.p1 = 4,
+#'   name.p1 = "I195",
+#'   name.p2 = "F1.85.209"
+#' )
 #' print(alfalfa.bc, detailed = TRUE)
 #' plot(alfalfa.bc)
 #' }
+#'
 #' @author Marcelo Mollinari, \email{mmollin@ncsu.edu}
 #' @importFrom grDevices rgb
 #' @importFrom stats na.omit
 #' @importFrom utils read.csv
 #' @importFrom assertthat is.readable
 #' @export
-read_geno_csv <- function(file.in,
-                          ploidy.p1,
-                          ploidy.p2 = ploidy.p1,
-                          name.p1 = NULL,
-                          name.p2 = NULL,
-                          filter.non.conforming = TRUE,
-                          filter.redundant = TRUE,
-                          verbose = TRUE) {
+read_geno_csv <- function(
+    file.in,
+    ploidy.p1,
+    ploidy.p2 = ploidy.p1,
+    name.p1 = NULL,
+    name.p2 = NULL,
+    filter.non.conforming = TRUE,
+    filter.redundant = TRUE,
+    verbose = TRUE
+) {
+  # Ensure the input file is readable
   assert_that(is.readable(file.in))
-  dat <- read.csv(file = file.in,
-                  header = TRUE,
-                  stringsAsFactors = FALSE)
-  return(table_to_mappoly(dat,
-                          ploidy.p1,
-                          ploidy.p2,
-                          name.p1,
-                          name.p2,
-                          filter.non.conforming,
-                          filter.redundant,
-                          verbose))
+
+  # Read the CSV file
+  data <- read.csv(file = file.in, header = TRUE, stringsAsFactors = FALSE)
+
+  # Store the number of original markers and individuals
+  num_markers <- nrow(data)
+  num_individuals <- ncol(data) - 7  # Adjusted for the first seven columns
+
+  # Convert the data to mappoly format
+  mappoly_data <- mappoly2:::table_to_mappoly(
+    data,
+    ploidy.p1 = ploidy.p1,
+    ploidy.p2 = ploidy.p2,
+    name.p1 = name.p1,
+    name.p2 = name.p2,
+    filter.non.conforming = filter.non.conforming,
+    filter.redundant = filter.redundant,
+    verbose = verbose
+  )
+
+  # Define metrics for metadata
+  metrics <- c(
+    "Input file",
+    "MD5 hash",
+    "File size (MB)",
+    "Date",
+    "Original markers from file",
+    "Original individuals from file"
+  )
+
+  # Define the corresponding values
+  values <- c(
+    file.in,
+    tools::md5sum(file.in),
+    round(file.size(file.in) / 1024000, 2),
+    date(),
+    num_markers,
+    num_individuals
+  )
+
+  # Create the map_step data frame
+  map_step <- data.frame(
+    Metric = metrics,
+    Value = values,
+    stringsAsFactors = FALSE
+  )
+
+  # Update the metadata of the mappoly object
+  mappoly_data <- update_metadata(
+    mappoly_data,
+    map_step = map_step,
+    class_suffix = "mappoly.init.filter"
+  )
+
+  return(mappoly_data)
 }
 
-
-#' Read VCF File for Genetic Marker Data
+#' Read Genetic Marker Data from a VCF File
 #'
-#' This function reads genetic marker data from a Variant Call Format (VCF) file and returns an object of class \code{mappoly2.data}.
+#' Reads genetic marker data from a Variant Call Format (VCF) file and returns an object of class
+#' \code{mappoly2.data}.
 #'
-#' This function supports VCF files of version 4.0 or higher.
+#' Supports VCF files of version 4.0 or higher.
 #'
-#' @param file.in A character string specifying the name or full path of the input file containing the data in VCF format.
-#' @param ploidy.p1 An integer indicating the ploidy level of parent 1.
-#' @param ploidy.p2 An integer indicating the ploidy level of parent 2. Defaults to the value of \code{ploidy.p1}.
-#' @param name.p1 A character string containing the name of parent 1.
-#' @param name.p2 A character string containing the name of parent 2.
-#' @param name.offspring A character vector containing the names of the offspring. Defaults to \code{NULL}.
-#' @param filter.non.conforming Logical, if \code{TRUE} (default), converts data points with unexpected genotypes to 'NA'. See \code{\link[mappoly]{segreg_poly}} for details on expected classes and frequencies.
-#' @param filter.redundant Logical, if \code{TRUE} (default), removes redundant markers during map construction, keeping them annotated for export to the final map.
-#' @param verbose Logical, if \code{TRUE} (default), displays progress information.
-#' @param min.gt.depth An integer specifying the minimum genotype depth to retain information. Values below \code{min.gt.depth} are replaced with \code{NA} (default = 0).
-#' @param min.av.depth An integer specifying the minimum average depth to retain markers (default = 0).
-#' @param max.missing A numeric value specifying the maximum proportion of missing data allowed to retain markers (range = 0-1; default = 1).
+#' @param file.in A character string specifying the name or full path of the input VCF file.
+#' @param ploidy.p1 The ploidy level of parent 1.
+#' @param ploidy.p2 The ploidy level of parent 2 (defaults to \code{ploidy.p1}).
+#' @param name.p1 The name of parent 1.
+#' @param name.p2 The name of parent 2.
+#' @param name.offspring A character vector containing the names of the offspring (defaults to all
+#'   individuals except the parents).
+#' @param filter.non.conforming Logical value indicating whether to convert non-conforming data points
+#'   to \code{NA} (default is \code{TRUE}).
+#' @param filter.redundant Logical value indicating whether to remove redundant markers during map
+#'   construction, retaining annotations for export in the final map (default is \code{TRUE}).
+#' @param verbose Logical value indicating whether to display progress information (default is \code{TRUE}).
+#' @param min.gt.depth Minimum genotype depth to retain information; values below this threshold are
+#'   replaced with \code{NA} (default is 0).
+#' @param min.av.depth Minimum average depth to retain markers (default is 0).
+#' @param max.missing Maximum proportion of missing data allowed to retain markers (range from 0 to 1;
+#'   default is 1).
 #'
-#' @return An object of class \code{mappoly2.data} containing the following components:
+#' @return An object of class \code{mappoly2.data}, which is a list containing the following components:
 #' \describe{
 #'   \item{ploidy.p1}{Ploidy level of parent 1.}
 #'   \item{ploidy.p2}{Ploidy level of parent 2.}
@@ -135,47 +186,58 @@ read_geno_csv <- function(file.in,
 #'   \item{dosage.p1}{Dosage information for parent 1.}
 #'   \item{dosage.p2}{Dosage information for parent 2.}
 #'   \item{chrom}{Chromosome numbers for all markers.}
-#'   \item{genome.pos}{Physical positions of the genetic markers on the genome.}
-#'   \item{ref}{Reference DNA sequence data for the genetic markers.}
-#'   \item{alt}{Alternate DNA sequence data for the genetic markers.}
-#'   \item{all.mrk.depth}{Depth of coverage for all genetic markers.}
-#'   \item{geno.dose}{A matrix of dosage information for each marker (rows) and each individual (columns).}
-#'   \item{redundant}{A list of non-redundant markers and their equivalent redundant markers if \code{filter.redundant} is TRUE.}
+#'   \item{genome.pos}{Physical positions of the markers within the genome.}
+#'   \item{ref}{Reference alleles for the markers.}
+#'   \item{alt}{Alternate alleles for the markers.}
+#'   \item{all.mrk.depth}{Depth of coverage for all markers.}
+#'   \item{geno.dose}{Matrix of dosages for each marker (rows) and each individual (columns).}
+#'   \item{redundant}{List of non-redundant markers and their equivalent redundant markers if
+#'     \code{filter.redundant} is \code{TRUE}.}
 #'   \item{QAQC.values}{Quality assurance and quality control values:
 #'     \describe{
-#'       \item{markers}{A data frame with statistics for each marker, including `miss` (missing data rate), `chisq.pval` (chi-squared test p-value), and `read.depth` (read depth).}
-#'       \item{individuals}{A data frame with statistics for each individual, including `miss` (missing data rate) and `full.sib` (indicator of non-belonging to the analyzed bi-parental cross, generated by \code{\link[mappoly]{filter_individuals}}).}
+#'       \item{markers}{Data frame with statistics for each marker, including \code{miss}
+#'         (missing data rate) and \code{chisq.pval} (chi-squared test p-value).}
+#'       \item{individuals}{Data frame with statistics for each individual, including \code{miss}
+#'         (missing data rate) and \code{full.sib} (indicator of non-belonging to the analyzed
+#'         bi-parental cross).}
 #'     }
 #'   }
 #' }
 #'
 #' @examples
 #' \donttest{
-#' ## Hexaploid sweetpotato: Subset of chromosome 3
+#' # Hexaploid sweetpotato: Subset of chromosome 3
 #' fl <- "https://github.com/mmollina/MAPpoly_vignettes/raw/master/data/sweet_sample_ch3.vcf.gz"
 #' tempfl <- tempfile(pattern = 'chr3_', fileext = '.vcf.gz')
 #' download.file(fl, destfile = tempfl)
-#' dat.dose.vcf <- read_vcf(file.in = tempfl, ploidy.p1 = 6, name.p1 = "PARENT1", name.p2 = "PARENT2", min.av.depth = 20)
+#' dat.dose.vcf <- read_vcf(
+#'   file.in = tempfl,
+#'   ploidy.p1 = 6,
+#'   name.p1 = "PARENT1",
+#'   name.p2 = "PARENT2",
+#'   min.av.depth = 20
+#' )
 #' print(dat.dose.vcf)
 #' plot(dat.dose.vcf)
 #' }
 #'
-#' @references Gabriel Gesteira, \email{gdesiqu@ncsu.edu}, Marcelo Mollinari, \email{mmollin@ncsu.edu}
-#'
-#' @export read_vcf
-read_vcf <- function(file.in,
-                     ploidy.p1,
-                     ploidy.p2 = ploidy.p1,
-                     name.p1,
-                     name.p2,
-                     name.offspring = NULL,
-                     filter.non.conforming = TRUE,
-                     filter.redundant = TRUE,
-                     verbose = TRUE,
-                     min.gt.depth = 0,
-                     min.av.depth = 0,
-                     max.missing = 1) {
-  # Check if the input file is readable
+#' @references Gabriel Gesteira, \email{gdesiqu@ncsu.edu}; Marcelo Mollinari, \email{mmollin@ncsu.edu}
+#' @export
+read_vcf <- function(
+    file.in,
+    ploidy.p1,
+    ploidy.p2 = ploidy.p1,
+    name.p1,
+    name.p2,
+    name.offspring = NULL,
+    filter.non.conforming = TRUE,
+    filter.redundant = TRUE,
+    verbose = TRUE,
+    min.gt.depth = 0,
+    min.av.depth = 0,
+    max.missing = 1
+) {
+  # Ensure the input file is readable
   assert_that(is.readable(file.in))
 
   # Validate ploidy levels
@@ -183,258 +245,386 @@ read_vcf <- function(file.in,
   mappoly2:::has.adequate.ploidy(ploidy.p2)
 
   # Expected ploidy level for offspring
-  expect.ploidy.offspring <- (ploidy.p1 + ploidy.p2) / 2
+  expected_ploidy_offspring <- (ploidy.p1 + ploidy.p2) / 2
 
   # Get the full path and size of the input file
-  input.file <- normalizePath(file.in)
-  input.size <- file.size(file.in) / 1024000  # File size in MB
+  input_file <- normalizePath(file.in)
+  input_size_mb <- file.size(file.in) / 1024^2  # File size in MB
 
   # Warn if the file size is too large
-  if (verbose && input.size > 3000) {
-    warning("Your VCF file is greater than 3 GB. Check for available RAM memory.")
+  if (verbose && input_size_mb > 3000) {
+    warning("Your VCF file is larger than 3 GB. Check for available RAM memory.")
   }
 
   if (verbose) cat("Reading data...\n")
 
   # Read the VCF file
-  input.data <- vcfR::read.vcfR(file.in, verbose = verbose)
+  vcf_data <- vcfR::read.vcfR(file.in, verbose = verbose)
 
   # Get individual names from the genotype matrix
-  ind.names <- colnames(input.data@gt)[-1]
+  ind_names <- colnames(vcf_data@gt)[-1]
 
   # Check if parent names are in the dataset
-  if (!name.p1 %in% ind.names) stop(name.p1, " is not in the dataset")
-  if (!name.p2 %in% ind.names) stop(name.p2, " is not in the dataset")
+  if (!name.p1 %in% ind_names) stop(name.p1, " is not in the dataset")
+  if (!name.p2 %in% ind_names) stop(name.p2, " is not in the dataset")
 
   # Determine offspring names
-  if (is.null(name.offspring)) name.offspring <- setdiff(ind.names, c(name.p1, name.p2))
-  name.offspring <- intersect(name.offspring, ind.names)
-  if (length(name.offspring) == 0) stop("The provided names of the offspring individuals are not found in the dataset")
+  if (is.null(name.offspring)) name.offspring <- setdiff(ind_names, c(name.p1, name.p2))
+  name.offspring <- intersect(name.offspring, ind_names)
+  if (length(name.offspring) == 0) stop("No offspring individuals found in the dataset")
 
   # Get number of markers and individuals
-  n.mrk <- nrow(input.data@gt)
-  n.ind <- length(name.offspring)
+  num_markers <- nrow(vcf_data@gt)
+  num_individuals <- length(name.offspring)
 
   # Get marker names and chromosome information
-  mrk.names <- mrk.names.all <- input.data@fix[,"ID"]
-  chrom <- input.data@fix[,"CHROM"]
-  genome.pos <- as.numeric(input.data@fix[,"POS"])
+  marker_names <- vcf_data@fix[, "ID"]
+  chrom <- vcf_data@fix[, "CHROM"]
+  genome_pos <- as.numeric(vcf_data@fix[, "POS"])
 
   # Handle unnamed markers
-  if (any(is.na(unique(mrk.names)))) {
-    if (verbose) cat("No named markers. Using genome information instead.\n")
-    no_name <- sum(is.na(mrk.names))
-    mrk.names[which(is.na(mrk.names))] <- paste0(chrom[which(is.na(mrk.names))], "_", genome.pos[which(is.na(mrk.names))])
+  unnamed_markers <- is.na(marker_names) | marker_names == ""
+  if (any(unnamed_markers)) {
+    if (verbose) {
+      cat("No marker names found. Generating names using chromosome and position information.\n")
+    }
+    marker_names[unnamed_markers] <- paste0(chrom[unnamed_markers], "_", genome_pos[unnamed_markers])
   }
 
-  # Set names for chromosome and position vectors
-  names(chrom) <- mrk.names
-  names(genome.pos) <- mrk.names
+  # Assign names to chromosome and position vectors
+  names(chrom) <- marker_names
+  names(genome_pos) <- marker_names
 
   # Get reference and alternate alleles
-  seq.ref <- input.data@fix[,"REF"]
-  names(seq.ref) <- mrk.names
-  seq.alt <- input.data@fix[,"ALT"]
-  names(seq.alt) <- mrk.names
+  ref_alleles <- vcf_data@fix[, "REF"]
+  alt_alleles <- vcf_data@fix[, "ALT"]
+  names(ref_alleles) <- names(alt_alleles) <- marker_names
 
-  if (verbose) cat("Processing genotypes...")
+  if (verbose) cat("Processing genotypes...\n")
 
-  # Define positions of GT (genotype) and DP (depth) fields
-  cname <- which(unlist(strsplit(unique(input.data@gt[,1]), ":")) == "GT")[1]
-  dname <- which(unlist(strsplit(unique(input.data@gt[,1]), ":")) == "DP")[1]
+  # Identify positions of GT (genotype) and DP (depth) fields
+  format_fields <- unlist(strsplit(vcf_data@gt[1, 1], ":"))
+  gt_pos <- which(format_fields == "GT")
+  dp_pos <- which(format_fields == "DP")
 
   # Get ploidy levels and depths for all individuals
-  offspring.ploidy <- mappoly2:::.vcf_get_ploidy(input.data@gt[,name.offspring], cname)
-  geno.depth <- mappoly2:::.vcf_get_depth(input.data@gt[,c(name.p1, name.p2, name.offspring)], dname)
-  unique.offspring.ploidy <- unique(c(offspring.ploidy))
-
-  # Transform genotype data to dosage information
-  geno.dose <- mappoly2:::.vcf_transform_dosage(input.data@gt[,c(name.p1, name.p2, name.offspring)], cname)
-  dimnames(geno.depth) <- dimnames(geno.dose) <- list(mrk.names, c(name.p1, name.p2, name.offspring))
-  geno.dose[which(geno.dose == -1)] <- NA
-
-  if (verbose) cat("Done!\n")
-
-  # Check if the observed ploidy in the offspring matches the expected ploidy
-  if (!(expect.ploidy.offspring %in% unique.offspring.ploidy)) stop("Observed ploidy in the offspring differs from the expected ploidy")
-
-  # Update marker information based on thresholds
-  dif_ploidy <- which(rowSums(offspring.ploidy == expect.ploidy.offspring) == n.ind)
-  all_mrk_depth <- rowMeans(geno.depth)
-  av_depth <- which(all_mrk_depth >= min.av.depth)
-  max_miss <- which(rowSums(is.na(geno.dose)) / dim(geno.dose)[2] <= max.missing)
-  selected_markers <- mrk.names[intersect(intersect(dif_ploidy, av_depth), max_miss)]
-
-  # Filter genotype and depth data
-  geno.dose <- geno.dose[selected_markers, ]
-  geno.depth <- geno.depth[selected_markers, ]
-  geno.dose[which(geno.depth < min.gt.depth)] <- NA
-  all_mrk_depth <- all_mrk_depth[selected_markers]
-  n.mrk <- nrow(geno.dose)
-  selected_markers <- names(which(apply(geno.dose[, c(name.p1, name.p2), drop = FALSE], 1, function(x) all(!is.na(x)))))
-
-  # Create a data frame for the selected markers
-  dat <- data.frame(snp_id = selected_markers,
-                    P1 = as.integer(geno.dose[selected_markers, name.p1]),
-                    P2 = as.integer(geno.dose[selected_markers, name.p2]),
-                    chrom = chrom[selected_markers],
-                    genome_pos = genome.pos[selected_markers],
-                    ref = seq.ref[selected_markers],
-                    alt = seq.alt[selected_markers],
-                    geno.dose[selected_markers, name.offspring, drop = FALSE])
-
-  # Convert the data frame to a mappoly object
-  out <- mappoly2:::table_to_mappoly(dat,
-                                     ploidy.p1,
-                                     ploidy.p2,
-                                     name.p1,
-                                     name.p2,
-                                     filter.non.conforming,
-                                     filter.redundant,
-                                     verbose)
-
-  # Add read depth to the QAQC values
-  out$QAQC.values$markers$read.depth <- all_mrk_depth[rownames(out$QAQC.values$markers)]
-
-  return(out)
-}
-
-
-#' Conversion of data.frame to mappoly.data
-#'
-#' @param void internal function to be documented
-#' @keywords internal
-table_to_mappoly <- function(dat,
-                             ploidy.p1,
-                             ploidy.p2,
-                             name.p1 = NULL,
-                             name.p2 = NULL,
-                             filter.non.conforming = TRUE,
-                             filter.redundant = TRUE,
-                             verbose = TRUE) {
-
-  # Removing markers with missing data points for parents
-  dat <- dat[apply(dat[, 2:3], 1, function(x) !any(is.na(x))), ]
-
-  # Get number of individuals
-  n.ind <- ncol(dat) - 7
-
-  # Get number of markers
-  n.mrk <- nrow(dat)
-
-  # Get marker names
-  mrk.names.raw <- mrk.names <- as.character(dat[, 1, drop = TRUE])
-
-  # Get individual's names
-  ind.names <- colnames(dat)[-c(1:7)]
-
-  # Get parent's names
-  if (is.null(name.p1)) {
-    name.p1 <- colnames(dat)[2]
-  }
-  if (is.null(name.p2)) {
-    name.p2 <- colnames(dat)[3]
-  }
-
-  # Get dosage in parent P1
-  dosage.p1 <- as.integer(dat[, 2, drop = TRUE])
-
-  # Get dosage in parent P2
-  dosage.p2 <- as.integer(dat[, 3, drop = TRUE])
-
-  # Polymorphic markers
-  d.p1 <- abs(abs(dosage.p1 - (ploidy.p1 / 2)) - (ploidy.p1 / 2))
-  d.p2 <- abs(abs(dosage.p2 - (ploidy.p2 / 2)) - (ploidy.p2 / 2))
-  id <- d.p1 + d.p2 != 0
-
-  # Markers with parental dosages less or equal than ploidy levels
-  id <- d.p1 <= ploidy.p1 & d.p2 <= ploidy.p2 & id
-
-  # Get chromosome info
-  chrom <- as.character(dat[, 4, drop = TRUE])
-  chrom[embedded_to_numeric(chrom) == 0] <- "NoChr"
-  chrom[is.na(chrom)] <- "NoChr"
-
-  # Get sequence position info
-  genome.pos <- as.numeric(dat[, 5, drop = TRUE])
-
-  ref <- as.character(dat[, 6, drop = TRUE])
-  alt <- as.character(dat[, 7, drop = TRUE])
-  names(ref) <- names(alt) <- names(genome.pos) <- names(chrom) <- names(dosage.p2) <- names(dosage.p1) <- mrk.names
-
-  if (verbose) {
-    cat("Reading the following data:")
-    txt <- list(
-      paste0("    Ploidy level of ", name.p1, ":"),
-      paste0("    Ploidy level of ", name.p2, ":"),
-      paste0("    No. individuals:"),
-      paste0("    No. markers:"),
-      paste0("    No. informative markers:")
-    )
-    n <- sapply(txt, nchar)
-    for (i in 1:length(txt)) {
-      txt[[i]] <- paste(txt[[i]], paste0(rep(" ", max(n) - n[i]), collapse = ""))
-    }
-    cat("\n", txt[[1]], ploidy.p1)
-    cat("\n", txt[[2]], ploidy.p2)
-    cat("\n", txt[[3]], n.ind)
-    cat("\n", txt[[4]], n.mrk)
-    cat("\n ", txt[[5]], " ", sum(id), " (", round(100 * sum(id) / n.mrk, 1), "%)", sep = "")
-    cat("\n     ---")
-    if (any(!is.na(chrom))) {
-      cat("\n     This dataset contains chromosome information.")
-    }
-    if (any(!is.na(genome.pos))) {
-      cat("\n     This dataset contains position information.")
-    }
-    cat("\n     ")
-  }
-
-  # Get genotypic info
-  geno.dose <- as.matrix(dat[, -c(1:7), drop = FALSE])
-  dimnames(geno.dose) <- list(mrk.names, ind.names)
-
-  # Replacing non-conforming values with NA
-  geno.dose[geno.dose > ploidy.p1/2 + ploidy.p2/2] <- NA
-
-  geno.dose <- geno.dose[id, , drop = FALSE]
-  res <- structure(
-    list(ploidy.p1 = ploidy.p1,
-         ploidy.p2 = ploidy.p2,
-         n.ind = n.ind,
-         n.mrk = sum(id),
-         ind.names = ind.names,
-         mrk.names = mrk.names[id],
-         name.p1 = name.p1,
-         name.p2 = name.p2,
-         dosage.p1 = dosage.p1[id],
-         dosage.p2 = dosage.p2[id],
-         chrom = chrom[id],
-         genome.pos = genome.pos[id],
-         ref = ref,
-         alt = alt,
-         all.mrk.depth = NULL,
-         geno.dose = geno.dose,
-         redundant = NULL,
-         QAQC.values = NULL),
-    class = c("mappoly2.data")
+  offspring_ploidy <- mappoly2:::.vcf_get_ploidy(vcf_data@gt[, name.offspring], gt_pos)
+  geno_depth <- mappoly2:::.vcf_get_depth(
+    vcf_data@gt[, c(name.p1, name.p2, name.offspring)],
+    dp_pos
   )
 
-  # Screening non-conforming markers
+  # Assign dimnames to geno_depth
+  dimnames(geno_depth) <- list(marker_names, c(name.p1, name.p2, name.offspring))
+
+  # Transform genotype data to dosage information
+  geno_dose <- mappoly2:::.vcf_transform_dosage(
+    vcf_data@gt[, c(name.p1, name.p2, name.offspring)],
+    gt_pos
+  )
+  dimnames(geno_dose) <- list(marker_names, c(name.p1, name.p2, name.offspring))
+  geno_dose[geno_dose == -1] <- NA
+
+  if (verbose) cat("Done processing genotypes.\n")
+
+  # Check if observed ploidy matches expected ploidy
+  unique_offspring_ploidy <- unique(c(offspring_ploidy))
+  if (!expected_ploidy_offspring %in% unique_offspring_ploidy) {
+    stop("Observed ploidy in offspring differs from expected ploidy.")
+  }
+
+  # Filter markers based on ploidy, depth, and missing data thresholds
+  valid_ploidy_markers <- rowSums(offspring_ploidy == expected_ploidy_offspring) == num_individuals
+  avg_marker_depth <- rowMeans(geno_depth)
+  sufficient_depth_markers <- avg_marker_depth >= min.av.depth
+  acceptable_missing_markers <- rowSums(is.na(geno_dose)) / ncol(geno_dose) <= max.missing
+
+  selected_markers <- marker_names[
+    valid_ploidy_markers & sufficient_depth_markers & acceptable_missing_markers
+  ]
+
+  # Update genotype dosage and depth matrices
+  geno_dose <- geno_dose[selected_markers, , drop = FALSE]
+  geno_depth <- geno_depth[selected_markers, , drop = FALSE]
+  geno_dose[geno_depth < min.gt.depth] <- NA
+  avg_marker_depth <- avg_marker_depth[selected_markers]
+
+  # Ensure parental genotypes are available
+  parental_genotypes_complete <- rowSums(
+    is.na(geno_dose[, c(name.p1, name.p2)])
+  ) == 0
+  markers_with_parents <- rownames(geno_dose)[parental_genotypes_complete]
+
+  # Create a data frame for the selected markers
+  marker_data <- data.frame(
+    snp_id = markers_with_parents,
+    P1 = as.integer(geno_dose[markers_with_parents, name.p1]),
+    P2 = as.integer(geno_dose[markers_with_parents, name.p2]),
+    chrom = chrom[markers_with_parents],
+    genome_pos = genome_pos[markers_with_parents],
+    ref = ref_alleles[markers_with_parents],
+    alt = alt_alleles[markers_with_parents],
+    geno_dose[markers_with_parents, name.offspring, drop = FALSE],
+    stringsAsFactors = FALSE
+  )
+
+  # Convert the data frame to a mappoly object
+  mappoly_data <- mappoly2:::table_to_mappoly(
+    marker_data,
+    ploidy.p1 = ploidy.p1,
+    ploidy.p2 = ploidy.p2,
+    name.p1 = name.p1,
+    name.p2 = name.p2,
+    filter.non.conforming = filter.non.conforming,
+    filter.redundant = filter.redundant,
+    verbose = verbose
+  )
+
+  # Add read depth to the QAQC values
+  mappoly_data$QAQC.values$markers$read.depth <- avg_marker_depth[
+    rownames(mappoly_data$QAQC.values$markers)
+  ]
+
+  # Update metadata
+  metrics <- c(
+    "Input file",
+    "MD5 hash",
+    "File size (MB)",
+    "Date",
+    "Original markers from file",
+    "Original individuals from file",
+    "Markers with expected offspring ploidy",
+    "Minimum average depth",
+    "Markers passing depth filter",
+    "Maximum missing threshold",
+    "Markers passing missing filter",
+    "Selected markers after screening"
+  )
+
+  values <- c(
+    file.in,
+    tools::md5sum(file.in),
+    round(file.size(file.in) / 1024^2, 2),
+    date(),
+    num_markers,
+    num_individuals,
+    sum(valid_ploidy_markers),
+    min.av.depth,
+    sum(sufficient_depth_markers),
+    max.missing,
+    sum(acceptable_missing_markers),
+    length(markers_with_parents)
+  )
+
+  map_step <- data.frame(
+    Metric = metrics,
+    Value = values,
+    stringsAsFactors = FALSE
+  )
+
+  # Update the metadata of the mappoly object
+  mappoly_data <- update_metadata(
+    mappoly_data,
+    map_step = map_step,
+    class_suffix = "mappoly.init.filter"
+  )
+
+  return(mappoly_data)
+}
+
+#' Convert a Data Frame to mappoly2.data Object
+#'
+#' Converts a data frame containing genetic marker data into an object of class \code{mappoly2.data}.
+#'
+#' @param x A data frame containing genetic marker data.
+#' @param ploidy.p1 Ploidy level of parent 1.
+#' @param ploidy.p2 Ploidy level of parent 2.
+#' @param name.p1 Name of parent 1 (defaults to the name in the data frame).
+#' @param name.p2 Name of parent 2 (defaults to the name in the data frame).
+#' @param filter.non.conforming Logical value indicating whether to filter out non-conforming markers
+#'   (default is \code{TRUE}).
+#' @param filter.redundant Logical value indicating whether to filter out redundant markers (default is
+#'   \code{TRUE}).
+#' @param verbose Logical value indicating whether to display progress information (default is \code{TRUE}).
+#' @keywords internal
+table_to_mappoly <- function(
+    x,
+    ploidy.p1,
+    ploidy.p2,
+    name.p1 = NULL,
+    name.p2 = NULL,
+    filter.non.conforming = TRUE,
+    filter.redundant = TRUE,
+    verbose = TRUE
+) {
+  # Remove markers with missing parental dosages
+  x <- x[!is.na(x[, 2]) & !is.na(x[, 3]), ]
+
+  # Get the number of individuals and markers
+  n.ind <- ncol(x) - 7
+  n.mrk <- nrow(x)
+  n.mrk.nona.on.parents <- n.mrk
+
+  # Get marker names
+  mrk.names <- as.character(x[, 1])
+
+  # Get individual names
+  ind.names <- colnames(x)[-(1:7)]
+
+  # Get parent names
+  if (is.null(name.p1)) name.p1 <- colnames(x)[2]
+  if (is.null(name.p2)) name.p2 <- colnames(x)[3]
+
+  # Get dosages for parents
+  dosage.p1 <- as.integer(x[, 2])
+  dosage.p2 <- as.integer(x[, 3])
+
+  # Compute dosage differences for polymorphic markers
+  d.p1 <- abs(abs(dosage.p1 - (ploidy.p1 / 2)) - (ploidy.p1 / 2))
+  d.p2 <- abs(abs(dosage.p2 - (ploidy.p2 / 2)) - (ploidy.p2 / 2))
+  id <- (d.p1 + d.p2) != 0
+  n.segreg.mrk <- sum(id)
+
+  # Markers with parental dosages less than or equal to ploidy levels
+  within_ploidy <- (dosage.p1 <= ploidy.p1) & (dosage.p2 <= ploidy.p2)
+  id <- id & within_ploidy
+  n.mrk.less.equal.ploidy <- sum(id)
+
+  # Extract chromosome and position information
+  chrom <- as.character(x[, 4])
+  chrom[is.na(chrom) | chrom == ""] <- "NoChr"
+
+  genome.pos <- as.numeric(x[, 5])
+
+  # Get reference and alternate alleles
+  ref <- as.character(x[, 6])
+  alt <- as.character(x[, 7])
+
+  # Assign names to vectors
+  names(ref) <- names(alt) <- names(genome.pos) <- names(chrom) <-
+    names(dosage.p2) <- names(dosage.p1) <- mrk.names
+
+  if (verbose) {
+    cat("Reading data:\n")
+    cat("    Ploidy level of", name.p1, ":", ploidy.p1, "\n")
+    cat("    Ploidy level of", name.p2, ":", ploidy.p2, "\n")
+    cat("    Number of individuals:", n.ind, "\n")
+    cat("    Number of markers:", n.mrk, "\n")
+    cat("    Number of informative markers:", sum(id), "(",
+        round(100 * sum(id) / n.mrk, 1), "%)\n")
+    if (any(!is.na(chrom))) cat("    Chromosome information is available.\n")
+    if (any(!is.na(genome.pos))) cat("    Position information is available.\n")
+  }
+
+  # Get genotypic data
+  geno.dose <- as.matrix(x[, -(1:7)])
+  dimnames(geno.dose) <- list(mrk.names, ind.names)
+
+  # Replace dosages exceeding offspring ploidy level with NA
+  max_offspring_ploidy <- (ploidy.p1 + ploidy.p2) / 2
+  geno.dose[geno.dose > max_offspring_ploidy] <- NA
+
+  # Filter to valid markers
+  geno.dose <- geno.dose[id, , drop = FALSE]
+
+  # Create the mappoly2.data object
+  mappoly_data <- list(
+    ploidy.p1 = ploidy.p1,
+    ploidy.p2 = ploidy.p2,
+    n.ind = n.ind,
+    n.mrk = sum(id),
+    ind.names = ind.names,
+    mrk.names = mrk.names[id],
+    name.p1 = name.p1,
+    name.p2 = name.p2,
+    dosage.p1 = dosage.p1[id],
+    dosage.p2 = dosage.p2[id],
+    chrom = chrom[id],
+    genome.pos = genome.pos[id],
+    ref = ref[id],
+    alt = alt[id],
+    all.mrk.depth = NULL,
+    geno.dose = geno.dose,
+    redundant = NULL,
+    QAQC.values = NULL
+  )
+  class(mappoly_data) <- c("mappoly2.data")
+
+  # Filter non-conforming markers if requested
   if (filter.non.conforming) {
-    if (verbose) cat(" -->  Filtering non-conforming markers.\n     ")
-    res <- filter_non_conforming_classes(res)
+    if (verbose) cat("Filtering non-conforming markers...\n")
+    mappoly_data <- filter_non_conforming_classes(mappoly_data)
   }
-  # Screening redundant markers
-  if(filter.redundant){
-    if (verbose) cat(" -->  Filtering markers with redundant information.\n     ")
-    res <- filter_redundant(res)
+
+  # Filter redundant markers if requested
+  if (filter.redundant) {
+    if (verbose) cat("Filtering redundant markers...\n")
+    mappoly_data <- suppressMessages(filter_redundant(mappoly_data, plot = FALSE))
   }
-  res$QAQC.values <- .setQAQC(id.mrk = res$mrk.names,
-                              id.ind = res$ind.names,
-                              miss.mrk = apply(res$geno.dose, 1, function(x) sum(is.na(x)))/res$n.ind,
-                              miss.ind = apply(res$geno.dose, 2, function(x) sum(is.na(x)))/res$n.mrk,
-                              chisq.pval = suppressWarnings(mappoly_chisq_test(res)))
-  if(verbose) cat("----------------------------------\n")
-  return(res)
+
+  # Compute QAQC values
+  mappoly_data$QAQC.values <- .setQAQC(
+    id.mrk = mappoly_data$mrk.names,
+    id.ind = mappoly_data$ind.names,
+    miss.mrk = rowMeans(is.na(mappoly_data$geno.dose)),
+    miss.ind = colMeans(is.na(mappoly_data$geno.dose)),
+    chisq.pval = suppressWarnings(mappoly_chisq_test(mappoly_data))
+  )
+
+  if (verbose) cat("Data processing complete.\n")
+
+  # Update metadata
+  map_step <- data.frame(
+    Metric = c(
+      "Markers with no missing data on parents",
+      "Segregating markers",
+      "Markers within ploidy levels",
+      paste("Ploidy level of", mappoly_data$name.p1),
+      paste("Ploidy level of", mappoly_data$name.p2),
+      "Number of individuals",
+      "Number of markers",
+      "Percentage of redundant markers",
+      "Percentage of missing data",
+      "Chromosome information",
+      "Position information"
+    ),
+    Value = c(
+      n.mrk.nona.on.parents,
+      n.segreg.mrk,
+      n.mrk.less.equal.ploidy,
+      mappoly_data$ploidy.p1,
+      mappoly_data$ploidy.p2,
+      mappoly_data$n.ind,
+      length(mappoly_data$mrk.names),
+      if (!is.null(mappoly_data$redundant)) {
+        paste(
+          round(
+            100 * nrow(mappoly_data$redundant) / (
+              length(mappoly_data$mrk.names) + nrow(mappoly_data$redundant)
+            ),
+            1
+          ),
+          "%"
+        )
+      } else {
+        "Unavailable"
+      },
+      paste(
+        round(100 * sum(is.na(mappoly_data$geno.dose)) / length(mappoly_data$geno.dose), 1),
+        "%"
+      ),
+      if (any(!is.na(mappoly_data$chrom))) "Available" else "Unavailable",
+      if (any(!is.na(mappoly_data$genome.pos))) "Available" else "Unavailable"
+    ),
+    stringsAsFactors = FALSE
+  )
+
+  # Update the metadata of the mappoly object
+  mappoly_data <- update_metadata(
+    mappoly_data,
+    map_step = map_step,
+    class_suffix = NULL
+  )
+
+  return(mappoly_data)
 }

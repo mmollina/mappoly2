@@ -42,6 +42,5 @@ rf_filter_per_group(
 A modified \code{mappoly2.sequence} object with filtered linkage group.
 }
 \description{
-Internal function to filter recombination fractions for a specific linkage group in a \code{mappoly2.sequence} object.
+This function filters recombination fractions for a specific linkage group in a \code{mappoly2.sequence} object.
 }
-\keyword{internal}

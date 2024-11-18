@@ -30,11 +30,11 @@ print.mappoly2.data <- function(x,
   if (is.null(x$redundant))
     cat("\n", txt[[5]], "unavailable")
   else if (is.numeric(x$redundant)) {
-    cat("\n", txt[[5]], "0%")
+    cat("\n", txt[[5]], "0 %")
   } else {
-    cat("\n ", txt[[5]], " ",  round(100*nrow(x$redundant)/(length(x$mrk.names) + nrow(x$redundant)),1), "%" ,sep = "")
+    cat("\n ", txt[[5]], " ",  round(100*nrow(x$redundant)/(length(x$mrk.names) + nrow(x$redundant)),1), " %" ,sep = "")
   }
-  cat("\n ", txt[[6]], " ",   round(100*sum(id)/length(id),1), "%" ,sep = "")
+  cat("\n ", txt[[6]], " ",   round(100*sum(id)/length(id),1), " %" ,sep = "")
    chrom.flag <- FALSE
   if (all(is.null(x$chrom)) || all(is.na(x$chrom)))
     cat("\n", txt[[7]], "unavailable")

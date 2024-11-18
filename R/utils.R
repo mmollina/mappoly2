@@ -301,13 +301,15 @@ get_dosage_type <- function(x, mrk.names){
 .setQAQC <- function(id.mrk, id.ind,
                      miss.mrk = NA,
                      miss.ind = rep(NA, length(id.ind)),
+                     read.depth = NA,
+                     full.sib = NA,
                      chisq.pval){
   list(markers = data.frame(miss = miss.mrk,
                             chisq.pval = chisq.pval,
-                            read.depth = NA,
+                            read.depth = read.depth,
                             row.names = id.mrk),
        individuals = data.frame(miss = miss.ind,
-                                full.sib = NA,
+                                full.sib = full.sib,
                                 row.names = id.ind))
 }
 
@@ -546,3 +548,26 @@ optimal_layout <- function(n) {
 
   return(c(rows, cols))
 }
+
+
+update_metadata <- function(x, map_step, class_suffix) {
+  if (is.null(attr(x, "history"))) {
+    attr(x, "history") <- list()
+  }
+
+  # Get the name of the calling function, ensuring it's a single string
+  caller <- as.character(sys.call(-1)[[1]])
+  caller <- caller[length(caller)]  # Use only the function name, not namespace qualifiers
+
+  # Append the map_step with the caller name
+  new_entry <- list(map_step)  # Ensure map_step is treated as a single list element
+  names(new_entry) <- caller   # Assign the caller name to the list element
+
+  attr(x, "history") <- c(attr(x, "history"), new_entry)
+
+  class(x) <- c(class_suffix, class(x))
+  return(x)
+}
+
+
+

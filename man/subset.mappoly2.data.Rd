@@ -2,7 +2,7 @@
 % Please edit documentation in R/subset.R
 \name{subset.mappoly2.data}
 \alias{subset.mappoly2.data}
-\title{Subset mappoly2.data Object}
+\title{Subset a mappoly2.data Object}
 \usage{
 \method{subset}{mappoly2.data}(
   x,
@@ -18,43 +18,45 @@
 )
 }
 \arguments{
-\item{x}{A \code{mappoly2.data} object from which the subset is to be selected.}
+\item{x}{A \code{mappoly2.data} object from which the subset will be created.}
 
-\item{type}{Character string, either "marker" or "individual", indicating whether
-markers or individuals should be subset. Default is "marker".}
+\item{type}{Character string specifying whether to subset "marker" or "individual". Defaults to "marker".}
 
-\item{perc}{Numeric; the proportion of individuals or markers to be sampled.
-This is used only if \code{n} is NULL. Default is 0.1.}
+\item{perc}{Numeric value indicating the proportion of individuals or markers to sample if \code{n} is \code{NULL}. Defaults to 0.1.}
 
-\item{n}{Integer; the number of individuals or markers to be sampled.
-If NULL, \code{perc} must be specified.}
+\item{n}{Integer specifying the number of individuals or markers to sample. If \code{NULL}, \code{perc} must be specified.}
 
-\item{select.mrk}{Character vector containing the names of the markers to select.
-Effective only if \code{type = "marker"}, and both \code{n} and \code{perc} are NULL.}
+\item{select.mrk}{Character vector of marker names to select. Used only if \code{type = "marker"}, and both \code{n} and \code{perc} are \code{NULL}.}
 
-\item{select.ind}{Character vector containing the names of the individuals to select.
-Effective only if \code{type = "individual"}, and both \code{n} and \code{perc} are NULL.}
+\item{select.ind}{Character vector of individual names to select. Used only if \code{type = "individual"}, and both \code{n} and \code{perc} are \code{NULL}.}
 
-\item{seed}{Integer or NULL; sets the seed for random number generation for reproducible sampling.}
+\item{seed}{Integer or \code{NULL}; sets the seed for random number generation for reproducible sampling.}
 
-\item{filter.non.conforming}{Logical; if TRUE (default), data points with unexpected genotypes
-(e.g., double reduction) are converted to 'NA'.}
+\item{filter.non.conforming}{Logical; if \code{TRUE} (default), data points with unexpected genotypes (e.g., double reduction) are converted to \code{NA}.}
 
-\item{filter.redundant}{Logical; if TRUE (default), removes redundant markers during map construction,
-keeping them annotated to export to the final map.}
+\item{filter.redundant}{Logical; if \code{TRUE} (default), removes redundant markers during map construction, keeping them annotated for export in the final map.}
 
-\item{...}{Additional arguments, currently not used.}
+\item{...}{Additional arguments (currently not used).}
 }
 \value{
-A \code{mappoly2.data} object that contains the selected subset of individuals or markers.
+A \code{mappoly2.data} object containing the selected subset of individuals or markers.
 }
 \description{
-This function creates a subset of either individuals or markers from an object
-of the \code{mappoly2.data} class, based on specified criteria.
+Creates a subset of individuals or markers from a \code{mappoly2.data} object based on specified criteria.
 }
 \details{
-The function allows for flexible subsetting of \code{mappoly2.data} objects based on
-the number or proportion of individuals or markers. It supports random sampling
-and specific selection based on provided lists. Additional filtering options are
-available to handle non-conforming data and redundant markers.
+This function allows for flexible subsetting of \code{mappoly2.data} objects based on the number or proportion of individuals or markers. It supports random sampling and specific selection based on provided lists. Additional filtering options are available to handle non-conforming data and redundant markers.
+}
+\examples{
+\donttest{
+# Subset 20\% of markers
+subset_data <- subset.mappoly2.data(mappoly_data, type = "marker", perc = 0.2)
+
+# Subset 50 individuals
+subset_data <- subset.mappoly2.data(mappoly_data, type = "individual", n = 50)
+
+# Select specific markers
+subset_data <- subset.mappoly2.data(mappoly_data, select.mrk = c("marker1", "marker2"))
+}
+
 }

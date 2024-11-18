@@ -7,14 +7,14 @@
 merge_datasets(..., filter.non.conforming = TRUE, filter.redundant = TRUE)
 }
 \arguments{
-\item{...}{Comma-separated list of datasets of class 'mappoly2.data'.}
+\item{...}{Comma-separated list of datasets of class \code{mappoly2.data}.}
 
-\item{filter.non.conforming}{if \code{TRUE} (default), data points with
-unexpected genotypes (i.e. double reduction) are converted to 'NA'.
+\item{filter.non.conforming}{Logical. If \code{TRUE} (default), data points with
+unexpected genotypes (e.g., double reduction) are converted to \code{NA}.
 See the \code{\link[mappoly]{segreg_poly}} function for information on
 expected classes and their respective frequencies.}
 
-\item{filter.redundant}{logical. If \code{TRUE} (default), removes redundant
+\item{filter.redundant}{Logical. If \code{TRUE} (default), removes redundant
 markers during map construction, keeping them annotated to export to the
 final map.}
 }
@@ -23,10 +23,10 @@ The merged and filtered dataset if more than one dataset was provided;
 the original dataset if only one was provided.
 }
 \description{
-This function takes any number of genomic datasets of class 'mappoly2.data' and merges them.
+This function takes any number of genomic datasets of class \code{mappoly2.data} and merges them.
 If only one dataset is provided, the function will issue a warning and return the original dataset.
-All datasets need to be of class 'mappoly2.data'.
-Additional data screening and filtering is performed, including computing chi-square p-values,
+All datasets need to be of class \code{mappoly2.data}.
+Additional data screening and filtering are performed, including computing chi-square p-values,
 screening non-conforming markers, and filtering redundant markers.
 }
 \examples{
@@ -38,7 +38,7 @@ data2 <- subset(data2, type = "individual", n = 100)
 data3 <- subset(B2721, type = "marker", n = 400)
 data3 <- subset(data3, type = "individual", n = 100)
 
-merged_data <- merge_multiple_datasets(data1, data2, data3)
+merged_data <- merge_datasets(data1, data2, data3)
 
 merged_data
 

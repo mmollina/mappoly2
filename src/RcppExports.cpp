@@ -194,6 +194,54 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
+// vcf_get_probabilities
+Rcpp::List vcf_get_probabilities(Rcpp::StringMatrix& mat, int pl_pos);
+RcppExport SEXP _mappoly2_vcf_get_probabilities(SEXP matSEXP, SEXP pl_posSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< Rcpp::StringMatrix& >::type mat(matSEXP);
+    Rcpp::traits::input_parameter< int >::type pl_pos(pl_posSEXP);
+    rcpp_result_gen = Rcpp::wrap(vcf_get_probabilities(mat, pl_pos));
+    return rcpp_result_gen;
+END_RCPP
+}
+// vcf_transform_dosage
+Rcpp::NumericMatrix vcf_transform_dosage(Rcpp::StringMatrix& mat, int gt_pos);
+RcppExport SEXP _mappoly2_vcf_transform_dosage(SEXP matSEXP, SEXP gt_posSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< Rcpp::StringMatrix& >::type mat(matSEXP);
+    Rcpp::traits::input_parameter< int >::type gt_pos(gt_posSEXP);
+    rcpp_result_gen = Rcpp::wrap(vcf_transform_dosage(mat, gt_pos));
+    return rcpp_result_gen;
+END_RCPP
+}
+// vcf_get_ploidy
+Rcpp::NumericMatrix vcf_get_ploidy(Rcpp::StringMatrix& mat, int gt_pos);
+RcppExport SEXP _mappoly2_vcf_get_ploidy(SEXP matSEXP, SEXP gt_posSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< Rcpp::StringMatrix& >::type mat(matSEXP);
+    Rcpp::traits::input_parameter< int >::type gt_pos(gt_posSEXP);
+    rcpp_result_gen = Rcpp::wrap(vcf_get_ploidy(mat, gt_pos));
+    return rcpp_result_gen;
+END_RCPP
+}
+// vcf_get_depth
+Rcpp::NumericMatrix vcf_get_depth(Rcpp::StringMatrix& mat, int dp_pos);
+RcppExport SEXP _mappoly2_vcf_get_depth(SEXP matSEXP, SEXP dp_posSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< Rcpp::StringMatrix& >::type mat(matSEXP);
+    Rcpp::traits::input_parameter< int >::type dp_pos(dp_posSEXP);
+    rcpp_result_gen = Rcpp::wrap(vcf_get_depth(mat, dp_pos));
+    return rcpp_result_gen;
+END_RCPP
+}
 // est_hmm_map_biallelic_log_implementation
 List est_hmm_map_biallelic_log_implementation(List PH, IntegerMatrix G, NumericMatrix pedigree, NumericVector rf, double err, bool verbose, bool detailed_verbose, double tol, bool ret_H0);
 RcppExport SEXP _mappoly2_est_hmm_map_biallelic_log_implementation(SEXP PHSEXP, SEXP GSEXP, SEXP pedigreeSEXP, SEXP rfSEXP, SEXP errSEXP, SEXP verboseSEXP, SEXP detailed_verboseSEXP, SEXP tolSEXP, SEXP ret_H0SEXP) {
@@ -262,6 +310,10 @@ static const R_CallMethodDef CallEntries[] = {
     {"_mappoly2_pairwise_rf_estimation_disc_rcpp", (DL_FUNC) &_mappoly2_pairwise_rf_estimation_disc_rcpp, 13},
     {"_mappoly2_twopt_phasing_cpp", (DL_FUNC) &_mappoly2_twopt_phasing_cpp, 6},
     {"_mappoly2_phasing_one", (DL_FUNC) &_mappoly2_phasing_one, 5},
+    {"_mappoly2_vcf_get_probabilities", (DL_FUNC) &_mappoly2_vcf_get_probabilities, 2},
+    {"_mappoly2_vcf_transform_dosage", (DL_FUNC) &_mappoly2_vcf_transform_dosage, 2},
+    {"_mappoly2_vcf_get_ploidy", (DL_FUNC) &_mappoly2_vcf_get_ploidy, 2},
+    {"_mappoly2_vcf_get_depth", (DL_FUNC) &_mappoly2_vcf_get_depth, 2},
     {"_mappoly2_est_hmm_map_biallelic_log_implementation", (DL_FUNC) &_mappoly2_est_hmm_map_biallelic_log_implementation, 9},
     {"_mappoly2_segreg_poly", (DL_FUNC) &_mappoly2_segreg_poly, 4},
     {"_mappoly2_mappoly_chisq_test", (DL_FUNC) &_mappoly2_mappoly_chisq_test, 1},

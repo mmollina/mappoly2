@@ -1,28 +1,30 @@
-
 #' Filter Out Redundant Markers
 #'
-#' This function filters out redundant markers from a `mappoly2.data` object. It identifies and removes duplicated genetic markers based on their genotypic information, thus reducing the data to unique markers. It also updates the `redundant` component of the object with information about which markers were kept and which were removed.
+#' Filters out redundant markers from a `mappoly2.data` object by identifying and removing duplicated genetic markers based on their genotypic information. Optionally, generates a plot showing the number of unique and redundant markers.
 #'
-#' @param x An object of class \code{mappoly2.data}. It is expected to have a component named `geno.dose`, which is a matrix containing the dosage for each marker (rows) for each individual (columns).
+#' @param x An object of class \code{mappoly2.data}. It should have a component named `geno.dose`, which is a matrix containing the dosage for each marker (rows) for each individual (columns).
 #'
 #' @return The modified `mappoly2.data` object with redundant markers removed. The return value includes:
 #'   - The original data with redundant markers removed.
 #'   - The `redundant` component of the object updated to reflect changes. This component is a data frame listing the markers that were kept (`kept`) and the corresponding markers that were removed due to redundancy (`removed`).
 #'
-#' @details This function first checks if the input is a valid `mappoly2.data` object using \code{assert_that(is.mappoly2.data(x))}. It then identifies redundant markers by checking for duplicates in the `geno.dose` matrix. If no redundant markers are found, the function returns the original object. If redundant markers are identified, they are removed, and the object's `redundant` data frame is updated accordingly.
-#' @keywords internal
-filter_redundant <- function(x)
+#' @details This function identifies redundant markers by checking for duplicates in the `geno.dose` matrix. If redundant markers are found, they are removed, and the object's `redundant` data frame is updated accordingly. If `plot = TRUE`, it generates a plot showing the number of markers before and after redundancy filtering.
+#'
+#' @examples
+#' filtered_data <- filter_redundant(potato_dataset)
+#'
+#' @export
+filter_redundant <- function(x, plot = TRUE)
 {
   assert_that(is.mappoly2.data(x))
+  num_markers_before <- nrow(x$geno.dose)
   id <- duplicated(x$geno.dose, dimnames = TRUE)
   dat.unique <- x$geno.dose[!id, ]
   if(nrow(x$geno.dose) == nrow(dat.unique)){
     if(!is.data.frame(x$redundant))
       x$redundant <- 0
-    else{
-      w <- x$redundant
-      x$redundant <- w[w$kept%in%rownames(x$geno.dose),]
-    }
+    class(x) <- c("mappoly2.data.redundant", class(x))
+    message("No redundant markers found.\nReturning original dataset.")
     return(x)
   }
   dat.duplicated <- x$geno.dose[id, , drop = FALSE]
@@ -31,141 +33,223 @@ filter_redundant <- function(x)
   w <- data.frame(kept = rownames(dat.unique)[match(n2,n1)],
                   removed = rownames(dat.duplicated))
   x <- subset_data(x, select.mrk = setdiff(x$mrk.names,
-                                                        w$removed))
+                                           w$removed))
   w <- unique(rbind(x$redundant, w))
   x$redundant <- w[w$kept%in%rownames(x$geno.dose),]
+  if (plot) {
+    num_markers_after <- nrow(x$geno.dose)
+    barplot(c(Unique = num_markers_after, Redundant = num_markers_before - num_markers_after),
+            ylab = "Number of Markers",
+            main = "Redundant Markers Filtering",
+            col = c("#56B4E9","#E69F00"))
+    legend("topright",
+           legend = c(paste0("Unique markers: ", num_markers_after),
+                      paste0("Redundant markers removed: ", num_markers_before - num_markers_after)),
+           fill = c("#56B4E9","#E69F00"))
+  }
   return(x)
 }
 
-#' Filter Genetic Data Based on Quality Metrics
+#' Filter Markers Based on Missing Data Rate
 #'
-#' This function filters genetic data in a `mappoly2.data` object based on various quality control metrics. It applies thresholds for missing data rates, chi-squared p-values, and read depth to markers and individuals, and optionally plots the screening process.
+#' Filters markers in a `mappoly2.data` object based on the missing data rate per marker.
+#' Optionally, generates a plot showing the frequency of missing data for markers and indicates which markers were filtered out.
 #'
 #' @param x A `mappoly2.data` object containing genetic data.
 #' @param mrk.thresh A numeric threshold for the missing data rate in markers (default is 0.10).
-#' @param ind.thresh A numeric threshold for the missing data rate in individuals (default is 0.10).
-#' @param chisq.pval.thresh A numeric threshold for chi-squared test p-values in markers (default is NULL, which sets the threshold using a Bonferroni approximation).
-#' @param read.depth.thresh A numeric vector with two values indicating the lower and upper bounds for acceptable read depths in markers (default is c(5, 1000)).
-#' @param plot.screening Logical, if TRUE (default), plots are generated to visually represent the screening process.
+#' @param plot Logical, if TRUE (default), generates a plot showing the frequency of missing data per marker.
 #'
-#' @return Returns the input `mappoly2.data` object with additional components:
-#'   - `screened.data`: A list containing the thresholds used for selection and the names of markers and individuals that met the specified criteria.
-#'   - Class attribute `screened` is also appended to the object.
+#' @return Returns the input `mappoly2.data` object with markers not meeting the missing data threshold removed.
 #'
-#' @details The function first validates the input object, then applies the specified thresholds to filter out markers and individuals based on missing data rates, chi-squared p-values, and read depths. It updates the object with the results of this filtering and optionally generates plots to visualize the data before and after filtering.
+#' @details The function calculates the missing data rate for each marker and filters out markers that exceed the specified threshold. If `plot = TRUE`, it generates a plot of missing data rates per marker, indicating which markers were kept or filtered out.
 #'
 #' @examples
-#'   filtered_data <- filter_data(B2721)
+#' filtered_data <- filter_markers_by_missing_rate(potato_dataset, mrk.thresh = 0.05, plot = TRUE)
 #'
-#' @importFrom graphics axis
 #' @export
-filter_data <- function(x,
-                        mrk.thresh = 0.10,
-                        ind.thresh = 0.10,
-                        chisq.pval.thresh = NULL,
-                        read.depth.thresh = c(5,1000),
-                        plot.screening = TRUE) {
-  assert_that(inherits(x, "mappoly2.data"))
-  op <- par(pty = "s", mfrow = c(2,2), mar = c(4,3,3,2))
-  on.exit(par(op))
-  chisq.val <- x$QAQC.values$markers$chisq.pval
-  # Set threshold for chi-square p-values using Bonferroni approximation if not specified
-  if(is.null(chisq.pval.thresh))
-    chisq.pval.thresh <- 0.05/length(chisq.val)
-  id <- .get_mrk_ind_from_QAQC(x$QAQC.values,
-                                          miss.mrk.thresh = mrk.thresh,
-                                          miss.ind.thresh = ind.thresh,
-                                          chisq.pval.thresh = chisq.pval.thresh,
-                                          read.depth.thresh = read.depth.thresh)
-  x$screened.data <- id
-  x$screened.data$thresholds <- c(x$screened.data$thresholds,
-                                  LOD.ph = 0,
-                                  LOD.rf = 0,
-                                  rf = 0.5,
-                                  prob.lower = 0,
-                                  prob.upper = 1)
-  class(x) <- c(class(x), "screened")
-  pal <- c("#56B4E9","#E69F00")
-  if (plot.screening) {
-    ####Missing markers ####
-    z <- sort(x$QAQC.values$markers$miss)
+filter_markers_by_missing_rate <- function(x, mrk.thresh = 0.10, plot = TRUE){
+  assert_that(is.mappoly2.data(x))
+  missing_rates <- x$QAQC.values$markers$miss
+  markers_to_keep <- rownames(x$QAQC.values$markers)[missing_rates <= mrk.thresh]
+  if(is.null(markers_to_keep) || length(markers_to_keep) == 0)
+    stop("No markers meet the missing data threshold.")
+  if (plot) {
+    pal <- c("#56B4E9","#E69F00")
+    z <- sort(missing_rates)
     rg <- range(z)
     if(rg[2] < .1) rg[2] <- .1
     plot(z,
-         xlab = "markers",
+         xlab = "Markers",
          ylab = "",
          col = ifelse(z <= mrk.thresh, pal[1], pal[2]),
          pch = ifelse(z <= mrk.thresh, 1, 4),
-         main = "Markers", xlim = c(ceiling(-length(z)*.05) , ceiling(length(z)*1.05)),
+         main = "Markers",
+         xlim = c(ceiling(-length(z)*.05) , ceiling(length(z)*1.05)),
          ylim = rg)
-    mtext("frequency of missing data", 2, line = 2, cex= .75)
+    mtext("Frequency of missing data", 2, line = 2, cex= .75)
     abline(h = mrk.thresh, lty = 2)
     legend("topleft",
            c(paste0("Filtered out: ", sum(z > mrk.thresh)),
              paste0("Included: ", sum(z <= mrk.thresh))),
            col = rev(pal),
            pch = c(4, 1))
-    ####Missing individuals ####
-    z <- sort(x$QAQC.values$individuals$miss)
+  }
+  x <- subset_data(x, select.mrk = markers_to_keep)
+  x <- update_metadata(x,
+                       map_step = paste("Filtered markers with missing rate <", mrk.thresh),
+                       class_suffix = "mappoly2.data.missing.mrk.filtered")
+  return(x)
+}
+
+#' Filter Individuals Based on Missing Data Rate
+#'
+#' Filters individuals in a `mappoly2.data` object based on the missing data rate per individual.
+#' Optionally, generates a plot showing the frequency of missing data for individuals and indicates which individuals were filtered out.
+#'
+#' @param x A `mappoly2.data` object containing genetic data.
+#' @param ind.thresh A numeric threshold for the missing data rate in individuals (default is 0.10).
+#' @param plot Logical, if TRUE (default), generates a plot showing the frequency of missing data per individual.
+#'
+#' @return Returns the input `mappoly2.data` object with individuals not meeting the missing data threshold removed.
+#'
+#' @details The function calculates the missing data rate for each individual and filters out individuals that exceed the specified threshold. If `plot = TRUE`, it generates a plot of missing data rates per individual, indicating which individuals were kept or filtered out.
+#'
+#' @examples
+#' filtered_data <- filter_individuals_by_missing_rate(potato_dataset, ind.thresh = 0.05, plot = TRUE)
+#'
+#' @export
+filter_individuals_by_missing_rate <- function(x, ind.thresh = 0.10, plot = TRUE) {
+  assert_that(is.mappoly2.data(x))
+  missing_rates <- x$QAQC.values$individuals$miss
+  individuals_to_keep <- rownames(x$QAQC.values$individuals)[missing_rates <= ind.thresh]
+  if (is.null(individuals_to_keep) || length(individuals_to_keep) == 0)
+    stop("No individuals meet the missing data threshold.")
+  if (plot) {
+    pal <- c("#56B4E9","#E69F00")
+    z <- sort(missing_rates)
     rg <- range(z)
     if(rg[2] < .1) rg[2] <- .1
     plot(z,
-         xlab = "individuals",
+         xlab = "Individuals",
          ylab = "",
          col = ifelse(z <= ind.thresh, pal[1], pal[2]),
          pch = ifelse(z <= ind.thresh, 1, 4),
          main = "Individuals",
          xlim = c(ceiling(-length(z)*.05) , ceiling(length(z)*1.05)),
          ylim = rg)
-    mtext("frequency of missing data", 2, line = 2, cex= .75)
+    mtext("Frequency of missing data", 2, line = 2, cex= .75)
     abline(h = ind.thresh, lty = 2)
     legend("topleft",
            c(paste0("Filtered out: ", sum(z > ind.thresh)),
              paste0("Included: ", sum(z <= ind.thresh))),
            col = rev(pal),
            pch = c(4, 1))
-    #### Chi-square test ####
-    w <- log10(sort(x$QAQC.values$markers$chisq.pval, decreasing = TRUE))
+  }
+  x <- mappoly2:::subset_data(x, select.ind = individuals_to_keep)
+  x <- update_metadata(x,
+                       map_step = paste("Filtered individuals with missing rate <", ind.thresh),
+                       class_suffix = "mappoly2.data.missing.ind.filtered")
+  return(x)
+}
+
+#' Filter Markers Based on Chi-Squared Test P-Values
+#'
+#' Filters markers in a `mappoly2.data` object based on chi-squared test p-values for segregation distortion.
+#' Optionally, generates a plot showing the distribution of chi-squared p-values and indicates which markers were filtered out.
+#'
+#' @param x A `mappoly2.data` object containing genetic data.
+#' @param chisq.pval.thresh A numeric threshold for chi-squared test p-values in markers.
+#' If NULL (default), the threshold is set using a Bonferroni approximation.
+#' @param plot Logical, if TRUE (default), generates a plot showing the distribution of chi-squared p-values.
+#'
+#' @return Returns the input `mappoly2.data` object with markers not meeting the chi-squared p-value threshold removed.
+#'
+#' @details The function filters out markers with chi-squared p-values less than the specified threshold, indicating significant segregation distortion. If `plot = TRUE`, it generates a plot of the log10-transformed p-values, indicating which markers were kept or filtered out.
+#'
+#' @examples
+#' filtered_data <- filter_markers_by_chisq_pval(genetic_data, chisq.pval.thresh = 0.01, plot = TRUE)
+#'
+#' @export
+filter_markers_by_chisq_pval <- function(x, chisq.pval.thresh = NULL, plot = TRUE) {
+  assert_that(is.mappoly2.data(x))
+  chisq_pvals <- x$QAQC.values$markers$chisq.pval
+  if (is.null(chisq.pval.thresh))
+    chisq.pval.thresh <- 0.05 / length(chisq_pvals)
+  markers_to_keep <- rownames(x$QAQC.values$markers)[chisq_pvals >= chisq.pval.thresh]
+  if (is.null(markers_to_keep) || length(markers_to_keep) == 0)
+    stop("No markers meet the chi-squared p-value threshold.")
+  if (plot) {
+    pal <- c("#56B4E9","#E69F00")
+    w <- log10(sort(chisq_pvals, decreasing = TRUE))
     th <- log10(chisq.pval.thresh)
     plot(w,
-         xlab = "markers",
+         xlab = "Markers",
          ylab = "",
          col = ifelse(w <= th, pal[2], pal[1]),
-         pch =ifelse(w <= th, 4, 1), main = "Segregation", xlim = c(ceiling(-length(w)*.05) , ceiling(length(w)*1.05)))
+         pch =ifelse(w <= th, 4, 1),
+         main = "Segregation",
+         xlim = c(ceiling(-length(w)*.05) , ceiling(length(w)*1.05)))
     abline(h = th, lty = 2)
-    mtext(bquote(log[10](P)), 2, line = 2, cex= .75)
+    mtext(expression(log[10](P)), 2, line = 2, cex= .75)
     f <- paste0("Filtered out: ", sum(w < th))
     i <- paste0("Included: ", sum(w >= th))
     legend("bottomleft",  c(f, i) , col = rev(pal), pch = c(4,1))
-    #### Read Depth ####
-    if(all(!is.na(x$QAQC.values$markers$read.depth))){
-      hist_info <- hist(x$QAQC.values$markers$read.depth,
-                        main = "Read depth", xlab = "number of reads", col = pal[1])
-      lower_tail <- read.depth.thresh[1]
-      upper_tail <- read.depth.thresh[2]
-      if(hist_info$breaks[2] <  lower_tail)
-      {
-        # Add colored rectangles for the tails
-        rect(hist_info$breaks[hist_info$breaks < lower_tail],
-             0,
-             hist_info$breaks[which(hist_info$breaks < lower_tail) + 1],
-             hist_info$counts[hist_info$breaks < lower_tail],
-             col=pal[2])
-      }
-      if(rev(hist_info$breaks)[2] >  upper_tail)
-      {
-        rect(hist_info$breaks[hist_info$breaks >= upper_tail],
-             0,
-             hist_info$breaks[which(hist_info$breaks >= upper_tail) + 1],
-             hist_info$counts[hist_info$breaks >= upper_tail],
-             col=pal[2])
-      }
-      abline(v = read.depth.thresh, lty = 2)
-    } else {
-      plot(0, type = "n", axes = FALSE, xlab = "", ylab = "")
-    }
-    par(pty="m")
   }
+  x <- subset_data(x, select.mrk = markers_to_keep)
+  x <- update_metadata(x,
+                       map_step = paste("Filtered markers with chi-squared p-value >=", chisq.pval.thresh),
+                       class_suffix = "mappoly2.data.chisq.mrk.filtered")
+  return(x)
+}
+
+#' Filter Markers Based on Read Depth
+#'
+#' Filters markers in a `mappoly2.data` object based on read depth thresholds.
+#' Optionally, generates a histogram of read depths, indicating which markers were filtered out.
+#'
+#' @param x A `mappoly2.data` object containing genetic data.
+#' @param read.depth.thresh A numeric vector with two values indicating the lower and upper bounds for acceptable read depths in markers (default is c(5, 1000)).
+#' @param plot Logical, if TRUE (default), generates a histogram of read depths per marker.
+#'
+#' @return Returns the input `mappoly2.data` object with markers not meeting the read depth thresholds removed.
+#'
+#' @details The function filters out markers with read depths outside the specified range. If `plot = TRUE`, it generates a histogram of read depths, indicating which markers were kept or filtered out.
+#'
+#' @examples
+#' filtered_data <- filter_markers_by_read_depth(genetic_data, read.depth.thresh = c(10, 500), plot = TRUE)
+#'
+#' @export
+filter_markers_by_read_depth <- function(x, read.depth.thresh = c(5, 1000), plot = TRUE) {
+  assert_that(is.mappoly2.data(x))
+  read_depths <- x$QAQC.values$markers$read.depth
+  markers_to_keep <- rownames(x$QAQC.values$markers)[read_depths >= read.depth.thresh[1] & read_depths <= read.depth.thresh[2]]
+  if (is.null(markers_to_keep) || length(markers_to_keep) == 0)
+    stop("No markers meet the read depth thresholds.")
+  if (plot) {
+    pal <- c("#56B4E9","#E69F00")
+    if(all(!is.na(read_depths))){
+      df <- data.frame(read_depth = read_depths,
+                       included = read_depths >= read.depth.thresh[1] & read_depths <= read.depth.thresh[2])
+      hist_info <- hist(df$read_depth,
+                        main = "Read Depth",
+                        xlab = "Number of Reads",
+                        col = pal[1],
+                        breaks = 30)
+      abline(v = read.depth.thresh, lty = 2)
+      legend("topright",
+             c(paste0("Filtered out: ", sum(!df$included)),
+               paste0("Included: ", sum(df$included))),
+             fill = rev(pal))
+    } else {
+      plot(0, type = "n", axes = FALSE, xlab = "", ylab = "", main = "Read Depth")
+      text(0, 0, "No read depth data available")
+    }
+  }
+  x <- subset_data(x, select.mrk = markers_to_keep)
+  x <- update_metadata(x,
+                       map_step = paste("Filtered markers with read depth in range [",
+                                        read.depth.thresh[1], ",", read.depth.thresh[2], "]"),
+                       class_suffix = "mappoly2.data.read.depth.filtered")
   return(x)
 }
 
@@ -207,17 +291,9 @@ filter_individuals <- function(x,
   type <- match.arg(type)
   op <- par(pty="s")
   on.exit(par(op))
-  D <- t(x$geno.dose)
-  if(has.mappoly2.screened(x)){
-    D <- D[x$screened.data$ind.names, x$screened.data$mrk.names]
-    D <- rbind(x$dosage.p1[x$screened.data$mrk.names],
-               x$dosage.p2[x$screened.data$mrk.names],
-               D)
-  } else {
-    D <- rbind(x$dosage.p1,
-               x$dosage.p2,
-               D)
-  }
+  D <- rbind(x$dosage.p1,
+             x$dosage.p2,
+             t(x$geno.dose))
   rownames(D)[1:2] <- c(x$name.p1, x$name.p2)
   if(type == "Gmat"){
     G  <- AGHmatrix::Gmatrix(D, method = "VanRaden",ploidy = x$ploidy.p1/2 + x$ploidy.p2/2)
@@ -226,7 +302,12 @@ filter_individuals <- function(x,
     df <- data.frame(x = y1, y = y2, type = c(2, 2, rep(4, length(y1)-2)))
     plot(df[,1:2], col = df$type, pch = 19,
          xlab = paste0("relationships between the offspring and ",x$name.p1),
-         ylab = paste0("relationships between the offspring and ",x$name.p2))
+         ylab = paste0("relationships between the offspring and ",x$name.p2),
+         type = "n", xlim = c(-1,1), ylim = c(-1,1))
+    text(df[,1:2], col = df$type, pch = 19,
+         xlab = paste0("relationships between the offspring and ",x$name.p1),
+         ylab = paste0("relationships between the offspring and ",x$name.p2),
+         label = 1:nrow(df), cex = .8)
     abline(c(0,1), lty = 2)
     abline(c(-0.4,1), lty = 2, col = "gray")
     abline(c(0.4,1), lty = 2, col = "gray")
@@ -237,17 +318,18 @@ filter_individuals <- function(x,
     for (i in 1:nrow(D))
       D[i, is.na(D[i, ])] <- row_means[i]
     pc <- prcomp(D)
-    x <- pc$x[,"PC1"]
-    y <- pc$x[,"PC2"]
-    a <- diff(range(x))*0.05
-    b <- diff(range(y))*0.05
-    df <- data.frame(x = x, y = y, type = c(2, 2, rep(4, length(x)-2)))
-    plot(df[,1:2], col = df$type, pch = 19,
+    x_pca <- pc$x[,"PC1"]
+    y_pca <- pc$x[,"PC2"]
+    a <- diff(range(x_pca))*0.05
+    b <- diff(range(y_pca))*0.05
+    df <- data.frame(x = x_pca, y = y_pca, type = c(2, 2, rep(4, length(x_pca)-2)))
+    plot(df[,1:2],
          xlab = "PC1",
          ylab = "PC2",
-         xlim = c(min(x)-a, max(x)+a),
-         ylim = c(min(y)-b, max(y)+b))
-    points(df[1:2,1:2], col = 2, pch = 19)
+         xlim = c(min(x_pca)-a, max(x_pca)+a),
+         ylim = c(min(y_pca)-b, max(y_pca)+b),
+         type = "n")
+    text(df[,1:2], col = df$type, label = 1:nrow(df), cex = .8)
     legend("bottomleft",  c("Parents", "Offspring") , col = c(2,4), pch = 19)
   }
   if(!is.null(ind.to.remove)){
@@ -255,10 +337,10 @@ filter_individuals <- function(x,
     x$QAQC.values$individuals[,"full.sib"] <- !rownames(x$QAQC.values$individuals)%in%ind.to.remove
     if(inherits(x, "screened")){
       id <- .get_mrk_ind_from_QAQC(x$QAQC.values,
-                                              miss.mrk.thresh = x$screened.data$thresholds$miss.mrk,
-                                              miss.ind.thresh = x$screened.data$thresholds$miss.ind,
-                                              chisq.pval.thresh = x$screened.data$thresholds$chisq.pval,
-                                              read.depth.thresh = x$screened.data$thresholds$read.depth)
+                                   miss.mrk.thresh = x$screened.data$thresholds$miss.mrk,
+                                   miss.ind.thresh = x$screened.data$thresholds$miss.ind,
+                                   chisq.pval.thresh = x$screened.data$thresholds$chisq.pval,
+                                   read.depth.thresh = x$screened.data$thresholds$read.depth)
     }
     x$screened.data <- id
     return(x)
@@ -268,7 +350,7 @@ filter_individuals <- function(x,
     ANSWER <- readline("Enter 'Y/n' to proceed with interactive filtering or quit: ")
     if(substr(ANSWER, 1, 1)  ==  "y" | substr(ANSWER, 1, 1)  ==  "yes" | substr(ANSWER, 1, 1)  ==  "Y" | ANSWER  == "")
     {
-      ind.to.remove <- gatepoints::fhs(df, mark = TRUE)
+      ind.to.remove <- gatepoints::fhs(df, mark = TRUE, pch = 4)
       ind.to.remove <- setdiff(ind.to.remove, c("P1", "P2"))
       ind.to.include <- setdiff(rownames(df)[-c(1:2)], ind.to.remove)
       if(verbose){
@@ -285,10 +367,10 @@ filter_individuals <- function(x,
       x$QAQC.values$individuals[,"full.sib"] <- !rownames(x$QAQC.values$individuals)%in%ind.to.remove
       if(inherits(x, "screened")){
         id <- .get_mrk_ind_from_QAQC(x$QAQC.values,
-                                                miss.mrk.thresh = x$screened.data$thresholds$miss.mrk,
-                                                miss.ind.thresh = x$screened.data$thresholds$miss.ind,
-                                                chisq.pval.thresh = x$screened.data$thresholds$chisq.pval,
-                                                read.depth.thresh = x$screened.data$thresholds$read.depth)
+                                     miss.mrk.thresh = x$screened.data$thresholds$miss.mrk,
+                                     miss.ind.thresh = x$screened.data$thresholds$miss.ind,
+                                     chisq.pval.thresh = x$screened.data$thresholds$chisq.pval,
+                                     read.depth.thresh = x$screened.data$thresholds$read.depth)
       }
       x$screened.data <- id
       par(pty="m")
@@ -400,7 +482,7 @@ rf_filter <- function(x,
 
 #' Initialize Recombination Fraction Filtering
 #'
-#' Internal function to initialize filtering based on recombination fractions, LOD scores for linkage phase and recombination fraction.
+#' This function initializes filtering based on recombination fractions, LOD scores for linkage phase and recombination fraction.
 #'
 #' @param x An object of class \code{pairwise.rf}.
 #' @param thresh.LOD.ph LOD threshold for linkage phase (default = 5).
@@ -412,7 +494,7 @@ rf_filter <- function(x,
 #' @param diagnostic.plot Boolean to control the generation of a diagnostic plot (default = TRUE).
 #' @param breaks Number of breaks for histogram in diagnostic plot (default = 100).
 #' @return A modified \code{pairwise.rf} object with filtered data.
-#' @keywords internal
+#' @export
 init_rf_filter <- function(x,
                            thresh.LOD.ph = 5,
                            thresh.LOD.rf = 5,
@@ -427,10 +509,10 @@ init_rf_filter <- function(x,
   probs <- range(probs)
   ## Getting filtered rf matrix
   M <-filter_rf_matrix(x,
-                                  type = "rf",
-                                  thresh.LOD.ph = thresh.LOD.ph,
-                                  thresh.LOD.rf = thresh.LOD.rf,
-                                  thresh.rf = thresh.rf)
+                       type = "rf",
+                       thresh.LOD.ph = thresh.LOD.ph,
+                       thresh.LOD.rf = thresh.LOD.rf,
+                       thresh.rf = thresh.rf)
   if(!is.null(mrk.order))
     M <- M[mrk.order, mrk.order]
   if(!is.null(diag.markers))
@@ -463,7 +545,7 @@ init_rf_filter <- function(x,
 
 #' Filter Recombination Fractions for Specific Linkage Group
 #'
-#' Internal function to filter recombination fractions for a specific linkage group in a \code{mappoly2.sequence} object.
+#' This function filters recombination fractions for a specific linkage group in a \code{mappoly2.sequence} object.
 #'
 #' @param x A \code{mappoly2.sequence} object.
 #' @param lg Linkage group to filter.
@@ -476,7 +558,7 @@ init_rf_filter <- function(x,
 #' @param diagnostic.plot Boolean to control the generation of a diagnostic plot (default = TRUE).
 #' @param breaks Number of breaks for histogram in diagnostic plot (default = 100).
 #' @return A modified \code{mappoly2.sequence} object with filtered linkage group.
-#' @keywords internal
+#' @export
 rf_filter_per_group <- function(x,
                                 lg,
                                 type = c("mds", "genome"),
@@ -494,11 +576,11 @@ rf_filter_per_group <- function(x,
   ## Getting filtered rf matrix
   mrk.names <- x$maps[[lg]][[y$type]]$mkr.names
   M <-filter_rf_matrix(x$data,
-                                  type = "rf",
-                                  thresh.LOD.ph = thresh.LOD.ph,
-                                  thresh.LOD.rf = thresh.LOD.rf,
-                                  thresh.rf = thresh.rf,
-                                  mrk.names = mrk.names)
+                       type = "rf",
+                       thresh.LOD.ph = thresh.LOD.ph,
+                       thresh.LOD.rf = thresh.LOD.rf,
+                       thresh.rf = thresh.rf,
+                       mrk.names = mrk.names)
   if(!is.null(diag.markers))
     M[abs(col(M) - row(M)) > diag.markers] <- NA
   z <- apply(M, 1, function(x) sum(!is.na(x)))
@@ -524,7 +606,7 @@ rf_filter_per_group <- function(x,
 
 #' Filter Recombination Fraction Matrix
 #'
-#' Internal function to filter a recombination fraction matrix based on LOD thresholds and recombination fraction limits.
+#' This function filters a recombination fraction matrix based on LOD thresholds and recombination fraction limits.
 #'
 #' @param x A data object containing pairwise recombination fractions.
 #' @param type Type of matrix to filter ("rf" for recombination fraction, "sh" for SH values).
@@ -533,7 +615,7 @@ rf_filter_per_group <- function(x,
 #' @param thresh.rf Recombination fraction threshold (default = 0.5).
 #' @param mrk.names Marker names to include in the filtering (default = NULL, all markers).
 #' @return A filtered recombination fraction matrix or a list of filtered SH matrices.
-#' @keywords internal
+#' @export
 filter_rf_matrix <- function(x,
                              type = c("rf", "sh"),
                              thresh.LOD.ph = 0,
@@ -564,4 +646,3 @@ filter_rf_matrix <- function(x,
                 Sh.p2 = sh.p2))
   }
 }
-

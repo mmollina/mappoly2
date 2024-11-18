@@ -74,8 +74,6 @@ plot.mappoly2.data<-function(x,
 }
 
 plot_data <- function(x,
-                      text,
-                      col,
                       mrk.id = NULL,
                       ind.id = NULL,
                       ...){
@@ -94,7 +92,11 @@ plot_data <- function(x,
   type.names <- names(table(type))
   mrk.dist <- as.numeric(freq)
   names(mrk.dist) <- apply(d.temp, 1 , paste, collapse = "-")
-  layout(matrix(c(1,1,1,2,3,3,6,4,5), 3, 3), widths = c(1.2,3,.5), heights = c(1.5,2,3))
+  #  layout(matrix(c(1,1,1,2,3,3,6,4,5), 3, 3), widths = c(1.2,3,.5), heights = c(1.5,2,3))
+  #  dev.off()
+  layout(matrix(c(1,1,1,1,1,2,3,3,3,3,8,4,5,6,7), 5, 3),
+         widths = c(.7,2.8,.5), heights = c(1.5,1,.7,1,2))
+  #layout.show(8)
   barplot(mrk.dist, las = 2,
           xlab = "Number of markers",
           ylab = "Dosage combination", horiz = TRUE)
@@ -123,7 +125,6 @@ plot_data <- function(x,
   image(x = 1:nrow(M), z = M, axes = FALSE, xlab = "",
         col = pal[as.character(sort(unique(as.vector(M))))], useRaster = TRUE)
   mtext(text = "Markers", side = 1, line = .4)
-  mtext(text = text, side = 1, line = 2, col = col, cex = 0.5)
   mtext(text = "Individuals", side = 2, line = .2)
   par(mar = c(0,0,0,0))
   plot(0:10,0:10, type = "n", axes = FALSE, xlab = "", ylab = "")
@@ -133,6 +134,56 @@ plot_data <- function(x,
          pch = 22,
          pt.cex = 3,
          pt.bg = pal, pt.lwd = 0,
+         bty = "n", xpd = TRUE)
+
+  v <- setNames(c(nrow(M), ncol(M), paste(round(100*sum(M==-1)/length(M),1), "%")), c("N. mrk:", "N. ind:", "Missing"))
+  par(mar = c(0,0,2,0))
+  plot(0:10,0:10, type = "n", axes = FALSE, xlab = "", ylab = "")
+  mtext("Summary", adj = 0, cex = .8, font = 2, line = 1)
+  legend(-1.5,12,
+         horiz = FALSE,
+         legend = paste(names(v), ifelse(is.na(v), "", v)),
+         pch = ifelse(is.na(v),19,20),
+         pt.cex = 0,
+         bty = "n", xpd = TRUE)
+  w1 <- attr(x, "history")
+  w2 <- c("filter_markers_by_missing_rate",
+          "filter_individuals_by_missing_rate",
+          "filter_markers_by_chisq_pval",
+          "filter_markers_by_read_depth")
+
+  # Initialize result vector
+  v <- setNames(rep(NA, length(w2)), c("Mrk Miss", "Ind Miss",
+                                       "Pval", "R Depth"))
+
+  # Loop through the elements of w2 to find the corresponding elements in w1
+  for (i in seq_along(w2)) {
+    if (!is.null(w1[[w2[i]]])) {
+      filter_str <- w1[[w2[i]]][1]
+      if (grepl("chi-squared", filter_str, ignore.case = TRUE)) {
+        # Extract p-value threshold and format to 2 decimal points
+        value <- as.numeric(sub(".*>=\\s*([0-9.eE+-]+).*", "\\1", filter_str))
+        value <- formatC(value, format = "e", digits = 2)
+        v[i] <- paste0(">= ", value)
+      } else if (grepl("read depth", filter_str, ignore.case = TRUE)) {
+        # Extract range for read depth and remove spaces
+        value <- sub(".*\\[\\s*([0-9]+)\\s*,\\s*([0-9]+)\\s*\\].*", "\\1-\\2", filter_str)
+        v[i] <- paste0("[", value, "]")
+      } else if (grepl("<", filter_str)) {
+        # Extract the numeric value after "<"
+        value <- sub(".*<\\s*([0-9.]+).*", "\\1", filter_str)
+        v[i] <- paste0("< ", value)
+      }
+    }
+  }
+  par(mar = c(0,0,2,0))
+  plot(0:10,0:10, type = "n", axes = FALSE, xlab = "", ylab = "")
+  mtext("Filters", adj = 0, cex = .8, font = 2, line = 1)
+  legend(-1.5,12,
+         horiz = FALSE,
+         legend = paste(names(v), ifelse(is.na(v), "", v)),
+         pch = ifelse(is.na(v),19,20),
+         pt.cex = 0,
          bty = "n", xpd = TRUE)
   if(!is.null(x$redundant)){
     par(mar = c(5,0,2,2))

@@ -30,6 +30,5 @@ filter_rf_matrix(
 A filtered recombination fraction matrix or a list of filtered SH matrices.
 }
 \description{
-Internal function to filter a recombination fraction matrix based on LOD thresholds and recombination fraction limits.
+This function filters a recombination fraction matrix based on LOD thresholds and recombination fraction limits.
 }
-\keyword{internal}

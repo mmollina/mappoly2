@@ -9,6 +9,8 @@
   id.ind,
   miss.mrk = NA,
   miss.ind = rep(NA, length(id.ind)),
+  read.depth = NA,
+  full.sib = NA,
   chisq.pval
 )
 }

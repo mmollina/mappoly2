@@ -4,10 +4,10 @@
 \alias{filter_redundant}
 \title{Filter Out Redundant Markers}
 \usage{
-filter_redundant(x)
+filter_redundant(x, plot = TRUE)
 }
 \arguments{
-\item{x}{An object of class \code{mappoly2.data}. It is expected to have a component named \code{geno.dose}, which is a matrix containing the dosage for each marker (rows) for each individual (columns).}
+\item{x}{An object of class \code{mappoly2.data}. It should have a component named \code{geno.dose}, which is a matrix containing the dosage for each marker (rows) for each individual (columns).}
 }
 \value{
 The modified \code{mappoly2.data} object with redundant markers removed. The return value includes:
@@ -17,9 +17,12 @@ The modified \code{mappoly2.data} object with redundant markers removed. The ret
 }
 }
 \description{
-This function filters out redundant markers from a \code{mappoly2.data} object. It identifies and removes duplicated genetic markers based on their genotypic information, thus reducing the data to unique markers. It also updates the \code{redundant} component of the object with information about which markers were kept and which were removed.
+Filters out redundant markers from a \code{mappoly2.data} object by identifying and removing duplicated genetic markers based on their genotypic information. Optionally, generates a plot showing the number of unique and redundant markers.
 }
 \details{
-This function first checks if the input is a valid \code{mappoly2.data} object using \code{assert_that(is.mappoly2.data(x))}. It then identifies redundant markers by checking for duplicates in the \code{geno.dose} matrix. If no redundant markers are found, the function returns the original object. If redundant markers are identified, they are removed, and the object's \code{redundant} data frame is updated accordingly.
+This function identifies redundant markers by checking for duplicates in the \code{geno.dose} matrix. If redundant markers are found, they are removed, and the object's \code{redundant} data frame is updated accordingly. If \code{plot = TRUE}, it generates a plot showing the number of markers before and after redundancy filtering.
 }
-\keyword{internal}
+\examples{
+filtered_data <- filter_redundant(potato_dataset)
+
+}
