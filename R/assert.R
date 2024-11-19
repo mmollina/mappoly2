@@ -5,7 +5,7 @@ is.mappoly2.data <- function(x) {
 
 # Function to check if an object has been screened
 has.mappoly2.screened <- function(x) {
-  is.mappoly2.data(x) && inherits(x, "screened")
+  is.mappoly2.data(x) && length(x$screened.data) > 0
 }
 
 # Function to check if chromosome information is present

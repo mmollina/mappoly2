@@ -69,13 +69,24 @@ filter_redundant <- function(x, plot = TRUE)
 #' @export
 filter_markers_by_missing_rate <- function(x, mrk.thresh = 0.10, plot = TRUE){
   assert_that(is.mappoly2.data(x))
-  missing_rates <- x$QAQC.values$markers$miss
-  markers_to_keep <- rownames(x$QAQC.values$markers)[missing_rates <= mrk.thresh]
-  if(is.null(markers_to_keep) || length(markers_to_keep) == 0)
+  y <- .get_current_thresholds(x)
+  id <- .get_mrk_ind_from_QAQC(x$QAQC.values,
+                               miss.mrk.thresh = mrk.thresh,
+                               miss.ind.thresh = y$miss.ind,
+                               chisq.pval.thresh = y$chisq.pval,
+                               read.depth.thresh = y$read.depth)
+  x$screened.data <- id
+  x$screened.data$thresholds <- c(x$screened.data$thresholds,
+                                  LOD.ph = 0,
+                                  LOD.rf = 0,
+                                  rf = 0.5,
+                                  prob.lower = 0,
+                                  prob.upper = 1)
+  if(length(id$mrk.names) == 0)
     stop("No markers meet the missing data threshold.")
   if (plot) {
     pal <- c("#56B4E9","#E69F00")
-    z <- sort(missing_rates)
+    z <- sort(x$QAQC.values$markers$miss)
     rg <- range(z)
     if(rg[2] < .1) rg[2] <- .1
     plot(z,
@@ -94,7 +105,6 @@ filter_markers_by_missing_rate <- function(x, mrk.thresh = 0.10, plot = TRUE){
            col = rev(pal),
            pch = c(4, 1))
   }
-  x <- subset_data(x, select.mrk = markers_to_keep)
   x <- update_metadata(x,
                        map_step = paste("Filtered markers with missing rate <", mrk.thresh),
                        class_suffix = "mappoly2.data.missing.mrk.filtered")
@@ -120,13 +130,24 @@ filter_markers_by_missing_rate <- function(x, mrk.thresh = 0.10, plot = TRUE){
 #' @export
 filter_individuals_by_missing_rate <- function(x, ind.thresh = 0.10, plot = TRUE) {
   assert_that(is.mappoly2.data(x))
-  missing_rates <- x$QAQC.values$individuals$miss
-  individuals_to_keep <- rownames(x$QAQC.values$individuals)[missing_rates <= ind.thresh]
-  if (is.null(individuals_to_keep) || length(individuals_to_keep) == 0)
-    stop("No individuals meet the missing data threshold.")
+  y <- .get_current_thresholds(x)
+  id <- .get_mrk_ind_from_QAQC(x$QAQC.values,
+                               miss.mrk.thresh = y$miss.mrk,
+                               miss.ind.thresh = ind.thresh,
+                               chisq.pval.thresh = y$chisq.pval,
+                               read.depth.thresh = y$read.depth)
+  x$screened.data <- id
+  x$screened.data$thresholds <- c(x$screened.data$thresholds,
+                                  LOD.ph = 0,
+                                  LOD.rf = 0,
+                                  rf = 0.5,
+                                  prob.lower = 0,
+                                  prob.upper = 1)
+  if(length(id$ind.names) == 0)
+    stop("No markers meet the missing data threshold.")
   if (plot) {
     pal <- c("#56B4E9","#E69F00")
-    z <- sort(missing_rates)
+    z <- sort(x$QAQC.values$individuals$miss)
     rg <- range(z)
     if(rg[2] < .1) rg[2] <- .1
     plot(z,
@@ -145,7 +166,6 @@ filter_individuals_by_missing_rate <- function(x, ind.thresh = 0.10, plot = TRUE
            col = rev(pal),
            pch = c(4, 1))
   }
-  x <- mappoly2:::subset_data(x, select.ind = individuals_to_keep)
   x <- update_metadata(x,
                        map_step = paste("Filtered individuals with missing rate <", ind.thresh),
                        class_suffix = "mappoly2.data.missing.ind.filtered")
@@ -172,15 +192,31 @@ filter_individuals_by_missing_rate <- function(x, ind.thresh = 0.10, plot = TRUE
 #' @export
 filter_markers_by_chisq_pval <- function(x, chisq.pval.thresh = NULL, plot = TRUE) {
   assert_that(is.mappoly2.data(x))
-  chisq_pvals <- x$QAQC.values$markers$chisq.pval
-  if (is.null(chisq.pval.thresh))
-    chisq.pval.thresh <- 0.05 / length(chisq_pvals)
-  markers_to_keep <- rownames(x$QAQC.values$markers)[chisq_pvals >= chisq.pval.thresh]
-  if (is.null(markers_to_keep) || length(markers_to_keep) == 0)
+
+  if (is.null(chisq.pval.thresh)){
+    if(length(x$screened.data) != 0)
+      chisq.pval.thresh <- 0.05 / length(x$screened.data$mrk.names)
+    else
+      chisq.pval.thresh <- 0.05 / nrow(x$geno.dose)
+  }
+  y <- .get_current_thresholds(x)
+  id <- .get_mrk_ind_from_QAQC(x$QAQC.values,
+                               miss.mrk.thresh = y$miss.mrk,
+                               miss.ind.thresh = y$miss.ind,
+                               chisq.pval.thresh = chisq.pval.thresh,
+                               read.depth.thresh = y$read.depth)
+  x$screened.data <- id
+  x$screened.data$thresholds <- c(x$screened.data$thresholds,
+                                  LOD.ph = 0,
+                                  LOD.rf = 0,
+                                  rf = 0.5,
+                                  prob.lower = 0,
+                                  prob.upper = 1)
+  if(length(id$mrk.names) == 0)
     stop("No markers meet the chi-squared p-value threshold.")
   if (plot) {
     pal <- c("#56B4E9","#E69F00")
-    w <- log10(sort(chisq_pvals, decreasing = TRUE))
+    w <- log10(sort(x$QAQC.values$markers$chisq.pval, decreasing = TRUE))
     th <- log10(chisq.pval.thresh)
     plot(w,
          xlab = "Markers",
@@ -195,7 +231,6 @@ filter_markers_by_chisq_pval <- function(x, chisq.pval.thresh = NULL, plot = TRU
     i <- paste0("Included: ", sum(w >= th))
     legend("bottomleft",  c(f, i) , col = rev(pal), pch = c(4,1))
   }
-  x <- subset_data(x, select.mrk = markers_to_keep)
   x <- update_metadata(x,
                        map_step = paste("Filtered markers with chi-squared p-value >=", chisq.pval.thresh),
                        class_suffix = "mappoly2.data.chisq.mrk.filtered")
@@ -221,12 +256,24 @@ filter_markers_by_chisq_pval <- function(x, chisq.pval.thresh = NULL, plot = TRU
 #' @export
 filter_markers_by_read_depth <- function(x, read.depth.thresh = c(5, 1000), plot = TRUE) {
   assert_that(is.mappoly2.data(x))
-  read_depths <- x$QAQC.values$markers$read.depth
-  markers_to_keep <- rownames(x$QAQC.values$markers)[read_depths >= read.depth.thresh[1] & read_depths <= read.depth.thresh[2]]
-  if (is.null(markers_to_keep) || length(markers_to_keep) == 0)
+  y <- .get_current_thresholds(x)
+  id <- .get_mrk_ind_from_QAQC(x$QAQC.values,
+                               miss.mrk.thresh = y$miss.mrk,
+                               miss.ind.thresh = y$miss.ind,
+                               chisq.pval.thresh = y$chisq.pval,
+                               read.depth.thresh =read.depth.thresh)
+  x$screened.data <- id
+  x$screened.data$thresholds <- c(x$screened.data$thresholds,
+                                  LOD.ph = 0,
+                                  LOD.rf = 0,
+                                  rf = 0.5,
+                                  prob.lower = 0,
+                                  prob.upper = 1)
+  if(length(id$ind.names) == 0)
     stop("No markers meet the read depth thresholds.")
   if (plot) {
     pal <- c("#56B4E9","#E69F00")
+    read_depths <- x$QAQC.values$markers$read.depth
     if(all(!is.na(read_depths))){
       df <- data.frame(read_depth = read_depths,
                        included = read_depths >= read.depth.thresh[1] & read_depths <= read.depth.thresh[2])
@@ -245,7 +292,6 @@ filter_markers_by_read_depth <- function(x, read.depth.thresh = c(5, 1000), plot
       text(0, 0, "No read depth data available")
     }
   }
-  x <- subset_data(x, select.mrk = markers_to_keep)
   x <- update_metadata(x,
                        map_step = paste("Filtered markers with read depth in range [",
                                         read.depth.thresh[1], ",", read.depth.thresh[2], "]"),

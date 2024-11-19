@@ -570,4 +570,20 @@ update_metadata <- function(x, map_step, class_suffix) {
 }
 
 
-
+.get_current_thresholds <- function(x){
+  if(length(x$screened.data) == 0){
+    list(
+      miss.mrk = Inf,
+      miss.ind = Inf,
+      chisq.pval = -Inf,
+      read.depth = c(0, Inf),
+      LOD.ph = 0,
+      LOD.rf = 0,
+      rf = 0.5,
+      prob.lower = 0,
+      prob.upper = 1
+    )
+  } else {
+    x$screened.data$thresholds
+  }
+}

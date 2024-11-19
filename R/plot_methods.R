@@ -79,10 +79,30 @@ plot_data <- function(x,
                       ...){
   oldpar <- par(mar = c(5,4,1,2))
   on.exit(par(oldpar))
-  if(is.null(mrk.id))
-    mrk.id <- x$mrk.names
-  if(is.null(ind.id))
-    ind.id <- x$ind.names
+  if("mappoly2.data.missing.mrk.filtered"%in%class(x))
+  {
+    if(!is.null(mrk.id))
+      mrk.id <- intersect(x$screened.data$mrk.names, mrk.id)
+    else
+      mrk.id <- x$screened.data$mrk.names
+  } else {
+    if(!is.null(mrk.id))
+      mrk.id <- intersect(rownames(x$geno.dose), mrk.id)
+    else
+      mrk.id <- rownames(x$geno.dose)
+  }
+  if("mappoly2.data.missing.ind.filtered"%in%class(x))
+  {
+    if(!is.null(ind.id))
+      ind.id <- intersect(x$screened.data$ind.names, ind.id)
+    else
+      ind.id <- x$screened.data$ind.names
+  } else {
+    if(!is.null(ind.id))
+      ind.id <- intersect(colnames(x$geno.dose), ind.id)
+    else
+      ind.id <- colnames(x$geno.dose)
+  }
   freq <- table(paste(x$dosage.p1[mrk.id],
                       x$dosage.p2[mrk.id],
                       sep = "-"))
