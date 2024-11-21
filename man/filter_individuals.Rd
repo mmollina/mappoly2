@@ -9,6 +9,7 @@ filter_individuals(
   ind.to.remove = NULL,
   inter = TRUE,
   type = c("Gmat", "PCA"),
+  point.type = c("number", "name", "point"),
   verbose = TRUE
 )
 }

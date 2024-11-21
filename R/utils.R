@@ -302,7 +302,7 @@ get_dosage_type <- function(x, mrk.names){
                      miss.mrk = NA,
                      miss.ind = rep(NA, length(id.ind)),
                      read.depth = NA,
-                     full.sib = NA,
+                     full.sib = TRUE,
                      chisq.pval){
   list(markers = data.frame(miss = miss.mrk,
                             chisq.pval = chisq.pval,
@@ -331,7 +331,12 @@ get_dosage_type <- function(x, mrk.names){
                                    miss.mrk.thresh = +Inf,
                                    miss.ind.thresh = +Inf,
                                    chisq.pval.thresh = -Inf,
-                                   read.depth.thresh = c(0, +Inf)){
+                                   read.depth.thresh = c(0, +Inf),
+                                   LOD.ph = 0,
+                                   LOD.rf = 0,
+                                   rf = 0.5,
+                                   prob.lower = 0,
+                                   prob.upper = 1){
 
   if(any(is.na(x$markers[,"read.depth"]))){
     id.mrk <- x$markers[,"miss"] < miss.mrk.thresh &
@@ -342,15 +347,17 @@ get_dosage_type <- function(x, mrk.names){
       x$markers[,"read.depth"] > read.depth.thresh[1] &
       x$markers[,"read.depth"] < read.depth.thresh[2]
   }
-  if(any(is.na(x$individuals[,"full.sib"])))
-    id.ind <- x$individuals[,"miss"] < miss.ind.thresh
-  else
-    id.ind <- x$individuals[,"miss"] < miss.ind.thresh &
-      x$individuals[,"full.sib"]
+  id.ind <- x$individuals[,"miss"] < miss.ind.thresh &
+     x$individuals[,"full.sib"]
   return(list(thresholds = list(miss.mrk = miss.mrk.thresh,
                                 miss.ind = miss.ind.thresh,
                                 chisq.pval = chisq.pval.thresh,
-                                read.depth = read.depth.thresh),
+                                read.depth = read.depth.thresh,
+                                LOD.ph = LOD.ph,
+                                LOD.rf = LOD.rf,
+                                rf = rf,
+                                prob.lower = prob.lower,
+                                prob.upper = prob.upper),
               mrk.names = rownames(x$markers)[id.mrk],
               ind.names = rownames(x$individuals)[id.ind]))
 }

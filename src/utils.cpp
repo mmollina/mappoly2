@@ -117,6 +117,42 @@ using namespace Rcpp;
  }
 
  // [[Rcpp::export]]
+ double cpp_chisq_test(NumericVector observed, NumericVector expected_probs) {
+   // Ensure expected_probs sums to 1
+   double total_prob = sum(expected_probs);
+   if (std::abs(total_prob - 1.0) > 1e-8) {
+     stop("Expected probabilities do not sum to 1.");
+   }
+
+   // Compute total count from observed
+   double total_count = sum(observed);
+
+   // Scale expected probabilities to expected counts
+   NumericVector expected_counts = expected_probs * total_count;
+
+   // Check for zero expected counts to avoid division by zero
+   if (is_true(any(expected_counts == 0))) {
+     stop("Expected counts contain zeros, invalid for chi-squared test.");
+   }
+
+   // Compute chi-squared statistic
+   double chi_squared = 0.0;
+   for (int i = 0; i < observed.size(); ++i) {
+     double obs = observed[i];
+     double exp = expected_counts[i];
+     chi_squared += std::pow(obs - exp, 2) / exp;
+   }
+
+   // Degrees of freedom: number of categories minus 1
+   int df = observed.size() - 1;
+
+   // Compute p-value using the chi-squared distribution CDF
+   double p_value = R::pchisq(chi_squared, df, false, false); // lower.tail = false, log.p = false
+
+   return p_value;
+ }
+
+ // [[Rcpp::export]]
  NumericVector mappoly_chisq_test(List input_data) {
    int ploidy_p1 = input_data["ploidy.p1"];
    int ploidy_p2 = input_data["ploidy.p2"];
@@ -129,31 +165,34 @@ using namespace Rcpp;
    int ploidy_pr = (ploidy_p1 + ploidy_p2) / 2;
 
    NumericVector chisq_p_out(n_mrk);
-   NumericVector::iterator it;
    NumericVector y(ploidy_pr + 1);
 
    for (int i = 0; i < n_mrk; ++i) {
-     std::fill(y.begin(), y.end(), 0);
+     std::fill(y.begin(), y.end(), 0); // Reset y for the current marker
+
+     // Count genotype doses, skipping NA values
      for (int j = 0; j < n_ind; ++j) {
-       y[geno_dose(i, j)] += 1;
+       if (!R_IsNA(geno_dose(i, j))) { // Check if the value is not NA
+         y[geno_dose(i, j)] += 1;
+       }
      }
-     it = std::remove(y.begin(), y.end(), NA_REAL);
-     y.erase(it, y.end());
 
      NumericVector exp_seg = segreg_poly(ploidy_p1, ploidy_p2, d_p1[i], d_p2[i]);
-     NumericVector y_filtered = y[exp_seg != 0];
-     if(Rcpp::sum(y_filtered) == 0){
-       chisq_p_out[i] = 10e-50;
-     } else{
-       NumericVector exp_seg_filtered = exp_seg[exp_seg != 0];
-       Rcpp::Environment stats("package:stats");
-       Rcpp::Function chisq_test = stats["chisq.test"];
-       List x = chisq_test(Named("x", y_filtered), Named("p", exp_seg_filtered));
-       chisq_p_out[i] = x["p.value"];
+     LogicalVector mask = exp_seg != 0;
+     NumericVector y_filtered = y[mask];
+
+     if (Rcpp::sum(y_filtered) == 0) {
+       chisq_p_out[i] = 1e-50; // Assign a small p-value for invalid cases
+     } else {
+       NumericVector exp_seg_filtered = exp_seg[mask];
+       exp_seg_filtered = exp_seg_filtered / Rcpp::sum(exp_seg_filtered); // Normalize
+
+       // Use the cpp_chisq_test function
+       chisq_p_out[i] = cpp_chisq_test(y_filtered, exp_seg_filtered);
      }
    }
+
    chisq_p_out.names() = mrk_names;
-   //input_data["chisq.pval"] = chisq_p_out;
    return chisq_p_out;
  }
 

@@ -275,6 +275,18 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
+// cpp_chisq_test
+double cpp_chisq_test(NumericVector observed, NumericVector expected_probs);
+RcppExport SEXP _mappoly2_cpp_chisq_test(SEXP observedSEXP, SEXP expected_probsSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< NumericVector >::type observed(observedSEXP);
+    Rcpp::traits::input_parameter< NumericVector >::type expected_probs(expected_probsSEXP);
+    rcpp_result_gen = Rcpp::wrap(cpp_chisq_test(observed, expected_probs));
+    return rcpp_result_gen;
+END_RCPP
+}
 // mappoly_chisq_test
 NumericVector mappoly_chisq_test(List input_data);
 RcppExport SEXP _mappoly2_mappoly_chisq_test(SEXP input_dataSEXP) {
@@ -316,6 +328,7 @@ static const R_CallMethodDef CallEntries[] = {
     {"_mappoly2_vcf_get_depth", (DL_FUNC) &_mappoly2_vcf_get_depth, 2},
     {"_mappoly2_est_hmm_map_biallelic_log_implementation", (DL_FUNC) &_mappoly2_est_hmm_map_biallelic_log_implementation, 9},
     {"_mappoly2_segreg_poly", (DL_FUNC) &_mappoly2_segreg_poly, 4},
+    {"_mappoly2_cpp_chisq_test", (DL_FUNC) &_mappoly2_cpp_chisq_test, 2},
     {"_mappoly2_mappoly_chisq_test", (DL_FUNC) &_mappoly2_mappoly_chisq_test, 1},
     {"_mappoly2_filter_non_conforming_classes", (DL_FUNC) &_mappoly2_filter_non_conforming_classes, 1},
     {NULL, NULL, 0}

@@ -66,9 +66,12 @@ pairwise_rf <- function(x,
     return(x)
   } else if (mrk.scope == "per.chrom") {
     ch <- unique(x$chrom[x$chrom != "NoChr"])
-    ch <- ch[order(embedded_to_numeric(ch))]
-    id.num <- lapply(ch, function(y) get_mrk_indices_from_chrom(x, y))
+    ch <- names(which(table(x$chrom) > 1))
+    ch <- ch[order(mappoly2:::embedded_to_numeric(ch))]
+    id.num <- lapply(ch, function(y) mappoly2:::get_mrk_indices_from_chrom(x, y))
     names(id.num) <- ch
+    id.num <- id.num[sapply(id.num, length) > 1]
+    ch <- names(id.num)
     v <- unlist(id.num)
     rec.mat <- lod.mat <- lod.ph.mat <- Sh.p1 <- Sh.p2 <- matrix(NA, length(v), length(v),
                                                                  dimnames = list(x$mrk.names[v],

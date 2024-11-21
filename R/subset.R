@@ -43,7 +43,7 @@ subset.mappoly2.data <- function(x,
                                  ...) {
   assert_that(is.mappoly2.data(x))
 
-  # Determine subsetting type based on input
+  # Determine sub-setting type based on input
   if (!is.null(select.ind)) {
     type <- "individual"
   } else {

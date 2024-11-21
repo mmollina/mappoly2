@@ -9,7 +9,12 @@
   miss.mrk.thresh = +Inf,
   miss.ind.thresh = +Inf,
   chisq.pval.thresh = -Inf,
-  read.depth.thresh = c(0, +Inf)
+  read.depth.thresh = c(0, +Inf),
+  LOD.ph = 0,
+  LOD.rf = 0,
+  rf = 0.5,
+  prob.lower = 0,
+  prob.upper = 1
 )
 }
 \arguments{

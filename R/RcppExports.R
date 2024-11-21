@@ -69,6 +69,10 @@ segreg_poly <- function(ploidy_p1, ploidy_p2, d_p1, d_p2) {
     .Call('_mappoly2_segreg_poly', PACKAGE = 'mappoly2', ploidy_p1, ploidy_p2, d_p1, d_p2)
 }
 
+cpp_chisq_test <- function(observed, expected_probs) {
+    .Call('_mappoly2_cpp_chisq_test', PACKAGE = 'mappoly2', observed, expected_probs)
+}
+
 mappoly_chisq_test <- function(input_data) {
     .Call('_mappoly2_mappoly_chisq_test', PACKAGE = 'mappoly2', input_data)
 }

@@ -70,18 +70,12 @@ filter_redundant <- function(x, plot = TRUE)
 filter_markers_by_missing_rate <- function(x, mrk.thresh = 0.10, plot = TRUE){
   assert_that(is.mappoly2.data(x))
   y <- .get_current_thresholds(x)
-  id <- .get_mrk_ind_from_QAQC(x$QAQC.values,
-                               miss.mrk.thresh = mrk.thresh,
-                               miss.ind.thresh = y$miss.ind,
-                               chisq.pval.thresh = y$chisq.pval,
-                               read.depth.thresh = y$read.depth)
+  id <- mappoly2:::.get_mrk_ind_from_QAQC(x$QAQC.values,
+                                          miss.mrk.thresh = mrk.thresh,
+                                          miss.ind.thresh = y$miss.ind,
+                                          chisq.pval.thresh = y$chisq.pval,
+                                          read.depth.thresh = y$read.depth)
   x$screened.data <- id
-  x$screened.data$thresholds <- c(x$screened.data$thresholds,
-                                  LOD.ph = 0,
-                                  LOD.rf = 0,
-                                  rf = 0.5,
-                                  prob.lower = 0,
-                                  prob.upper = 1)
   if(length(id$mrk.names) == 0)
     stop("No markers meet the missing data threshold.")
   if (plot) {
@@ -131,23 +125,16 @@ filter_markers_by_missing_rate <- function(x, mrk.thresh = 0.10, plot = TRUE){
 filter_individuals_by_missing_rate <- function(x, ind.thresh = 0.10, plot = TRUE) {
   assert_that(is.mappoly2.data(x))
   y <- .get_current_thresholds(x)
-  id <- .get_mrk_ind_from_QAQC(x$QAQC.values,
-                               miss.mrk.thresh = y$miss.mrk,
-                               miss.ind.thresh = ind.thresh,
-                               chisq.pval.thresh = y$chisq.pval,
-                               read.depth.thresh = y$read.depth)
-  x$screened.data <- id
-  x$screened.data$thresholds <- c(x$screened.data$thresholds,
-                                  LOD.ph = 0,
-                                  LOD.rf = 0,
-                                  rf = 0.5,
-                                  prob.lower = 0,
-                                  prob.upper = 1)
+  id <- mappoly2:::.get_mrk_ind_from_QAQC(x$QAQC.values,
+                                          miss.mrk.thresh = y$miss.mrk,
+                                          miss.ind.thresh = ind.thresh,
+                                          chisq.pval.thresh = y$chisq.pval,
+                                          read.depth.thresh = y$read.depth)
   if(length(id$ind.names) == 0)
     stop("No markers meet the missing data threshold.")
   if (plot) {
     pal <- c("#56B4E9","#E69F00")
-    z <- sort(x$QAQC.values$individuals$miss)
+    z <- sort(x$QAQC.values$individuals[x$screened.data$ind.names, "miss"])
     rg <- range(z)
     if(rg[2] < .1) rg[2] <- .1
     plot(z,
@@ -166,6 +153,7 @@ filter_individuals_by_missing_rate <- function(x, ind.thresh = 0.10, plot = TRUE
            col = rev(pal),
            pch = c(4, 1))
   }
+  x$screened.data <- id
   x <- update_metadata(x,
                        map_step = paste("Filtered individuals with missing rate <", ind.thresh),
                        class_suffix = "mappoly2.data.missing.ind.filtered")
@@ -206,12 +194,6 @@ filter_markers_by_chisq_pval <- function(x, chisq.pval.thresh = NULL, plot = TRU
                                chisq.pval.thresh = chisq.pval.thresh,
                                read.depth.thresh = y$read.depth)
   x$screened.data <- id
-  x$screened.data$thresholds <- c(x$screened.data$thresholds,
-                                  LOD.ph = 0,
-                                  LOD.rf = 0,
-                                  rf = 0.5,
-                                  prob.lower = 0,
-                                  prob.upper = 1)
   if(length(id$mrk.names) == 0)
     stop("No markers meet the chi-squared p-value threshold.")
   if (plot) {
@@ -263,12 +245,6 @@ filter_markers_by_read_depth <- function(x, read.depth.thresh = c(5, 1000), plot
                                chisq.pval.thresh = y$chisq.pval,
                                read.depth.thresh =read.depth.thresh)
   x$screened.data <- id
-  x$screened.data$thresholds <- c(x$screened.data$thresholds,
-                                  LOD.ph = 0,
-                                  LOD.rf = 0,
-                                  rf = 0.5,
-                                  prob.lower = 0,
-                                  prob.upper = 1)
   if(length(id$ind.names) == 0)
     stop("No markers meet the read depth thresholds.")
   if (plot) {
@@ -330,30 +306,58 @@ filter_individuals <- function(x,
                                ind.to.remove = NULL,
                                inter = TRUE,
                                type = c("Gmat", "PCA"),
+                               point.type = c("number", "name", "point"),
                                verbose = TRUE){
   assert_that(is.mappoly2.data(x))
+
+  # Assert that x has the required classes, and optionally the additional class
+  assert_that(
+    all(class(x)%in%c("mappoly2.data.f1.filtered",
+                      "mappoly.init.filter",
+                      "mappoly2.data.redundant",
+                      "mappoly2.data")),
+    msg = "Ensure no other user-driven filtering occurred before running 'filter_individuals'."
+  )
+
   if(x$ploidy.p1 != x$ploidy.p2)
     stop("'filter_individuals' cannot be executed\n  on progenies with odd ploidy levels.")
   type <- match.arg(type)
+  point.type <- match.arg(point.type)
   op <- par(pty="s")
   on.exit(par(op))
-  D <- rbind(x$dosage.p1,
-             x$dosage.p2,
-             t(x$geno.dose))
+  y <- mappoly2:::.get_current_thresholds(x)
+  id <-  mappoly2:::.get_mrk_ind_from_QAQC(x$QAQC.values,
+                                           miss.mrk.thresh = y$miss.mrk,
+                                           miss.ind.thresh = y$miss.ind,
+                                           chisq.pval.thresh = y$chisq.pval,
+                                           read.depth.thresh = y$read.depth)
+  D <- rbind(x$dosage.p1[id$mrk.names],
+             x$dosage.p2[id$mrk.names],
+             t(x$geno.dose[id$mrk.names,id$ind.names]))
   rownames(D)[1:2] <- c(x$name.p1, x$name.p2)
+  pt <- "p"
   if(type == "Gmat"){
     G  <- AGHmatrix::Gmatrix(D, method = "VanRaden",ploidy = x$ploidy.p1/2 + x$ploidy.p2/2)
     y1 <- G[1,]
     y2 <- G[2,]
     df <- data.frame(x = y1, y = y2, type = c(2, 2, rep(4, length(y1)-2)))
+    w<-max(df[,-3])
+    if(point.type != "point"){
+      pt = "n"
+      if(point.type == "name")
+        lab <- rownames(df)
+      else if(point.type == "number")
+        lab <- c(rownames(df)[1:2], 1:(nrow(df)-2))
+    }
     plot(df[,1:2], col = df$type, pch = 19,
          xlab = paste0("relationships between the offspring and ",x$name.p1),
          ylab = paste0("relationships between the offspring and ",x$name.p2),
-         type = "n", xlim = c(-1,1), ylim = c(-1,1))
-    text(df[,1:2], col = df$type, pch = 19,
-         xlab = paste0("relationships between the offspring and ",x$name.p1),
-         ylab = paste0("relationships between the offspring and ",x$name.p2),
-         label = 1:nrow(df), cex = .8)
+         type = pt, xlim = c(-w*1.1, w*1.1), ylim = c(-w*1.1, w*1.1))
+    if(point.type != "point")
+      text(df[,1:2], col = df$type,
+           xlab = paste0("relationships between the offspring and ",x$name.p1),
+           ylab = paste0("relationships between the offspring and ",x$name.p2),
+           label = lab, cex = .8)
     abline(c(0,1), lty = 2)
     abline(c(-0.4,1), lty = 2, col = "gray")
     abline(c(0.4,1), lty = 2, col = "gray")
@@ -369,27 +373,36 @@ filter_individuals <- function(x,
     a <- diff(range(x_pca))*0.05
     b <- diff(range(y_pca))*0.05
     df <- data.frame(x = x_pca, y = y_pca, type = c(2, 2, rep(4, length(x_pca)-2)))
+    if(point.type != "point"){
+      pt = "n"
+      if(point.type == "name")
+        lab <- rownames(df)
+      else if(point.type == "number")
+        lab <- c(rownames(df)[1:2], 1:(nrow(df)-2))
+    }
     plot(df[,1:2],
          xlab = "PC1",
          ylab = "PC2",
-         xlim = c(min(x_pca)-a, max(x_pca)+a),
-         ylim = c(min(y_pca)-b, max(y_pca)+b),
-         type = "n")
-    text(df[,1:2], col = df$type, label = 1:nrow(df), cex = .8)
+         xlim = c(min(x_pca)-a, max(x_pca)+a)*1.1,
+         ylim = c(min(y_pca)-b, max(y_pca)+b)*1.1,
+         type = pt)
+    if(point.type != "point")
+      text(df[,1:2], col = df$type, label = lab, cex = .8)
     legend("bottomleft",  c("Parents", "Offspring") , col = c(2,4), pch = 19)
   }
   if(!is.null(ind.to.remove)){
-    full.sib <- !x$ind.names%in%ind.to.remove
-    x$QAQC.values$individuals[,"full.sib"] <- !rownames(x$QAQC.values$individuals)%in%ind.to.remove
-    if(inherits(x, "screened")){
-      id <- .get_mrk_ind_from_QAQC(x$QAQC.values,
-                                   miss.mrk.thresh = x$screened.data$thresholds$miss.mrk,
-                                   miss.ind.thresh = x$screened.data$thresholds$miss.ind,
-                                   chisq.pval.thresh = x$screened.data$thresholds$chisq.pval,
-                                   read.depth.thresh = x$screened.data$thresholds$read.depth)
-    }
-    x$screened.data <- id
-    return(x)
+    inter <- FALSE
+    if(is.numeric(ind.to.remove))
+      ind.to.remove <- rownames(df)[ind.to.remove + 2]
+    # x$QAQC.values$individuals[ind.to.remove, "full.sib"] <- FALSE
+    # y <- .get_current_thresholds(x)
+    # id <- .get_mrk_ind_from_QAQC(x$QAQC.values,
+    #                              miss.mrk.thresh = y$miss.mrk,
+    #                              miss.ind.thresh = y$miss.ind,
+    #                              chisq.pval.thresh = y$chisq.pval,
+    #                              read.depth.thresh = y$read.depth)
+    # x$screened.data <- id
+    points(df[ind.to.remove,1:2], cex = .8, pch = 4)
   }
   if(interactive() && inter)
   {
@@ -397,37 +410,37 @@ filter_individuals <- function(x,
     if(substr(ANSWER, 1, 1)  ==  "y" | substr(ANSWER, 1, 1)  ==  "yes" | substr(ANSWER, 1, 1)  ==  "Y" | ANSWER  == "")
     {
       ind.to.remove <- gatepoints::fhs(df, mark = TRUE, pch = 4)
-      ind.to.remove <- setdiff(ind.to.remove, c("P1", "P2"))
+      ind.to.remove <- setdiff(ind.to.remove, c(x$name.p1, x$name.p2))
       ind.to.include <- setdiff(rownames(df)[-c(1:2)], ind.to.remove)
       if(verbose){
         cat("Removing individual(s): \n")
         print(ind.to.remove)
         cat("...\n")
       }
-      if(length(ind.to.remove) == 0){
-        warning("No individuals removed. Returning original data set.")
-        par(pty="m")
-        return(x)
-      }
-      full.sib <- !x$ind.names%in%ind.to.remove
-      x$QAQC.values$individuals[,"full.sib"] <- !rownames(x$QAQC.values$individuals)%in%ind.to.remove
-      if(inherits(x, "screened")){
-        id <- .get_mrk_ind_from_QAQC(x$QAQC.values,
-                                     miss.mrk.thresh = x$screened.data$thresholds$miss.mrk,
-                                     miss.ind.thresh = x$screened.data$thresholds$miss.ind,
-                                     chisq.pval.thresh = x$screened.data$thresholds$chisq.pval,
-                                     read.depth.thresh = x$screened.data$thresholds$read.depth)
-      }
-      x$screened.data <- id
-      par(pty="m")
-      return(x)
-    } else{
-      warning("No individuals removed. Returning original data set.")
-      par(pty="m")
-      return(x)
+      # x$QAQC.values$individuals[ind.to.remove, "full.sib"] <- FALSE
+      # y <- .get_current_thresholds(x)
+      # id <- .get_mrk_ind_from_QAQC(x$QAQC.values,
+      #                              miss.mrk.thresh = y$miss.mrk,
+      #                              miss.ind.thresh = y$miss.ind,
+      #                              chisq.pval.thresh = y$chisq.pval,
+      #                              read.depth.thresh = y$read.depth)
+      #
+      # x$screened.data <- id
     }
   }
+  if(length(ind.to.remove) == 0)
+    message("No individuals removed. Returning original data set.")
+  else{
+    x <-subset(x,
+               type = "individual",
+               select.ind = setdiff(x$ind.names, ind.to.remove))
+  }
+  x <- update_metadata(x,
+                       map_step = paste("Filtered", length(ind.to.remove), "offspring individuals not in the original offspring set."),
+                       class_suffix = "mappoly2.data.f1.filtered"
+  )
   par(pty="m")
+  return(x)
 }
 
 #' Remove Markers Not Meeting LOD and Recombination Fraction Criteria

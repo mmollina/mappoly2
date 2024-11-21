@@ -84,7 +84,8 @@ print.mappoly2.data <- function(x,
     cat("\n", txt[[3]], x$screened.data$thresholds$miss.ind)
     cat("\n", txt[[4]], format(x$screened.data$thresholds$chisq.pval, digits = 3))
     if(!all(is.na(x$QAQC.values$markers$read.depth)))
-      cat("\n", txt[[5]], x$screened.data$thresholds$read.depth)
+      cat("\n", txt[[5]], paste0("[", x$screened.data$thresholds$read.depth[1], "-",
+                                 x$screened.data$thresholds$read.depth[2], "]"))
     cat("\n", txt[[6]], ifelse(all(is.na(x$QAQC.values$individuals$full.sib)),
                                "-", sum(!x$QAQC.values$individuals$full.sib)))
     cat("\n", txt[[7]], x$screened.data$thresholds$LOD.ph)
