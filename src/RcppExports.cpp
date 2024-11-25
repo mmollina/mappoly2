@@ -164,18 +164,25 @@ BEGIN_RCPP
 END_RCPP
 }
 // twopt_phasing_cpp
-List twopt_phasing_cpp(CharacterVector mrk_id, int ploidy, IntegerVector dose_vec, NumericMatrix S, int max_conf_number, bool verbose);
-RcppExport SEXP _mappoly2_twopt_phasing_cpp(SEXP mrk_idSEXP, SEXP ploidySEXP, SEXP dose_vecSEXP, SEXP SSEXP, SEXP max_conf_numberSEXP, SEXP verboseSEXP) {
+List twopt_phasing_cpp(CharacterVector mrk_id, CharacterVector seg_mrk_id, int ploidy, IntegerVector dose_vec, NumericMatrix S, int max_conf_number, IntegerMatrix G, double tol, double err, int tail, double hmm_thresh, double map_expansion_thresh, bool verbose);
+RcppExport SEXP _mappoly2_twopt_phasing_cpp(SEXP mrk_idSEXP, SEXP seg_mrk_idSEXP, SEXP ploidySEXP, SEXP dose_vecSEXP, SEXP SSEXP, SEXP max_conf_numberSEXP, SEXP GSEXP, SEXP tolSEXP, SEXP errSEXP, SEXP tailSEXP, SEXP hmm_threshSEXP, SEXP map_expansion_threshSEXP, SEXP verboseSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
     Rcpp::traits::input_parameter< CharacterVector >::type mrk_id(mrk_idSEXP);
+    Rcpp::traits::input_parameter< CharacterVector >::type seg_mrk_id(seg_mrk_idSEXP);
     Rcpp::traits::input_parameter< int >::type ploidy(ploidySEXP);
     Rcpp::traits::input_parameter< IntegerVector >::type dose_vec(dose_vecSEXP);
     Rcpp::traits::input_parameter< NumericMatrix >::type S(SSEXP);
     Rcpp::traits::input_parameter< int >::type max_conf_number(max_conf_numberSEXP);
+    Rcpp::traits::input_parameter< IntegerMatrix >::type G(GSEXP);
+    Rcpp::traits::input_parameter< double >::type tol(tolSEXP);
+    Rcpp::traits::input_parameter< double >::type err(errSEXP);
+    Rcpp::traits::input_parameter< int >::type tail(tailSEXP);
+    Rcpp::traits::input_parameter< double >::type hmm_thresh(hmm_threshSEXP);
+    Rcpp::traits::input_parameter< double >::type map_expansion_thresh(map_expansion_threshSEXP);
     Rcpp::traits::input_parameter< bool >::type verbose(verboseSEXP);
-    rcpp_result_gen = Rcpp::wrap(twopt_phasing_cpp(mrk_id, ploidy, dose_vec, S, max_conf_number, verbose));
+    rcpp_result_gen = Rcpp::wrap(twopt_phasing_cpp(mrk_id, seg_mrk_id, ploidy, dose_vec, S, max_conf_number, G, tol, err, tail, hmm_thresh, map_expansion_thresh, verbose));
     return rcpp_result_gen;
 END_RCPP
 }
@@ -320,7 +327,7 @@ static const R_CallMethodDef CallEntries[] = {
     {"_mappoly2_est_hmm_map_biallelic", (DL_FUNC) &_mappoly2_est_hmm_map_biallelic, 9},
     {"_mappoly2_est_hmm_map_biallelic_single", (DL_FUNC) &_mappoly2_est_hmm_map_biallelic_single, 8},
     {"_mappoly2_pairwise_rf_estimation_disc_rcpp", (DL_FUNC) &_mappoly2_pairwise_rf_estimation_disc_rcpp, 13},
-    {"_mappoly2_twopt_phasing_cpp", (DL_FUNC) &_mappoly2_twopt_phasing_cpp, 6},
+    {"_mappoly2_twopt_phasing_cpp", (DL_FUNC) &_mappoly2_twopt_phasing_cpp, 13},
     {"_mappoly2_phasing_one", (DL_FUNC) &_mappoly2_phasing_one, 5},
     {"_mappoly2_vcf_get_probabilities", (DL_FUNC) &_mappoly2_vcf_get_probabilities, 2},
     {"_mappoly2_vcf_transform_dosage", (DL_FUNC) &_mappoly2_vcf_transform_dosage, 2},

@@ -37,8 +37,8 @@ pairwise_rf_estimation_disc_rcpp <- function(mrk_pairs_R, ploidy_p1_R, ploidy_p2
     .Call('_mappoly2_pairwise_rf_estimation_disc_rcpp', PACKAGE = 'mappoly2', mrk_pairs_R, ploidy_p1_R, ploidy_p2_R, geno_R, dose_p1_R, dose_p2_R, count_vector_R, count_matrix_phases_R, count_matrix_rownames_R, count_matrix_number_R, count_matrix_pos_R, count_matrix_length_R, tol_R)
 }
 
-twopt_phasing_cpp <- function(mrk_id, ploidy, dose_vec, S, max_conf_number, verbose) {
-    .Call('_mappoly2_twopt_phasing_cpp', PACKAGE = 'mappoly2', mrk_id, ploidy, dose_vec, S, max_conf_number, verbose)
+twopt_phasing_cpp <- function(mrk_id, seg_mrk_id, ploidy, dose_vec, S, max_conf_number, G, tol, err, tail, hmm_thresh, map_expansion_thresh, verbose) {
+    .Call('_mappoly2_twopt_phasing_cpp', PACKAGE = 'mappoly2', mrk_id, seg_mrk_id, ploidy, dose_vec, S, max_conf_number, G, tol, err, tail, hmm_thresh, map_expansion_thresh, verbose)
 }
 
 phasing_one <- function(mrk_id, dose_vec, S, InitPh, verbose) {

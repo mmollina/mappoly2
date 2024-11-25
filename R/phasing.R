@@ -35,21 +35,27 @@ pairwise_phasing <- function(x,
                              thresh.rf = 0.5,
                              max.search.expansion.p1 = 10,
                              max.search.expansion.p2 = max.search.expansion.p1,
+                             tol = 10e-2,
+                             error = 0.01,
+                             tail = 10,
                              verbose = TRUE){
-  y <- parse_lg_and_type(x,lg,type)
+  y <- mappoly2:::parse_lg_and_type(x,lg,type)
   assert_that(has.mappoly2.screened(x$data))
   parent <- match.arg(parent)
-  mrk.id <- get_markers_from_ordered_sequence(x, y$lg, y$type, parent)
+  mrk.id <- mappoly2:::get_markers_from_ordered_sequence(x, y$lg, y$type, parent)
   for(i in 1:length(mrk.id)){
     if(verbose) cat("  -->", y$lg[i], "\n")
-    x$maps[[y$lg[i]]][[y$type]][[parent]]$rf.phase <- pairwise_phasing_one(x,
-                                                                           mrk.id[[i]],
-                                                                           thresh.LOD.ph,
-                                                                           thresh.LOD.rf,
-                                                                           thresh.rf,
-                                                                           max.search.expansion.p1,
-                                                                           max.search.expansion.p2,
-                                                                           verbose)
+    x$maps[[y$lg[i]]][[y$type]][[parent]]$rf.phase <- mappoly2:::pairwise_phasing_one(x,
+                                                                                      mrk.id[[i]],
+                                                                                      thresh.LOD.ph,
+                                                                                      thresh.LOD.rf,
+                                                                                      thresh.rf,
+                                                                                      tol = tol,
+                                                                                      error = error,
+                                                                                      tail = tail,
+                                                                                      max.search.expansion.p1,
+                                                                                      max.search.expansion.p2,
+                                                                                      verbose)
     if(parent == "p1p2"){
       ## attributing phase to p1 informative markers
       temp <- x$maps[[y$lg[i]]][[y$type]][[parent]]$rf.phase
@@ -78,6 +84,9 @@ pairwise_phasing_one <- function(x,
                                  thresh.LOD.ph = 3,
                                  thresh.LOD.rf = 3,
                                  thresh.rf = 0.5,
+                                 tol = 10e-2,
+                                 error = 0.01,
+                                 tail = 10,
                                  max.search.expansion.p1,
                                  max.search.expansion.p2 = max.search.expansion.p1,
                                  verbose = TRUE){
@@ -92,21 +101,43 @@ pairwise_phasing_one <- function(x,
                         mrk.names = mrk.id)
   if(verbose)
     cat("Phasing parent", x$data$name.p1, "\n")
-  Ph.p1 <- twopt_phasing_cpp(mrk_id = mrk.id,
-                             ploidy = x$data$ploidy.p1,
-                             dose_vec = x$data$dosage.p1[mrk.id],
-                             S = M$Sh.p1,
-                             max_conf_number = max.search.expansion.p1,
-                             verbose = verbose)
+  g <- x$data$geno.dose
+  g[is.na(g)] <- -1
+  id <- names(which(x$data$ploidy.p2 == x$data$dosage.p2[mrk.id]))
+  g[id, ] <- g[id, ] - x$data$ploidy.p2/2
+  seg_mrk_p1 <- mappoly2:::get_info_markers(mrk.id, x, "p1")
+  Ph.p1 <- mappoly2:::twopt_phasing_cpp(mrk_id = mrk.id,
+                                        seg_mrk_id = seg_mrk_p1,
+                                        ploidy = x$data$ploidy.p1,
+                                        dose_vec = x$data$dosage.p1[mrk.id],
+                                        S = M$Sh.p1,
+                                        max_conf_number = max.search.expansion.p1,
+                                        G = g[seg_mrk_p1,x$data$screened.data$ind.names],
+                                        tol = tol,
+                                        err = error,
+                                        tail = tail,
+                                        hmm_thresh = 20,
+                                        map_expansion_thresh = 20,
+                                        verbose = verbose)
   for(i in 1:length(Ph.p1$phase_configs))
     rownames(Ph.p1$phase_configs[[i]]) <- Ph.p1$marker_names
   if(verbose)
     cat("Phasing parent", x$data$name.p2, "\n")
+  id <- names(which(x$data$ploidy.p1 == x$data$dosage.p1[mrk.id]))
+  g[id, ] <- g[id, ] - x$data$ploidy.p1/2
+  seg_mrk_p2 <- mappoly2:::get_info_markers(mrk.id, x, "p2")
   Ph.p2 <- twopt_phasing_cpp(mrk_id = mrk.id,
+                             seg_mrk_id = seg_mrk_p2,
                              ploidy = x$data$ploidy.p2,
                              dose_vec = x$data$dosage.p2[mrk.id],
                              S = M$Sh.p2,
                              max_conf_number = max.search.expansion.p2,
+                             G = g[seg_mrk_p2,x$data$screened.data$ind.names],
+                             tol = tol,
+                             err = error,
+                             tail = tail,
+                             hmm_thresh = 20,
+                             map_expansion_thresh = 20,
                              verbose = verbose)
   for(i in 1:length(Ph.p2$phase_configs))
     rownames(Ph.p2$phase_configs[[i]]) <- Ph.p2$marker_names
@@ -114,6 +145,7 @@ pairwise_phasing_one <- function(x,
   n1 <- length(mrk.id)
   n2 <- length(mrks)
   if(verbose){
+    ## Make this print for each parent
     cat(n2, " phased markers out of ", n1, ": (",  round(100*n2/n1,1), "%)",sep = "")
   }
   cte <- 1

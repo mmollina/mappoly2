@@ -43,6 +43,7 @@
 #include <iostream>
 #include <iomanip>
 #include <vector>
+#include <string>
 #include <math.h>
 #include <R.h>
 #include <Rmath.h>
@@ -50,6 +51,7 @@
 #include <string_view>
 #include "combinatorics.h"
 #include "hmm_elements.h"
+#include "utils.h"
 
 using namespace std;
 using namespace Rcpp;
@@ -225,3 +227,38 @@ using namespace Rcpp;
  }
 
 
+ // Function to print a NumericMatrix or IntegerMatrix
+ void print_matrix(NumericMatrix mat, std::string name) {
+   Rcpp::Rcout << name << " (" << mat.nrow() << " x " << mat.ncol() << "):\n";
+   for (int i = 0; i < mat.nrow(); ++i) {
+     for (int j = 0; j < mat.ncol(); ++j) {
+       Rcpp::Rcout << mat(i, j) << "";
+     }
+     Rcpp::Rcout << "\n";
+   }
+   Rcpp::Rcout << "\n";
+ }
+
+ void print_matrix(IntegerMatrix mat, std::string name) {
+
+   Rcpp::Rcout << name << " (" << mat.nrow() << " x " << mat.ncol() << "):\n";
+   for (int i = 0; i < mat.nrow(); ++i) {
+     for (int j = 0; j < mat.ncol(); ++j) {
+       Rcpp::Rcout << mat(i, j) << "";
+     }
+     Rcpp::Rcout << "\n";
+   }
+   Rcpp::Rcout << "\n";
+ }
+
+
+ NumericVector imf_h(NumericVector r) {
+   NumericVector d = clone(r); // Clone the input vector to avoid modifying the original
+   for(int i = 0; i < d.size(); ++i) {
+     if(d[i] >= 0.5) {
+       d[i] = 0.5 - 1e-14;
+     }
+     d[i] = -50 * std::log(1 - 2 * d[i]);
+   }
+   return d;
+ }

@@ -40,6 +40,8 @@
 #include <algorithm>
 #include <iostream>
 #include <vector>
+#include <chrono>
+#include <thread>
 #include "combinatorics.h"
 #include "hmm_elements.h"
 #include <math.h>
@@ -516,6 +518,7 @@ List vs_biallelic(List PH,
 }
 
 // Helper function for states to visit - biallelic - single parent
+// Helper function for states to visit - biallelic - single parent
 List vs_biallelic_single(NumericMatrix PH,
                          IntegerMatrix G) {
   int ploidy = PH.ncol();
@@ -579,6 +582,8 @@ List vs_biallelic_single(NumericMatrix PH,
   return List::create(Named("states") = H,
                       Named("emit") = E);
 }
+
+
 
 // Helper function for states to visit - biallelic
 // using emission to model error

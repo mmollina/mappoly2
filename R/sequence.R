@@ -28,7 +28,8 @@ make_sequence <- function(x,
                           lg = NULL,
                           ch = NULL,
                           mrk.id.list = NULL){
-  assert_that(inherits(x, "screened") | inherits(x, "mappoly2.group"))
+
+  assert_that(inherits(x, "mappoly2.data") | inherits(x, "mappoly2.group"))
   ## If there is marker information, initiate a sequence with it
   ## It over hides lg and ch
   if(!is.null(mrk.id.list)){
