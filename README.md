@@ -33,53 +33,63 @@ devtools::install_github("mmollina/mappoly2", dependencies=TRUE)
 - [Supplementary Slides](https://github.com/mmollina/mappoly2_vignettes/blob/main/Updates-Introducing_MAPpoly2-and_updates_QTLpoly-2024-workshop.pdf)
 
 
-## To-Do List
+# Task List
 
-1. **Testing & Debugging**  
-   - Develop a comprehensive test script.
-   - Identify and resolve existing bugs.
+## Testing & Debugging
+- Develop a comprehensive test script.
+- Identify and resolve existing bugs.
 
-2. **Algorithm Development**
-   - Implement an algorithm similar to `mappoly::est_rf_hmm_sequential`.
-   - Design an algorithm for reconstructing offspring haplotypes, detailing crossover points and identifying homologs involved in the exchange.
+## Algorithm Development
+- Implement an algorithm similar to `mappoly::est_rf_hmm_sequential`.
+- Design an algorithm for reconstructing offspring haplotypes, detailing crossover points and identifying homologs involved in the exchange.
 
-3. **Documentation**
-   - Create detailed documentation outlining the structure and components of the package objects.
+## Data Filtering
+- Split the existing data filtering function into specific filters for:
+  - Individual data
+  - Marker data
+  - Segregation data
+  - Read depth
+- Filter individuals:
+  - Remove “x” in parents on the plot.
+  - Check missing rate and apply if necessary.
+- Use a marker and recompute χ² when needed (if not filtered by χ²).
+- List markers removed due to filters.
+- Include redundant markers back.
 
-4. **Phase Estimation**
-   - Implement a joint phase estimation method for the entire population, incorporating a two-point linkage and algorithm.
+## Phase Estimation & Adjustment
+- Implement a joint phase estimation method for the entire population, incorporating a two-point linkage and algorithm.
+- Make phase information available throughout the process.
+- Develop a function to split and rephase data as needed.
 
-5. **Data Integration**
-   - Enable support for reading DarTAG data.
-   - Add functionality for reading multiparental population data.
-   - Create a function for reading diploid data.
+## Data Integration
+- Enable support for reading **DarTAG** data.
+- Add functionality for reading multiparental population data.
+- Create a function for reading diploid data.
 
-6. **Population Types**
-   - Extend support to include inbred-based diploid populations.
+## Population Types
+- Extend support to include inbred-based diploid populations.
 
-7. **Map Augmentation**
-   - Develop functionality for augmenting maps for single-parent datasets.
-   - Support the integration of phase data from one order into another.
+## Map Augmentation
+- Develop functionality for augmenting maps for single-parent datasets.
+- Support the integration of phase data from one order into another.
+- Ensure "pi/pi" markers are included when augmenting maps.
 
-8. **External Package Connectivity**
-   - Establish connections with AlphaSimR for simulation integration.
-   - Enable compatibility with R/qtl for QTL analysis.
+## Visualization
+- Implement multiple plotting and printing methods to enhance data visualization.
+- Plot MDS (Multidimensional Scaling) to visualize marker relationships.
 
-9. **Visualization**
-   - Implement multiple plotting and printing methods to enhance data visualization.
+## Documentation
+- Create detailed documentation outlining the structure and components of the package objects.
 
-10. **Data Validation**
-    - Verify segregation p-values for accuracy.
+## External Package Connectivity
+- Establish connections with **AlphaSimR** for simulation integration.
+- Enable compatibility with **R/qtl** for QTL analysis.
 
-11. **Data Filtering**
-    - Split the existing data filtering function into specific filters for:
-       - Individual data
-       - Marker data
-       - Segregation data
-       - Read depth
+## Data Validation
+- Verify segregation p-values for accuracy.
 
-12. **Phase Adjustment**
-    - Implement a function to split and rephase data as needed.
+## Marker Grouping
+- Provide an easy way to group markers.
 
 # Acknowledgment
 
