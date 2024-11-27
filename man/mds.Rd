@@ -11,6 +11,7 @@ mds(
   n = NULL,
   ndim = 2,
   weight.exponent = 2,
+  mat = NULL,
   verbose = TRUE
 )
 }

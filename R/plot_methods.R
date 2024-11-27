@@ -276,7 +276,7 @@ plot_rf_matrix_one <- function(x,
       w <- w[-o,-o]
     }
     if(fact > 1)
-      w <- aggregate_matrix(w, fact)
+      w <- aggregate_matrix(w, fact)$R
     if(is.null(main.text))
       main.text <- "Recombination fraction matrix"
     col.range  <-
@@ -295,7 +295,7 @@ plot_rf_matrix_one <- function(x,
       w <- w[-o,-o]
     }
     if(fact > 1)
-      w <- aggregate_matrix(w, fact)
+      w <- aggregate_matrix(w, fact)$R
     w[w < 1e-4] <- 1e-4
     w <- log10(w)
     if(is.null(main.text))

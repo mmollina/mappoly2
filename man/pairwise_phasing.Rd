@@ -14,6 +14,8 @@ pairwise_phasing(
   thresh.rf = 0.5,
   max.search.expansion.p1 = 10,
   max.search.expansion.p2 = max.search.expansion.p1,
+  phase_LOD_threshold = 20,
+  tail_map_expansion = 20,
   tol = 0.1,
   error = 0.01,
   tail = 10,

@@ -220,17 +220,51 @@ select_rf <- function(x, thresh.LOD.ph, thresh.LOD.rf, thresh.rf, shared.alleles
 
 #' Aggregate matrix cells (lower the resolution by a factor)
 #'
-#' @param void internal function to be documented
+#' @param M A numeric matrix to be aggregated.
+#' @param fact An integer factor by which to lower the resolution.
+#' @return A list containing the aggregated matrix `R` and a list `markers` with the names of the markers in each aggregated cell.
 #' @keywords internal
 #' @export
 aggregate_matrix <- function(M, fact){
-  id <- seq(1,ncol(M), by = fact)
+  # Validate inputs
+  if(!is.matrix(M)) stop("M must be a matrix.")
+  if(!is.numeric(fact) || length(fact) != 1 || fact <= 0) stop("fact must be a positive integer.")
+
+  # Define intervals for aggregation
+  id <- seq(1, ncol(M), by = fact)
   id <- cbind(id, c(id[-1]-1, ncol(M)))
+
+  # Initialize markers list and group names
+  markers_list <- list()
+  group_names <- character(nrow(id))
+
+  for (k in 1:nrow(id)){
+    indices <- id[k,1]:id[k,2]
+    # Get marker names; use indices if colnames are NULL
+    markers <- if(!is.null(colnames(M))) colnames(M)[indices] else as.character(indices)
+    markers_list[[k]] <- markers
+    # Define group names based on marker names or indices
+    group_names[k] <- paste0("Group_", k)
+  }
+  names(markers_list) <- group_names
+
+  # Initialize the aggregated matrix R
   R <- matrix(NA, nrow(id), nrow(id))
-  for(i in 1:(nrow(id)-1)){
-    for(j in (i+1):nrow(id)){
-      R[j,i] <-  R[i,j] <- mean(M[id[i,1]:id[i,2], id[j,1]:id[j,2]], na.rm = TRUE)
+
+  # Calculate mean values for aggregated cells
+  for(i in 1:nrow(id)){
+    for(j in i:nrow(id)){
+      # Extract submatrices for current cell
+      sub_matrix <- M[id[i,1]:id[i,2], id[j,1]:id[j,2], drop = FALSE]
+      # Compute mean, handling NA values
+      R[i,j] <- R[j,i] <- mean(sub_matrix, na.rm = TRUE)
     }
   }
-  R
+
+  # Assign row and column names to R
+  rownames(R) <- colnames(R) <- group_names
+
+  # Return the result as a list
+  return(list(R = R, markers = markers_list))
 }
+

@@ -8,11 +8,14 @@ order_sequence(
   x,
   lg = NULL,
   type = c("mds", "genome"),
+  rounds = 1,
   p = NULL,
   n = NULL,
   ndim = 2,
+  factor = 2,
   weight.exponent = 2,
-  verbose = TRUE
+  verbose = TRUE,
+  plot = FALSE
 )
 }
 \arguments{
@@ -24,6 +27,8 @@ If NULL, all linkage groups in the data object are considered.}
 \item{type}{The type of genetic data to be ordered, either 'mds' for
 Multi-Dimensional Scaling or 'genome' for genomic data.}
 
+\item{rounds}{The number of rounds to perform the ordering process. Defaults to 1.}
+
 \item{p}{An optional parameter for the ordering function, specific to the
 method being used (e.g., MDS).}
 
@@ -33,10 +38,14 @@ method being used.}
 \item{ndim}{The number of dimensions to be used in the ordering process.
 This parameter is primarily relevant for MDS.}
 
+\item{factor}{The aggregation factor used in the ordering process when 'type' is 'mds' and 'rounds' > 1.}
+
 \item{weight.exponent}{The exponent for weighting in the ordering process.}
 
 \item{verbose}{A logical value indicating whether to print detailed output
 during the execution of the function.}
+
+\item{plot}{A logical value indicating whether to generate plots during the execution.}
 }
 \value{
 The function returns the modified mapping data object with updated
@@ -50,6 +59,9 @@ for customization of the ordering process through various parameters.
 \details{
 The function iterates over the specified linkage groups (or all groups
 if none are specified) and applies either MDS or genomic ordering
-based on the 'type' parameter. Additional parameters like 'p', 'n',
-and 'ndim' are used to fine-tune the ordering process.
+based on the 'type' parameter. If 'type' is 'mds' and 'rounds' > 1,
+the function performs multiple rounds of ordering, potentially improving
+the sequence order by removing markers with the highest stress values.
+Additional parameters like 'p', 'n', 'ndim', and 'factor' are used to
+fine-tune the ordering process.
 }

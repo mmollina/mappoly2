@@ -7,7 +7,12 @@
 aggregate_matrix(M, fact)
 }
 \arguments{
-\item{void}{internal function to be documented}
+\item{M}{A numeric matrix to be aggregated.}
+
+\item{fact}{An integer factor by which to lower the resolution.}
+}
+\value{
+A list containing the aggregated matrix \code{R} and a list \code{markers} with the names of the markers in each aggregated cell.
 }
 \description{
 Aggregate matrix cells (lower the resolution by a factor)

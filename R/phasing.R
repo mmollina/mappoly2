@@ -35,6 +35,8 @@ pairwise_phasing <- function(x,
                              thresh.rf = 0.5,
                              max.search.expansion.p1 = 10,
                              max.search.expansion.p2 = max.search.expansion.p1,
+                             phase_LOD_threshold = 20,
+                             tail_map_expansion = 20,
                              tol = 10e-2,
                              error = 0.01,
                              tail = 10,
@@ -43,6 +45,12 @@ pairwise_phasing <- function(x,
   assert_that(has.mappoly2.screened(x$data))
   parent <- match.arg(parent)
   mrk.id <- mappoly2:::get_markers_from_ordered_sequence(x, y$lg, y$type, parent)
+  if(length(phase_LOD_threshold) < length(mrk.id)){
+    phase_LOD_threshold <- rep(phase_LOD_threshold[1], length(mrk.id))
+  }
+  if(length(tail_map_expansion) < length(mrk.id)){
+    tail_map_expansion <- rep(tail_map_expansion[1], length(mrk.id))
+  }
   for(i in 1:length(mrk.id)){
     if(verbose) cat("  -->", y$lg[i], "\n")
     x$maps[[y$lg[i]]][[y$type]][[parent]]$rf.phase <- mappoly2:::pairwise_phasing_one(x,
@@ -53,6 +61,8 @@ pairwise_phasing <- function(x,
                                                                                       tol = tol,
                                                                                       error = error,
                                                                                       tail = tail,
+                                                                                      hmm_thresh = phase_LOD_threshold[i],
+                                                                                      map_expansion_thresh = tail_map_expansion[i],
                                                                                       max.search.expansion.p1,
                                                                                       max.search.expansion.p2,
                                                                                       verbose)
@@ -87,6 +97,8 @@ pairwise_phasing_one <- function(x,
                                  tol = 10e-2,
                                  error = 0.01,
                                  tail = 10,
+                                 hmm_thresh = 20,
+                                 map_expansion_thresh = 20,
                                  max.search.expansion.p1,
                                  max.search.expansion.p2 = max.search.expansion.p1,
                                  verbose = TRUE){
@@ -116,8 +128,8 @@ pairwise_phasing_one <- function(x,
                                         tol = tol,
                                         err = error,
                                         tail = tail,
-                                        hmm_thresh = 20,
-                                        map_expansion_thresh = 20,
+                                        hmm_thresh = hmm_thresh,
+                                        map_expansion_thresh = map_expansion_thresh,
                                         verbose = verbose)
   for(i in 1:length(Ph.p1$phase_configs))
     rownames(Ph.p1$phase_configs[[i]]) <- Ph.p1$marker_names
@@ -136,8 +148,8 @@ pairwise_phasing_one <- function(x,
                              tol = tol,
                              err = error,
                              tail = tail,
-                             hmm_thresh = 20,
-                             map_expansion_thresh = 20,
+                             hmm_thresh = hmm_thresh,
+                             map_expansion_thresh = map_expansion_thresh,
                              verbose = verbose)
   for(i in 1:length(Ph.p2$phase_configs))
     rownames(Ph.p2$phase_configs[[i]]) <- Ph.p2$marker_names

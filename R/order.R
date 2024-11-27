@@ -9,44 +9,168 @@
 #'           If NULL, all linkage groups in the data object are considered.
 #' @param type The type of genetic data to be ordered, either 'mds' for
 #'             Multi-Dimensional Scaling or 'genome' for genomic data.
+#' @param rounds The number of rounds to perform the ordering process. Defaults to 1.
 #' @param p An optional parameter for the ordering function, specific to the
 #'          method being used (e.g., MDS).
 #' @param n An optional parameter for the ordering function, specific to the
 #'          method being used.
 #' @param ndim The number of dimensions to be used in the ordering process.
 #'             This parameter is primarily relevant for MDS.
+#' @param factor The aggregation factor used in the ordering process when 'type' is 'mds' and 'rounds' > 1.
 #' @param weight.exponent The exponent for weighting in the ordering process.
 #' @param verbose A logical value indicating whether to print detailed output
 #'                during the execution of the function.
+#' @param plot A logical value indicating whether to generate plots during the execution.
 #'
 #' @return The function returns the modified mapping data object with updated
 #'         order of the genetic sequence.
 #'
 #' @details The function iterates over the specified linkage groups (or all groups
 #'          if none are specified) and applies either MDS or genomic ordering
-#'          based on the 'type' parameter. Additional parameters like 'p', 'n',
-#'          and 'ndim' are used to fine-tune the ordering process.
+#'          based on the 'type' parameter. If 'type' is 'mds' and 'rounds' > 1,
+#'          the function performs multiple rounds of ordering, potentially improving
+#'          the sequence order by removing markers with the highest stress values.
+#'          Additional parameters like 'p', 'n', 'ndim', and 'factor' are used to
+#'          fine-tune the ordering process.
 #'
 #' @export
 order_sequence <- function(x,
                            lg = NULL,
                            type = c("mds", "genome"),
+                           rounds = 1,
                            p = NULL,
                            n = NULL,
                            ndim = 2,
+                           factor = 2,
                            weight.exponent = 2,
-                           verbose = TRUE){
-  y <- parse_lg_and_type(x,lg,type)
-  for(i in y$lg){
-    if(verbose) cat("  -->", i)
-    if(y$type == "mds")
-      x$maps[[i]][[y$type]]$order <- mds(x, x$maps[[i]][[y$type]]$mkr.names,p,n,ndim,weight.exponent,verbose)
-    else
-      x$maps[[i]][[y$type]]$order <- genome_order(x, mrk.names = x$maps[[i]][[y$type]]$mkr.names, verbose = TRUE)
-    if(verbose) cat("\n")
+                           verbose = TRUE,
+                           plot = FALSE) {
+  # Parse linkage groups and type
+  parsed_params <- mappoly2:::parse_lg_and_type(x, lg, type)
+  linkage_groups <- parsed_params$lg
+  current_type <- parsed_params$type
+
+  # Iterate over each linkage group
+  for (group in linkage_groups) {
+    if (verbose) cat("  --> Processing linkage group:", group, "\n")
+
+    if (current_type == "mds") {
+      # Initialize metrics and orderings storage
+      stress_metrics <- monotonicity_metrics <- numeric(rounds + 1)
+      orderings_list <- vector("list", rounds + 1)
+
+      # Initial MDS ordering
+      initial_order <- mds(
+        x = x,
+        mrk.id = x$maps[[group]][[current_type]]$mkr.names,
+        p = p,
+        n = n,
+        ndim = ndim,
+        weight.exponent = weight.exponent,
+        mat = NULL,
+        verbose = verbose
+      )
+      orderings_list[[1]] <- x$maps[[group]][[current_type]]$order <- initial_order
+
+      # Get marker IDs from the ordered sequence
+      id1 <- mappoly2:::get_markers_from_ordered_sequence(x, lg = group, type = "mds")[[1]]
+
+      # Evaluate initial monotonicity and stress metrics
+      positions <- initial_order$locimap$position
+      nnfit_values <- initial_order$locimap$nnfit
+      stress_metrics[1] <- analyze_grid_distribution(positions, nnfit_values, grid_x = 10, grid_y = 10)$metrics$y_dispersion_metric
+      monotonicity_metrics[1] <- mappoly2:::evaluate_monotonicity(x$data$pairwise.rf$rec.mat[id1, id1])
+
+      # Perform additional rounds if specified
+      if (rounds != 1) {
+        for (round_index in 1:rounds) {
+          # Aggregate matrices
+          rf_mat_agg <- aggregate_matrix(x$data$pairwise.rf$rec.mat[id1, id1], factor)
+          lod_mat_agg <- aggregate_matrix(x$data$pairwise.rf$lod.mat[id1, id1], factor)
+          mat <- list(rf.mat = rf_mat_agg$R, lod.mat = lod_mat_agg$R)
+
+          # Perform MDS on aggregated data
+          mds_temp <- mappoly2:::mds(x, mrk.id = NULL, mat = mat)
+
+          # Extract ordering and marker IDs
+          conf_plot_no <- mds_temp$locimap$confplotno
+          id2 <- unlist(rf_mat_agg$markers[conf_plot_no])
+
+          # Compute stress metric
+          positions <- mds_temp$locimap$position
+          nnfit_values <- mds_temp$locimap$nnfit
+          stress_metrics[round_index + 1] <- analyze_grid_distribution(positions,
+                                                                       nnfit_values, grid_x = 10,
+                                                                       grid_y = 10)$metrics$y_dispersion_metric
+
+          # Plot if requested
+          if (plot) {
+            graphics::plot(
+              positions,
+              nnfit_values,
+              type = "n",
+              xlab = "Position",
+              ylab = "nnfit",
+              main = round(stress_metrics[round_index + 1], 2)
+            )
+            text(positions, nnfit_values, labels = conf_plot_no)
+          }
+
+          # Identify markers with highest nnfit (stress) values
+          nnfit_named <- nnfit_values
+          names(nnfit_named) <- conf_plot_no
+          sorted_nnfit <- sort(nnfit_named, decreasing = TRUE)
+
+          # Exclude markers with highest stress
+          markers_to_exclude <- unlist(rf_mat_agg$markers[sorted_nnfit[1]])
+          mrk.id <- setdiff(id1, markers_to_exclude)
+
+          # Recompute MDS without excluded markers
+          new_order <- mds(
+            x = x,
+            mrk.id = mrk.id,
+            p = p,
+            n = n,
+            ndim = ndim,
+            weight.exponent = weight.exponent,
+            mat = NULL,
+            verbose = verbose
+          )
+          orderings_list[[round_index + 1]] <- new_order
+          id2 <- new_order$locimap$locus
+
+          # Evaluate monotonicity
+          if (round_index == 1) {
+            monotonicity_metrics[1] <- mappoly2:::evaluate_monotonicity(
+              x$data$pairwise.rf$rec.mat[intersect(id1, id2), intersect(id1, id2)]
+            )
+          }
+          monotonicity_metrics[round_index + 1] <- mappoly2:::evaluate_monotonicity(
+            x$data$pairwise.rf$rec.mat[id2, id2]
+          )
+
+          # Update id1 for next iteration
+          id1 <- id2
+        }
+        # Combine metrics and select the best ordering
+        combined_metrics <- mappoly2:::combine_metrics(1/sqrt(stress_metrics), monotonicity_metrics)
+        best_order_index <- which.min(combined_metrics$Rank_Weighted_Combination)
+        x$maps[[group]][[current_type]]$order <- orderings_list[[best_order_index]]
+      } else {
+        x$maps[[group]][[current_type]]$order <- orderings_list[[1]]
+      }
+    } else {
+      # Genome ordering
+      x$maps[[group]][[current_type]]$order <- genome_order(
+        x,
+        mrk.names = x$maps[[group]][[current_type]]$mkr.names,
+        verbose = verbose
+      )
+    }
   }
   return(x)
 }
+
 
 #' Estimates Loci Position Using Multidimensional Scaling
 #'
@@ -90,10 +214,16 @@ mds <- function(x,
                 n = NULL,
                 ndim = 2,
                 weight.exponent = 2,
+                mat = NULL,
                 verbose = TRUE)
 {
-  rf.mat <- x$data$pairwise.rf$rec.mat[mrk.id, mrk.id]
-  lod.mat <- x$data$pairwise.rf$lod.mat[mrk.id, mrk.id]
+  if(is.null(mat)){
+    rf.mat <- x$data$pairwise.rf$rec.mat[mrk.id, mrk.id]
+    lod.mat <- x$data$pairwise.rf$lod.mat[mrk.id, mrk.id]
+  } else {
+    rf.mat <- mat$rf.mat
+    lod.mat <- mat$lod.mat
+  }
   o <- is.na(rf.mat)
   rf.mat[o] <- 1e-07
   lod.mat[o] <- 1e-07

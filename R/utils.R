@@ -594,3 +594,127 @@ update_metadata <- function(x, map_step, class_suffix) {
     x$screened.data$thresholds
   }
 }
+
+
+evaluate_monotonicity <- function(A) {
+  if (!is.matrix(A)) {
+    stop("Input must be a matrix.")
+  }
+
+  n <- nrow(A)
+  m <- ncol(A)
+
+  # Get row and column indices
+  row_indices <- seq_len(n)
+  col_indices <- seq_len(m)
+
+  # Calculate distances
+  distances <- abs(outer(row_indices, col_indices, "-"))
+
+  # Flatten the matrices
+  distances <- as.vector(distances)
+  values <- as.vector(A)
+
+  # Remove NA values
+  valid_indices <- !is.na(values)
+  distances <- distances[valid_indices]
+  values <- values[valid_indices]
+
+  if (length(values) == 0) {
+    stop("The matrix contains only NA values.")
+  }
+
+  # Compute correlation coefficient
+  corr_coeff <- cor(distances, values, use = "complete.obs")
+
+  return(corr_coeff)
+}
+
+
+combine_metrics <- function(density, correlation, w_d = 0.5, w_c = 0.5) {
+  # Normalize the values for fair combination (optional)
+  normalized_density <- density / max(density)
+  normalized_correlation <- correlation / max(correlation)
+
+  # 1. Weighted Combination
+  weighted_combination <- w_d * normalized_density + w_c * normalized_correlation
+
+  # 2. Geometric Mean
+  geometric_mean <- sqrt(normalized_density * normalized_correlation)
+
+  # 3. Weighted Product Model
+  weighted_product <- (normalized_density^w_d) * (normalized_correlation^w_c)
+
+  # Create a data frame with all scores and ranks
+  results <- data.frame(
+    Density = density,
+    Correlation = correlation,
+    Weighted_Combination = weighted_combination,
+    Geometric_Mean = geometric_mean,
+    Weighted_Product = weighted_product,
+    Rank_Weighted_Combination = rank(-weighted_combination),
+    Rank_Geometric_Mean = rank(-geometric_mean),
+    Rank_Weighted_Product = rank(-weighted_product)
+  )
+
+  return(results)
+}
+
+analyze_grid_distribution <- function(x, y, grid_x = 10, grid_y = 10, plot_grid = TRUE) {
+  # Define grid breaks
+  x_breaks <- seq(min(x), max(x), length.out = grid_x + 1)
+  y_breaks <- seq(min(y), max(y), length.out = grid_y + 1)
+
+  # Assign each point to a grid cell
+  x_grid <- cut(x, breaks = x_breaks, labels = FALSE, include.lowest = TRUE)
+  y_grid <- cut(y, breaks = y_breaks, labels = FALSE, include.lowest = TRUE)
+
+  # Create a data frame for grid cell counts
+  grid_df <- data.frame(x_grid = x_grid, y_grid = y_grid)
+
+  # Create a complete grid table
+  all_combinations <- expand.grid(x_grid = 1:grid_x, y_grid = 1:grid_y)
+  grid_counts <- table(factor(grid_df$x_grid, levels = 1:grid_x),
+                       factor(grid_df$y_grid, levels = 1:grid_y))
+
+  # Compute metrics
+  total_points <- length(x)
+  cell_counts <- as.vector(grid_counts)
+  occupied_cells <- sum(cell_counts > 0)
+  mean_points_per_cell <- mean(cell_counts)
+  variance_points_per_cell <- var(cell_counts)
+
+  # Dispersion in y-dimension (variance of y across grid cells)
+  y_dispersion <- apply(grid_counts, 2, sum) # Sum points for each y-grid row
+  y_dispersion_metric <- var(y_dispersion)  # Variance in points across y rows
+
+  # Plot grid if requested
+  if (plot_grid) {
+    plot(x, y, pch = 19, col = "blue", main = "Grid Distribution of Points", xlab = "X", ylab = "Y")
+
+    # Add vertical and horizontal grid lines
+    abline(v = x_breaks, col = "red", lty = 2)
+    abline(h = y_breaks, col = "red", lty = 2)
+
+    # Add counts to each cell
+    for (i in 1:grid_x) {
+      for (j in 1:grid_y) {
+        cell_x <- (x_breaks[i] + x_breaks[i + 1]) / 2
+        cell_y <- (y_breaks[j] + y_breaks[j + 1]) / 2
+        text(cell_x, cell_y, grid_counts[i, j], col = "black")
+      }
+    }
+  }
+
+  # Output results
+  list(
+    grid_counts = grid_counts,
+    metrics = list(
+      total_points = total_points,
+      occupied_cells = occupied_cells,
+      mean_points_per_cell = mean_points_per_cell,
+      variance_points_per_cell = variance_points_per_cell,
+      y_dispersion_metric = y_dispersion_metric
+    )
+  )
+}
