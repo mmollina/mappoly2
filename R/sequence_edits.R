@@ -104,6 +104,7 @@ drop_marker <- function(x,
 #' @param max.phases The maximum number of phase configurations to consider (default = 5).
 #' @param thresh.LOD.ph.to.insert Threshold LOD for inserting the marker into the map (default = 10).
 #' @param thresh.rf.to.add Recombination fraction threshold for adding the marker (default is the maximum of existing recombination fractions).
+#' @param given.mrk.seq internal use
 #'
 #' @details
 #' The function operates as follows:
@@ -132,14 +133,15 @@ add_marker <- function(x,
                        thresh.rf = 0.5,
                        max.phases = 5,
                        thresh.LOD.ph.to.insert = 10,
-                       thresh.rf.to.add = NULL){
-  y <- parse_lg_and_type(x, lg, type)
-  ph.res <- test_one_marker(x,mrk,lg,type, parent,
+                       thresh.rf.to.add = NULL,
+                       flanking = NULL){
+  y <- mappoly2:::parse_lg_and_type(x, lg, type)
+  ph.res <- mappoly2:::test_one_marker(x,mrk,lg,type, parent,
                             thresh.LOD.ph, thresh.LOD.rf,
                             thresh.rf,max.phases,
-                            verbose, tol)
+                            verbose, tol, flanking)
 
-  if(length(ph.res$loglike) != 1 & diff(ph.res$loglike[1:2]) < thresh.LOD.ph.to.insert){
+  if(length(ph.res$LOD) != 1 & diff(ph.res$LOD[1:2]) < thresh.LOD.ph.to.insert){
     if(verbose) message("LOD score below threshold.\nreturning original seqeunce.")
     x
   }
@@ -154,22 +156,22 @@ add_marker <- function(x,
   err <- x$maps[[y$lg]][[y$type]][[parent]]$hmm.phase[[1]]$error
   pos <- ph.res$pos
   cur.mrk <- rownames(x$maps[[y$lg]][[y$type]][[parent]]$hmm.phase[[1]]$p1)
-  if(is.na(pos[[1]]$preceding))# beginning
+  if(is.na(pos["preceding"]))# beginning
   {
     x$maps[[y$lg]][[y$type]][[parent]]$hmm.phase[[1]]$p1 <- rbind(ph.res$phases$p1[1,], x$maps[[y$lg]][[y$type]][[parent]]$hmm.phase[[1]]$p1)
     x$maps[[y$lg]][[y$type]][[parent]]$hmm.phase[[1]]$p2 <- rbind(ph.res$phases$p2[1,], x$maps[[y$lg]][[y$type]][[parent]]$hmm.phase[[1]]$p2)
     rownames(x$maps[[y$lg]][[y$type]][[parent]]$hmm.phase[[1]]$p1) <- rownames(x$maps[[y$lg]][[y$type]][[parent]]$hmm.phase[[1]]$p2) <- c(mrk, cur.mrk)
     x$maps[[y$lg]][[y$type]][[parent]]$hmm.phase[[1]]$rf <- c(ph.res$rf.vec[1,1], x$maps[[y$lg]][[y$type]][[parent]]$hmm.phase[[1]]$rf)
   }
-  else if (is.na(pos[[1]]$succeeding)){ #end
+  else if (is.na(pos["succeeding"])){ #end
     x$maps[[y$lg]][[y$type]][[parent]]$hmm.phase[[1]]$p1 <- rbind(x$maps[[y$lg]][[y$type]][[parent]]$hmm.phase[[1]]$p1, ph.res$phases$p1[1,])
     x$maps[[y$lg]][[y$type]][[parent]]$hmm.phase[[1]]$p2 <- rbind(x$maps[[y$lg]][[y$type]][[parent]]$hmm.phase[[1]]$p2, ph.res$phases$p2[1,])
     rownames(x$maps[[y$lg]][[y$type]][[parent]]$hmm.phase[[1]]$p1) <- rownames(x$maps[[y$lg]][[y$type]][[parent]]$hmm.phase[[1]]$p2) <- c(cur.mrk, mrk)
     x$maps[[y$lg]][[y$type]][[parent]]$hmm.phase[[1]]$rf <- c(x$maps[[y$lg]][[y$type]][[parent]]$hmm.phase[[1]]$rf, ph.res$rf.vec[1,2])
   }
   else {
-    idp <- 1:match(pos[[1]]$preceding, cur.mrk)
-    ids <- (match(pos[[1]]$succeeding, cur.mrk)): length(cur.mrk)
+    idp <- 1:match(pos["preceding"], cur.mrk)
+    ids <- (match(pos["succeeding"], cur.mrk)): length(cur.mrk)
     preceding <- cur.mrk[idp]
     succeeding <- cur.mrk[ids]
     x$maps[[y$lg]][[y$type]][[parent]]$hmm.phase[[1]]$p1 <- rbind(x$maps[[y$lg]][[y$type]][[parent]]$hmm.phase[[1]]$p1[preceding,],
@@ -207,6 +209,7 @@ add_marker <- function(x,
 #' @param max.phases The maximum number of phase configurations to consider (default = 5).
 #' @param verbose Logical; if \code{TRUE}, function prints messages during execution (default is \code{TRUE}).
 #' @param tol Tolerance level for phase estimation (default = 10e-4).
+#' @param given.mrk.seq internal use
 #'
 #' @details
 #' The function operates as follows:
@@ -229,7 +232,8 @@ test_one_marker <- function(x,
                             thresh.rf = 0.5,
                             max.phases = 5,
                             verbose = TRUE,
-                            tol = 10e-4){
+                            tol = 10e-4,
+                            flanking = NULL){
   assert_that(length(lg) == 1)
 
   # Validate input object
@@ -252,7 +256,7 @@ test_one_marker <- function(x,
   g <- x$data$geno.dose
   g[is.na(g)] <- -1
   mrk.pos <- rownames(x$maps[[y$lg]][[y$type]][[parent]]$hmm.phase[[1]]$p1) # positioned markers
-  mrk.seq <- get_markers_from_ordered_sequence(x, y$lg, y$type, parent)[[1]] # all ordered marker
+  mrk.seq <- mappoly2:::get_markers_from_ordered_sequence(x, y$lg, y$type, parent)[[1]] # all ordered marker
   assert_that(mrk %in% mrk.seq)
   assert_that(has.mappoly2.rf(x$data))
 
@@ -269,11 +273,11 @@ test_one_marker <- function(x,
   ## two-point phasing parent 1
   dose.vec1 <- x$data$dosage.p1[mrk]
   InitPh1 <- x$maps[[y$lg]][[y$type]][[parent]]$hmm.phase[[1]]$p1
-  L1 <- phasing_one(mrk, dose.vec1, S1, InitPh1, FALSE)
+  L1 <- mappoly2:::phasing_one(mrk, dose.vec1, S1, InitPh1, FALSE)
   ## two-point phasing parent 2
   dose.vec2 <- x$data$dosage.p2[mrk]
   InitPh2 <- x$maps[[y$lg]][[y$type]][[parent]]$hmm.phase[[1]]$p2
-  L2 <- phasing_one(mrk, dose.vec2, S2, InitPh2, FALSE)
+  L2 <- mappoly2:::phasing_one(mrk, dose.vec2, S2, InitPh2, FALSE)
   ## Selecting phase configurations
   n.conf <- sapply(L1, nrow) * sapply(L2, nrow)
 
@@ -284,10 +288,13 @@ test_one_marker <- function(x,
                          length(ind.names)),
                      nrow = length(ind.names),
                      byrow = TRUE)
-  flanking <- find_flanking_markers(mrk.seq, mrk.pos, mrk)
+  if(is.null(flanking)){
+    flanking <- mappoly2:::find_flanking_markers(mrk.seq, mrk.pos, mrk)
+    flanking <- unlist(flanking[[mrk]])
+  }
+  names(flanking) <- c("preceding", "succeeding")
+  u <- match(flanking, mrk.pos)
   G <- g[mrk, ind.names,drop = TRUE]
-  u <- match(unlist(flanking[[mrk]]), mrk.pos)
-
   # Determine the position of the marker and set homolog probabilities
   if(is.na(u)[1]) {  # Marker at the beginning of the linkage group
     homolog_prob <- as.matrix(x$maps[[y$lg]][[y$type]][[parent]]$hmm.phase[[1]]$haploprob[, c(na.omit(u), na.omit(u) + 1) + 3])
@@ -305,7 +312,7 @@ test_one_marker <- function(x,
   for(j in 1:nrow(L1[[1]])){
     for(k in 1:nrow(L2[[1]])){
       PH <- list(L1[[1]][j,], L2[[1]][k,])
-      z[[count]]<-est_hmm_map_biallelic_insert_marker(PH,
+      z[[count]]<-mappoly2:::est_hmm_map_biallelic_insert_marker(PH,
                                                       G,
                                                       pedigree,
                                                       homolog_prob,
@@ -320,10 +327,11 @@ test_one_marker <- function(x,
       count <- count + 1
     }
   }
-  v <- sapply(z, function(x) x[[1]])
-  v <- max(v) - v
+  v0 <- sapply(z, function(x) x[[1]])
+  v <- max(v0) - v0
   id <- order(v)
-  phasing_results <- list(loglike = v[id],
+  phasing_results <- list(LOD = v[id],
+                          loglike = v0[id],
                           rf.vec = t(sapply(z[id],
                                             function(x) x[[2]])),
                           phases = list(p1 = w1[id,,drop=FALSE],
