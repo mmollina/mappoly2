@@ -15,7 +15,8 @@ test_one_marker(
   thresh.rf = 0.5,
   max.phases = 5,
   verbose = TRUE,
-  tol = 0.001
+  tol = 0.001,
+  flanking = NULL
 )
 }
 \arguments{
@@ -40,6 +41,8 @@ test_one_marker(
 \item{verbose}{Logical; if \code{TRUE}, function prints messages during execution (default is \code{TRUE}).}
 
 \item{tol}{Tolerance level for phase estimation (default = 10e-4).}
+
+\item{given.mrk.seq}{internal use}
 }
 \value{
 A list containing the best phasing results, including log-likelihood scores, recombination fractions, and phase information for each parent.

@@ -18,7 +18,8 @@ add_marker(
   thresh.rf = 0.5,
   max.phases = 5,
   thresh.LOD.ph.to.insert = 10,
-  thresh.rf.to.add = NULL
+  thresh.rf.to.add = NULL,
+  flanking = NULL
 )
 }
 \arguments{
@@ -49,6 +50,8 @@ add_marker(
 \item{thresh.LOD.ph.to.insert}{Threshold LOD for inserting the marker into the map (default = 10).}
 
 \item{thresh.rf.to.add}{Recombination fraction threshold for adding the marker (default is the maximum of existing recombination fractions).}
+
+\item{given.mrk.seq}{internal use}
 }
 \value{
 Returns the modified \code{mappoly2.sequence} object with the new marker added.
