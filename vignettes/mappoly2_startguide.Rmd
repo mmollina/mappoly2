@@ -15,7 +15,7 @@ vignette: >
   comment = "#>",
   fig.width = 4, 
   fig.height= 4,
-  eval = FALSE
+  eval = TRUE
 )
 options(rmarkdown.html_vignette.check_title = FALSE)
 ```
@@ -50,9 +50,9 @@ library(mappoly2)
 
 We are going to use two datasets distributed along with MAPpoly2: 
 
-- **alfa_f1** This dataset comprises 184 offspring from a cross between two tetraploid alfalfa parents, `I195` and `J432`, which are resistant and susceptible to *Aphanomyces euteiches*, respectively. The biparental population was presented in [Zhao et al., (2023)](https://www.doi.org/10.46265/genresj.EMOR6509) and genotyped with the alfalfa DArTag panel described in the same publication.
+- **alfalfa_f1** This dataset comprises 184 offspring from a cross between two tetraploid alfalfa parents, `I195` and `J432`, which are resistant and susceptible to *Aphanomyces euteiches*, respectively. The biparental population was presented in [Zhao et al., (2023)](https://www.doi.org/10.46265/genresj.EMOR6509) and genotyped with the alfalfa DArTag panel described in the same publication.
 
-- **alfa_bc** This dataset comprises 93 offspring from a cross between two tetraploid alfalfa parents, `I195` and `F1.85.209`, the latter being derived from **alfa_f1** cross. 
+- **alfalfa_bc** This dataset comprises 93 offspring from a cross between two tetraploid alfalfa parents, `I195` and `F1.85.209`, the latter being an offspring from **alfalfa_f1** cross. 
 
 ```{r, alfalfa_pub, out.width='90%', fig.align='center', fig.cap='Alfalfa publication', echo=FALSE}
 knitr::include_graphics("https://raw.githubusercontent.com/mmollina/mappoly2_vignettes/main/alfalfa_pub.png")
@@ -78,10 +78,6 @@ alfalfa.f1 <- read_geno_csv(file.in = "I195_x_J432.csv",
                             name.p2 = "J432")
 ```
 
-```{r, echo=FALSE, results='hide'}
-alfalfa.f1 <- alfa_f1
-```
-
 Let's take a look at the dataset and its graphical representation:
 ```{r, print plot dataset}
 alfalfa.f1
@@ -90,11 +86,7 @@ plot(alfalfa.f1)
 
 For the purposes of this tutorial, we have introduced the `read_geno_csv` function 
 to provide an understanding of how datasets can be loaded into MAPpoly2. However, 
-you can use the `alfa_f1` dataset that comes bundled with the MAPpoly package. 
-
-```{r, bundled dataset, eval=FALSE}
-alfalfa.f1 <- alfa_f1
-```
+you can use the `alfalfa_f1` dataset that comes bundled with the MAPpoly package. 
 
 # Dataset quality control {#qaqc}
 Quality control is a fundamental part of genetic mapping, ensuring the reliability 

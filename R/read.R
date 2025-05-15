@@ -432,6 +432,208 @@ read_vcf <- function(
   return(mappoly_data)
 }
 
+#' Create a List of `mappoly.data` Objects for F1 Crosses
+#'
+#' This function takes genotype and pedigree files to generate
+#' a list of `mappoly.data` objects for multiple F1 populations. It performs
+#' optional filtering for non-conforming dosage classes and redundant markers.
+#'
+#' @param data.file A string. Path to the CSV file with genotype dosage data, including marker ID,
+#'   parental genotypes, marker metadata (e.g., chromosome, position, ref/alt),
+#'   and progeny dosage calls.
+#' @param pedigree.file A string. Path to the CSV file with three columns: `cross`, `parent_1`, and `parent_2`,
+#'   indicating the cross name and its respective parents.
+#' @param ploidy.vec A named numeric vector indicating the ploidy level for each parent.
+#'   Names must correspond to parental names in the `pedigree.file`.
+#' @param filter.non.conforming Logical. If `TRUE`, remove genotype calls that violate
+#'   the expected segregation range under no double reduction.
+#' @param filter.redundant Logical. If `TRUE`, remove redundant markers.
+#' @param verbose Logical. If `TRUE`, print progress and summary messages.
+#'
+#' @return An object of class `mappoly.data.list`, a named list of `mappoly.data` objects
+#'   for each cross found in the pedigree.
+#'
+#' @export
+#'
+#' @examples
+#' ploidy.vec <- c(4, 2, 4, 2, 4, 4)
+#' names(ploidy.vec) <- c("P1", "P2", "P3", "P4", "P5", "P6")
+#' result <- read_multipop_geno_csv(
+#'   data.file = "path/to/data_multi_pop.csv",
+#'   pedigree.file = "path/to/pedigree.csv",
+#'   ploidy.vec = ploidy.vec
+#' )
+read_multipop_geno_csv <- function(data.file,
+                                     pedigree.file,
+                                     ploidy.vec,
+                                     filter.non.conforming = TRUE,
+                                     filter.redundant = TRUE,
+                                     verbose = TRUE) {
+  dat <- readr::read_csv(data.file, show_col_types = FALSE)
+  pedigree <- readr::read_csv(pedigree.file, show_col_types = FALSE)
+
+  dat_split <- mappoly2:::create_all_dat(dat, pedigree)
+
+  dat_split <- lapply(dat_split, function(df) {
+    df %>%
+      dplyr::select(
+        1,        # snp_id
+        6, 7,     # parent columns (P1 and P2)
+        2:5,      # chrom, genome_pos, ref, alt
+        8:ncol(.) # progeny genotypes
+      )
+  })
+
+  crosses <- names(dat_split)
+  out_list <- vector("list", length(crosses))
+  names(out_list) <- crosses
+
+  for (i in crosses) {
+    cur_f1 <- dplyr::filter(pedigree, cross == i)
+    p1 <- unique(cur_f1$parent_1)
+    p2 <- unique(cur_f1$parent_2)
+    stopifnot(length(p1) == 1, length(p2) == 1)
+
+    out_list[[i]] <- mappoly2:::table_to_mappoly(
+      x = as.data.frame(dat_split[[i]]),
+      ploidy.p1 = ploidy.vec[p1],
+      ploidy.p2 = ploidy.vec[p2],
+      name.p1 = p1,
+      name.p2 = p2,
+      filter.non.conforming = filter.non.conforming,
+      filter.redundant = filter.redundant,
+      verbose = verbose
+    )
+
+    if (verbose) {
+      message("Processed cross: ", i)
+    }
+  }
+
+  structure(out_list, class = "mappoly.data.list")
+}
+
+#' Create a List of `mappoly.data` Objects for F1 Crosses
+#'
+#' This function takes genotype and pedigree files to generate
+#' a list of `mappoly.data` objects for multiple F1 populations. It performs
+#' optional filtering for non-conforming dosage classes and redundant markers.
+#'
+#' @param data.file A string. Path to the CSV file with genotype dosage data, including marker ID,
+#'   parental genotypes, marker metadata (e.g., chromosome, position, ref/alt),
+#'   and progeny dosage calls.
+#' @param pedigree.file A string. Path to the CSV file with three columns: `cross`, `parent_1`, and `parent_2`,
+#'   indicating the cross name and its respective parents.
+#' @param ploidy.vec A named numeric vector indicating the ploidy level for each parent.
+#'   Names must correspond to parental names in the `pedigree.file`.
+#' @param filter.non.conforming Logical. If `TRUE`, remove genotype calls that violate
+#'   the expected segregation range under no double reduction.
+#' @param filter.redundant Logical. If `TRUE`, remove redundant markers.
+#' @param verbose Logical. If `TRUE`, print progress and summary messages.
+#'
+#' @return An object of class `mappoly.data.list`, a named list of `mappoly.data` objects
+#'   for each cross found in the pedigree.
+#'
+#' @export
+#' @importFrom readr read_csv
+#' @examples
+#' ploidy.vec <- c(4, 2, 4, 2, 4, 4)
+#' names(ploidy.vec) <- c("P1", "P2", "P3", "P4", "P5", "P6")
+#' result <- read_multipop_geno_csv(
+#'   data.file = "path/to/data_multi_pop.csv",
+#'   pedigree.file = "path/to/pedigree.csv",
+#'   ploidy.vec = ploidy.vec
+#' )
+read_multipop_geno_csv <- function(data.file,
+                                     pedigree.file,
+                                     ploidy.vec,
+                                     filter.non.conforming = TRUE,
+                                     filter.redundant = TRUE,
+                                     verbose = TRUE) {
+  dat <- read_csv(data.file, show_col_types = FALSE)
+  pedigree <- read_csv(pedigree.file, show_col_types = FALSE)
+
+  dat_split <- create_all_dat(dat, pedigree)
+
+  dat_split <- lapply(dat_split, function(df) {
+    df %>%
+      dplyr::select(
+        1,        # snp_id
+        6, 7,     # parent columns (P1 and P2)
+        2:5,      # chrom, genome_pos, ref, alt
+        8:ncol(.) # progeny genotypes
+      )
+  })
+
+  crosses <- names(dat_split)
+  out_list <- vector("list", length(crosses))
+  names(out_list) <- crosses
+
+  for (i in crosses) {
+    cur_f1 <- dplyr::filter(pedigree, cross == i)
+    p1 <- unique(cur_f1$parent_1)
+    p2 <- unique(cur_f1$parent_2)
+    stopifnot(length(p1) == 1, length(p2) == 1)
+
+    out_list[[i]] <- mappoly2:::table_to_mappoly(
+      x = as.data.frame(dat_split[[i]]),
+      ploidy.p1 = ploidy.vec[p1],
+      ploidy.p2 = ploidy.vec[p2],
+      name.p1 = p1,
+      name.p2 = p2,
+      filter.non.conforming = filter.non.conforming,
+      filter.redundant = filter.redundant,
+      verbose = verbose
+    )
+
+    if (verbose) {
+      message("Processed cross: ", i)
+    }
+  }
+
+  structure(out_list, class = "mappoly2.data.list")
+}
+
+
+#' @export
+print.mappoly2.data.list  <- function(x,...){
+  y <- table(sapply(x, function(x) x$name.p1),
+             sapply(x, function(x) x$name.p2))
+  for(i in seq_along(x))
+    y[x[[i]]$name.p1, x[[i]]$name.p2] <- x[[i]]$n.ind
+
+  sets <- lapply(x, function(x) x$mrk.names)
+  n.unique.mrk <- length(Reduce(union, sets))
+  sets <- lapply(x, function(x) x$mrk.names)
+  total_elements <- sum(sapply(sets, length))
+  redundancy_score <- (total_elements - n.unique.mrk) / total_elements
+
+
+
+
+
+  a1<-sapply(x$consensus.map, function(x) sapply(x$ph$PH, function(x) ncol(x)))
+  a2<-sapply(x$consensus.map, function(x) is.null(x$haploprob))
+  msg("Multiparental data:", col = "blue")
+  cat("Ploidy of founders:             ", a1[,1], "\n")
+  cat("Total No. individuals:          ", sum(y), "\n")
+  cat("Total No. markers               ", sum(n.mrk), "\n")
+  cat("Haplotype probability computed: ", ifelse(all(a2), "No", "Yes"), "\n\n")
+  cat("Number of individuals per cross:\n")
+  print_matrix(y, spaces = 0, equal.space = FALSE)
+  map.len <- sapply(x$consensus.map, function(x) round(sum(imf_h(x$rf)),2))
+  cat("\nConsensus Map:\n---------------\n")
+  R <- data.frame('LG' = names(n.mrk),
+                  'Map_length_(cM)' = map.len,
+                  'Markers/cM' = round(n.mrk/map.len, 3),
+                  'Total mrk' = n.mrk,
+                  'Max_gap' = sapply(x$consensus.map, function(x) round(max(imf_h(x$rf)),2)))
+  print_matrix(R, row.names = FALSE, spaces = 0, equal.space = FALSE)
+  msg("", col = "blue")
+}
+
+
+
 #' Convert a Data Frame to mappoly2.data Object
 #'
 #' Converts a data frame containing genetic marker data into an object of class \code{mappoly2.data}.
@@ -553,7 +755,7 @@ table_to_mappoly <- function(
   # Filter non-conforming markers if requested
   if (filter.non.conforming) {
     if (verbose) cat("Filtering non-conforming markers...\n")
-    mappoly_data <- filter_non_conforming_classes(mappoly_data)
+    mappoly_data <- mappoly2:::filter_non_conforming_classes(mappoly_data)
   }
 
   # Filter redundant markers if requested

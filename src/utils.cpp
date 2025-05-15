@@ -206,17 +206,22 @@ using namespace Rcpp;
    IntegerVector d_p2 = input_data["dosage.p2"];
    NumericMatrix geno_dose = input_data["geno.dose"];
    CharacterVector mrk_names = input_data["mrk.names"];
-   int ploidy_pr = (ploidy_p1 + ploidy_p2) / 2;
-
-   IntegerMatrix Dpop = cbind(d_p1, d_p2);
-   NumericMatrix M(Dpop.nrow(), ploidy_pr + 1);
-   for (int i = 0; i < Dpop.nrow(); ++i) {
-     M(i, _) = segreg_poly(ploidy_p1, ploidy_p2, d_p1[i], d_p2[i]);
-   }
+   int ploidy_pr = (ploidy_p1 + ploidy_p2) / 2;  // Progeny ploidy
 
    for (int i = 0; i < geno_dose.nrow(); ++i) {
+     int d1 = d_p1[i];
+     int d2 = d_p2[i];
+
+     // Valid dosage range using the no double reduction rule
+     int min_valid = std::max(0, d1 + d2 - ploidy_pr);
+     int max_valid = std::min(d1 + d2, ploidy_pr);
+
      for (int j = 0; j < geno_dose.ncol(); ++j) {
-       if (M(i, geno_dose(i, j)) == 0 || geno_dose(i, j) > ploidy_pr) {
+       double x = geno_dose(i, j);
+       if (NumericVector::is_na(x)) continue;
+
+       // x must be an integer and within the valid range
+       if (x < min_valid || x > max_valid || floor(x) != x) {
          geno_dose(i, j) = NA_REAL;
        }
      }
@@ -225,6 +230,7 @@ using namespace Rcpp;
    input_data["geno.dose"] = geno_dose;
    return input_data;
  }
+
 
 
  // Function to print a NumericMatrix or IntegerMatrix

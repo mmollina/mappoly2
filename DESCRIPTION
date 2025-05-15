@@ -77,7 +77,10 @@ Imports:
     reshape2,
     dplyr,
     tibble,
-    eulerr
+    eulerr,
+    tidyr,
+    purrr,
+    LinkageMapView
 LinkingTo: Rcpp, RcppProgress, RcppArmadillo, RcppParallel
 Encoding: UTF-8
 Roxygen: list(markdown = TRUE)

@@ -439,11 +439,16 @@ plot_map <- function(x, lg = 1, type = c("mds", "genome"),
 
   old.par <- par(no.readonly = TRUE)
   on.exit(par(old.par))
+  ref <- x$data$ref
+  alt <- x$data$alt
+  if(all(is.na(ref))){
+    alt <- ref <- NULL
+  }
   map.info <- prepare_map(x$maps[[y$lg]][[y$type]][[parent]],
                           x$data$ploidy.p1, x$data$ploidy.p2,
                           x$data$name.p1, x$data$name.p2,
                           x$data$dosage.p1, x$data$dosage.p2,
-                          x$data$alt, x$data$ref)
+                          alt, ref)
   if(any(map.info$ph.p1 == "B")){
     var.col <- c(A = "black", B = "darkgray")
   } else {
@@ -1278,6 +1283,69 @@ plot_shared_markers <- function(x){
       use.names = FALSE))
   colors <- mp_pal(length(set_list))
   plot(euler(set_list, shape = "circle"), quantities = TRUE, fills = colors)
+}
+#' Plot Linkage Maps Using the LinkageMapView Package
+#'
+#' Generates a publication-ready plot of genetic maps for each linkage group using
+#' the \pkg{LinkageMapView} package. This function supports both MDS- and genome-based
+#' maps, and allows plotting for joint or individual parent configurations.
+#'
+#' @param x An object of class \code{mappoly2.sequence}, typically produced by the
+#'     \code{\link[mappoly2]{create_all_dat}} or similar mapping preparation functions.
+#' @param type Character. The type of map to be plotted. Options are \code{"mds"} (default)
+#'     for multidimensional scaling-based maps, or \code{"genome"} for genome-based maps.
+#' @param parent Character. The parental configuration to be plotted. Options are
+#'     \code{"p1p2"} (default) for joint map, or \code{"p1"}, \code{"p2"} for individual parents.
+#' @param outfile Character. File name to save the plot (typically ending in \code{.pdf} or \code{.png}).
+#' @param ... Additional arguments passed to \code{\link[LinkageMapView]{lmv.linkage.plot}}, such as
+#'     plot aesthetics or output device control.
+#'
+#' @return Invisibly returns a data frame with linkage group, marker position, and marker name,
+#'     as passed to \code{lmv.linkage.plot()}.
+#'
+#' @details This function checks whether the specified map type and parent configuration exist
+#'     for all linkage groups in the \code{mappoly2.sequence} object. If not, it stops with
+#'     an informative error message. If all maps are available, it calculates cumulative positions
+#'     from recombination fractions using the inverse mapping function and then uses
+#'     \pkg{LinkageMapView} to generate the plot.
+#'
+#' @seealso \code{\link[mappoly2]{is.mapped.sequence}}, \code{\link[LinkageMapView]{lmv.linkage.plot}}
+#' @importFrom LinkageMapView lmv.linkage.plot
+#' @examples
+#' \dontrun{
+#' # Assuming 's' is a mappoly2.sequence object with maps built
+#' plot_map_lmv(s, type = "mds", parent = "p1p2", outfile = "map_plot.pdf")
+#' }
+#'
+#' @export
+plot_map_lmv <- function(x, type = c("mds", "genome"),
+                         parent = c("p1p2", "p1", "p2"),
+                         outfile, ...) {
+  assert_that(is.mappoly2.sequence(x))
+  type <- match.arg(type)
+  parent <- match.arg(parent)
+
+  has.map <- sapply(names(x$maps), function(g) is.mapped.sequence(x, g, type, parent))
+  names(has.map) <- names(x$maps)
+
+  if (!all(has.map)) {
+    missing_groups <- names(has.map)[!has.map]
+    stop(paste0(
+      "Maps are not available for the following groups:\n",
+      paste(missing_groups, collapse = ", "),
+      "\nType: ", type,
+      "\nParent: ", parent
+    ))
+  }
+
+  lmv_map <- do.call(rbind, lapply(names(x$maps), function(i) {
+    pos <- cumsum(mappoly2:::imf_h(c(0, x$maps[[i]][[type]][[parent]]$hmm.phase[[1]]$rf)))
+    loci <- rownames(x$maps[[i]][[type]][[parent]]$hmm.phase[[1]]$p1)
+    data.frame(Group = i, Position = pos, Locus = loci)
+  }))
+
+  lmv.linkage.plot(lmv_map, outfile = outfile, ...)
+  invisible(lmv_map)
 }
 
 

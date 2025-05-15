@@ -718,3 +718,63 @@ analyze_grid_distribution <- function(x, y, grid_x = 10, grid_y = 10, plot_grid 
     )
   )
 }
+
+#' @keywords internal
+#' @title Create a list of cross-specific genotype tables
+#' @description This function creates a named list of data frames, one per cross,
+#'              with marker information, parental dosages, and offspring genotypes.
+#' @param wide_df A data frame with one row per marker and columns for marker metadata, parental dosages, and individual genotypes.
+#' @param pedigree A data frame with columns 'individual', 'parent_1', 'parent_2', and 'cross'.
+#' @param marker_cols A character vector of column names identifying the marker metadata. Must be of length 5: marker, chromosome, position, ref allele, and alt allele.
+#' @return A named list of tibbles, one per cross, each containing columns: snp_id, chrom, genome_pos, ref, alt, P1, P2, and offspring genotypes.
+#' @importFrom dplyr filter group_by summarise transmute bind_cols select rename %>% all_of
+#' @importFrom purrr map set_names
+#' @importFrom tidyr drop_na
+#' @examples
+#' \dontrun{
+#'   all_dat <- create_all_dat(wide_df, pedigree)
+#' }
+create_all_dat <- function(wide_df, pedigree,
+                           marker_cols = c("marker", "Chrom", "position", "ref", "alt")) {
+
+  marker_info <- wide_df %>%
+    select(all_of(marker_cols)) %>%
+    rename(
+      snp_id     = !!marker_cols[1],
+      chrom      = !!marker_cols[2],
+      genome_pos = !!marker_cols[3],
+      ref        = !!marker_cols[4],
+      alt        = !!marker_cols[5]
+    )
+
+  cross_groups <- pedigree %>%
+    filter(!(is.na(parent_1) & is.na(parent_2))) %>%
+    group_by(cross) %>%
+    summarise(individuals = list(individual), .groups = "drop")
+
+  all_dat <- map(
+    set_names(cross_groups$individuals, cross_groups$cross),
+    function(indiv_names) {
+      ind_info <- pedigree %>% filter(individual == indiv_names[[1]])
+      p1 <- ind_info$parent_1
+      p2 <- ind_info$parent_2
+
+      if (!(p1 %in% colnames(wide_df)) || !(p2 %in% colnames(wide_df))) {
+        stop(sprintf("One or both parents (%s, %s) not found in wide_df", p1, p2))
+      }
+
+      parent_dosages <- wide_df %>%
+        transmute(
+          P1 = .data[[p1]],
+          P2 = .data[[p2]]
+        )
+
+      genotypes <- wide_df %>%
+        select(all_of(indiv_names))
+
+      bind_cols(marker_info, parent_dosages, genotypes)
+    }
+  )
+
+  return(all_dat)
+}
