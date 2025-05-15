@@ -464,11 +464,11 @@ read_vcf <- function(
 #'   ploidy.vec = ploidy.vec
 #' )
 read_multipop_geno_csv <- function(data.file,
-                                     pedigree.file,
-                                     ploidy.vec,
-                                     filter.non.conforming = TRUE,
-                                     filter.redundant = TRUE,
-                                     verbose = TRUE) {
+                                   pedigree.file,
+                                   ploidy.vec,
+                                   filter.non.conforming = TRUE,
+                                   filter.redundant = TRUE,
+                                   verbose = TRUE) {
   dat <- readr::read_csv(data.file, show_col_types = FALSE)
   pedigree <- readr::read_csv(pedigree.file, show_col_types = FALSE)
 
@@ -545,11 +545,11 @@ read_multipop_geno_csv <- function(data.file,
 #'   ploidy.vec = ploidy.vec
 #' )
 read_multipop_geno_csv <- function(data.file,
-                                     pedigree.file,
-                                     ploidy.vec,
-                                     filter.non.conforming = TRUE,
-                                     filter.redundant = TRUE,
-                                     verbose = TRUE) {
+                                   pedigree.file,
+                                   ploidy.vec,
+                                   filter.non.conforming = TRUE,
+                                   filter.redundant = TRUE,
+                                   verbose = TRUE) {
   dat <- read_csv(data.file, show_col_types = FALSE)
   pedigree <- read_csv(pedigree.file, show_col_types = FALSE)
 
@@ -591,45 +591,148 @@ read_multipop_geno_csv <- function(data.file,
     }
   }
 
-  structure(out_list, class = "mappoly2.data.list")
+  structure(list(output = out_list,
+                 input = list(geno = dat, pedigree = pedigree)),
+            class = "mappoly2.data.list")
 }
+
+#' Visualize Summary of Pairwise Populations in a `mappoly2.data.list` Object
+#'
+#' Generates a bubble plot summarizing the number of individuals and markers
+#' across all pairwise populations in a `mappoly2.data.list` object. Each bubble
+#' represents a pair of parents (P1 × P2), sized by the number of individuals and
+#' colored by the number of markers. Marginal totals and the grand total are shown as labels.
+#'
+#' @param x An object of class \code{mappoly2.data.list}, containing output from
+#'        multiple pairwise mapping populations.
+#' @param pt.size Numeric. Maximum size for bubbles in the plot (passed to \code{max_size} in \code{scale_size_area}). Default is \code{15}.
+#'
+#' @return A \code{ggplot2} object showing the summary plot. Each point displays
+#'         the number of individuals (\code{n.ind}) and, when available, the number
+#'         of markers (\code{n.mrk}) underneath. Marginal totals are shown as labels on the sides.
+#'
+#' @details The function calculates the number of individuals and markers for each
+#'          pairwise cross, as well as marginal totals per parent and the overall
+#'          grand total. These are visualized using a heatmap-style bubble plot
+#'          for easy inspection of population structure completeness.
+#'
+#' @importFrom ggplot2 ggplot aes geom_point geom_text geom_label scale_fill_gradient
+#'             scale_size_area scale_x_discrete theme_minimal labs theme element_text
+#' @importFrom dplyr group_by summarise mutate select bind_rows filter
+#' @importFrom tibble tibble
+#' @importFrom stringr str_to_title
+#'
+#' @examples
+#' \dontrun{
+#'   mappoly2.data.list.plot(my.data.list)
+#' }
+#'
+#' @export
+plot.mappoly2.data.list <- function(x, pt.size = 15) {
+  # 1. Extract summary info from each population
+  w <- do.call(rbind, lapply(x$output, function(i) {
+    data.frame(P1 = i$name.p1,
+               P2 = i$name.p2,
+               n.ind = i$n.ind,
+               n.mrk = i$n.mrk)
+  }))
+
+  # 2. Compute row and column totals
+  P1_totals <- w %>%
+    group_by(P1) %>%
+    summarise(n.ind = sum(n.ind, na.rm = TRUE), n.mrk = NA, .groups = "drop") %>%
+    mutate(P2 = "Total_P2") %>%
+    select(P1, P2, n.ind, n.mrk)
+
+  P2_totals <- w %>%
+    group_by(P2) %>%
+    summarise(n.ind = sum(n.ind, na.rm = TRUE), n.mrk = NA, .groups = "drop") %>%
+    mutate(P1 = "Total_P1") %>%
+    select(P1, P2, n.ind, n.mrk)
+
+  grand_total <- tibble(
+    P1 = "Total_P1",
+    P2 = "Total_P2",
+    n.ind = sum(w$n.ind, na.rm = TRUE),
+    n.mrk = NA
+  )
+
+  # 3. Combine all
+  w2 <- bind_rows(w, P1_totals, P2_totals, grand_total)
+
+  # 4. Order factors and prepare labels
+  P1_order <- c(sort(unique(w2$P1[w2$P1 != "Total_P1"])), "Total_P1")
+  P2_order <- c("Total_P2", sort(unique(w2$P2[w2$P2 != "Total_P2"])))
+
+  w2 <- w2 %>%
+    mutate(
+      P1 = factor(P1, levels = P1_order),
+      P2 = factor(P2, levels = P2_order),
+      is_total = P1 == "Total_P1" | P2 == "Total_P2",
+      is_grand_total = P1 == "Total_P1" & P2 == "Total_P2",
+      label = ifelse(!is_total,
+                     paste0(n.ind, "\n(", n.mrk, ")"),
+                     as.character(n.ind))
+    )
+
+  # 5. Split total vs main
+  label_data <- filter(w2, is_total)
+  plot_data  <- filter(w2, !is_total)
+
+  # 6. Plot
+  ggplot(plot_data, aes(x = P1, y = P2)) +
+    geom_point(aes(size = n.ind, fill = n.mrk), shape = 21, color = "black") +
+    geom_text(aes(label = label), color = "darkgray", size = 3) +
+    geom_label(
+      data = label_data,
+      aes(label = label),
+      fill = "grey90", fontface = "bold", label.size = 0.3, size = 3.5
+    ) +
+    scale_fill_gradient(name = "n.mrk", low = "lightblue", high = "darkblue", na.value = "darkgray") +
+    scale_size_area(max_size = pt.size) +
+    scale_x_discrete(position = "top") +
+    theme_minimal(base_size = 12) +
+    theme(
+      axis.text.x = element_text(angle = 45, hjust = 0),
+      axis.text.y = element_text(vjust = 1)
+    ) +
+    labs(x = NULL, y = NULL)
+}
+
 
 
 #' @export
 print.mappoly2.data.list  <- function(x,...){
-  y <- table(sapply(x, function(x) x$name.p1),
-             sapply(x, function(x) x$name.p2))
-  for(i in seq_along(x))
-    y[x[[i]]$name.p1, x[[i]]$name.p2] <- x[[i]]$n.ind
+  z <- x$output
+  y <- table(sapply(z, function(x) x$name.p1),
+             sapply(z, function(x) x$name.p2))
+  for(i in seq_along(z))
+    y[z[[i]]$name.p1, z[[i]]$name.p2] <- z[[i]]$n.ind
 
-  sets <- lapply(x, function(x) x$mrk.names)
+  sets <- lapply(z, function(x) x$mrk.names)
   n.unique.mrk <- length(Reduce(union, sets))
-  sets <- lapply(x, function(x) x$mrk.names)
+  sets <- lapply(z, function(x) x$mrk.names)
   total_elements <- sum(sapply(sets, length))
   redundancy_score <- (total_elements - n.unique.mrk) / total_elements
-
-
-
-
-
-  a1<-sapply(x$consensus.map, function(x) sapply(x$ph$PH, function(x) ncol(x)))
-  a2<-sapply(x$consensus.map, function(x) is.null(x$haploprob))
-  msg("Multiparental data:", col = "blue")
-  cat("Ploidy of founders:             ", a1[,1], "\n")
-  cat("Total No. individuals:          ", sum(y), "\n")
-  cat("Total No. markers               ", sum(n.mrk), "\n")
-  cat("Haplotype probability computed: ", ifelse(all(a2), "No", "Yes"), "\n\n")
-  cat("Number of individuals per cross:\n")
-  print_matrix(y, spaces = 0, equal.space = FALSE)
-  map.len <- sapply(x$consensus.map, function(x) round(sum(imf_h(x$rf)),2))
-  cat("\nConsensus Map:\n---------------\n")
-  R <- data.frame('LG' = names(n.mrk),
-                  'Map_length_(cM)' = map.len,
-                  'Markers/cM' = round(n.mrk/map.len, 3),
-                  'Total mrk' = n.mrk,
-                  'Max_gap' = sapply(x$consensus.map, function(x) round(max(imf_h(x$rf)),2)))
-  print_matrix(R, row.names = FALSE, spaces = 0, equal.space = FALSE)
-  msg("", col = "blue")
+  w <- sapply(z, function(x){
+    a <- c(x[["ploidy.p1"]],
+           x[["ploidy.p2"]])
+    data.frame(parent = names(a), ploidy = a)
+  }, simplify = FALSE)
+  ploidies <- t(unique(
+    reshape2::melt(w, id.vars = "parent", value.name = "ploidy")[, c("parent", "ploidy")]
+  ))
+  dimnames(ploidies) <- list(c("",""), ploidies[1,])
+  ploidies <- ploidies[-1,,drop = FALSE]
+    msg("Multiparental data:", col = "blue")
+    cat("Founders:                       ", colnames(ploidies) ,"\n")
+    cat("Ploidy of founders:             ", ploidies ,"\n")
+    cat("Total No. individuals:          ", sum(y), "\n")
+    cat("Total No. markers:              ", n.unique.mrk, "\n")
+    cat("Redundance Score:               ", round(redundancy_score,2),"\n")
+    cat("Number of individuals per cross:\n")
+    print_matrix(y, spaces = 0, equal.space = FALSE)
+    msg("", col = "blue")
 }
 
 

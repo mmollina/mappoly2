@@ -51,17 +51,17 @@ devtools::install_github("mmollina/mappoly2@2025_updates", dependencies=TRUE)
 - Identify and resolve existing bugs.
 
 ## Algorithm Development
-- Implement an algorithm similar to `mappoly::est_rf_hmm_sequential`.
+- ~~Implement an algorithm similar to `mappoly::est_rf_hmm_sequential`~~.
 - Design an algorithm for reconstructing offspring haplotypes, 
 detailing crossover points and identifying homologs involved 
 in the exchange.
 
 ## Data Filtering
 - Split the existing data filtering function into specific filters for:
-  - Individual data
-  - Marker data
-  - Segregation data
-  - Read depth
+  - ~~Individual data~~
+  - ~~Marker data~~
+  - ~~Segregation data~~
+  - ~~Read depth~~
 - Filter individuals:
   - Remove “x” in parents on the plot.
   - Check missing rate and apply if necessary.
@@ -77,7 +77,8 @@ incorporating a two-point linkage and algorithm.
 
 ## Data Integration
 - Enable support for reading **DarTAG** data.
-- Add functionality for reading multiparental population data.
+- ~~Add functionality for reading multiparental population data~~.
+- Implement plot method for multiparental dataset
 - Create a function for reading diploid data.
 
 ## Population Types
@@ -90,7 +91,7 @@ incorporating a two-point linkage and algorithm.
 
 ## Visualization
 - Implement multiple plotting and printing methods to enhance data visualization.
-- Plot MDS (Multidimensional Scaling) to visualize marker relationships.
+- ~~Plot MDS (Multidimensional Scaling) to visualize marker relationships~~.
 
 ## Documentation
 - Create detailed documentation outlining the structure and components of the package objects.
