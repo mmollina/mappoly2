@@ -96,14 +96,14 @@ calc_haplotypes <- function(x, lg = NULL, type = c("mds", "genome"),
   # Execute the haplotype calculation in parallel
   if(ncpus > 1) {
     os_type <- Sys.info()["sysname"]
-    ncpus <- min(ncpus, parallel:::detectCores())
+    ncpus <- min(ncpus, detectCores())
     if (os_type == "Windows") {
       cl <- makeCluster(ncpus)
       on.exit(stopCluster(cl))
       clusterExport(cl, varlist = c("haplotypeData", "haplotypeFunc", "calc_haplotypes_one"), envir = environment())
       results <- parLapply(cl, haplotypeData, haplotypeFunc)
     } else {
-      results <- parallel::mclapply(haplotypeData, haplotypeFunc, mc.cores = ncpus)
+      results <- mclapply(haplotypeData, haplotypeFunc, mc.cores = ncpus)
     }
   } else {
     # Single-core execution: Use lapply
