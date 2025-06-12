@@ -30,6 +30,8 @@ calc_haplotypes <- function(x, lg = NULL, type = c("mds", "genome"),
                             parent = c("p1p2","p1","p2"), phase.conf = "all",
                             verbose = TRUE, ncpus = 1) {
   # Parse the linkage group and map type
+  # if(is.null(lg)){lg <- 1:length(unique(x$data$chrom))}
+  if(length(type) > 1){stop("Please select only one type of analysis at the time.", call. = FALSE)}
   y <- parse_lg_and_type(x, lg, type)
 
   # Match the 'parent' argument to its possible values
@@ -43,13 +45,15 @@ calc_haplotypes <- function(x, lg = NULL, type = c("mds", "genome"),
   dosage.p1 <- x$data$dosage.p1
   dosage.p2 <- x$data$dosage.p2
   ind.names <- x$data$screened.data$ind.names
-
+  
   # Assess the availability of multi-point map data
   has.hmm.map <- sapply(x$maps[y$lg], function(x) sapply(x[[y$type]][3:5], function(x) !is.null(x$hmm.phase[[1]]$loglike)))
 
   # Check for the presence of phase information
-  if(all(!has.hmm.map)) {
-    stop("Provide an hmm estimated map.")
+  if(!all(has.hmm.map)) {
+    issues.has.hmm.map <- which(!has.hmm.map, arr.ind = TRUE)
+    issues.has.hmm.map <- paste( rownames(has.hmm.map)[issues.has.hmm.map[,1]], colnames(has.hmm.map)[issues.has.hmm.map[,2]] ,sep="_")
+    stop(paste("Provide an hmm estimated map for", paste(issues.has.hmm.map, collapse = ", ")), call. = FALSE)
   }
 
   # Select markers based on the availability of phase information
@@ -125,7 +129,7 @@ calc_haplotypes_one <- function(g,
                                 verbose = TRUE){
   if(all(phase.conf == "all"))
     phase.conf <- 1:length(ph)
-  assert_that(all(phase.conf%in%1:length(ph)),
+  assertthat::assert_that(all(phase.conf%in%1:length(ph)),
               msg = "invalid phases specified in 'phase.conf'")
   n.ind <- ncol(g)
   mrk.id <- rownames(ph[[1]]$p1)
