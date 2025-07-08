@@ -12,7 +12,8 @@ table_to_mappoly(
   name.p2 = NULL,
   filter.non.conforming = TRUE,
   filter.redundant = TRUE,
-  verbose = TRUE
+  verbose = TRUE,
+  reorder = TRUE
 )
 }
 \arguments{

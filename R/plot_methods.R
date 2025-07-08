@@ -26,6 +26,7 @@
 plot.mappoly2.data<-function(x,
                              type = c("rf", "screened", "density", "raw"),
                              chrom = NULL,
+                             chrom_lines = TRUE,
                              ...)
 {
   mrk.id <- NULL
@@ -67,19 +68,36 @@ plot.mappoly2.data<-function(x,
       mrk.id <- x$screened.data$mrk.names
     plot_data(x, text = "Screened data", col = "darkblue",
               mrk.id = mrk.id,
-              ind.id = x$screened.data$ind.names)
-  }
-  else
-    plot_data(x, text = "Raw data", col = "darkred", mrk.id = mrk.id)
+              ind.id = x$screened.data$ind.names,
+              chrom_lines = chrom_lines)
+  } else
+    plot_data(x, text = "Raw data", col = "darkred", chrom_lines = chrom_lines)
 }
 
 plot_data <- function(x,
+                      text,
+                      col,
                       mrk.id = NULL,
                       ind.id = NULL,
+                      chrom_lines = TRUE,
                       ...){
   oldpar <- par(mar = c(5,4,1,2))
   on.exit(par(oldpar))
-  y <- .get_current_thresholds(x)
+  flag_screened <- TRUE
+  if(is.null(mrk.id) || is.null(ind.id)){
+    flag_screened <- FALSE
+    y <- list(
+      miss.mrk = Inf,
+      miss.ind = Inf,
+      chisq.pval = -Inf,
+      read.depth = c(0, Inf),
+      LOD.ph = 0,
+      LOD.rf = 0,
+      rf = 0.5,
+      prob.lower = 0,
+      prob.upper = 1
+    )
+  } else y <- .get_current_thresholds(x)
   id <- mappoly2:::.get_mrk_ind_from_QAQC(x$QAQC.values,
                                           miss.mrk.thresh = y$miss.mrk,
                                           miss.ind.thresh = y$miss.ind,
@@ -118,6 +136,17 @@ plot_data <- function(x,
          col = rgb(red = 0.25, green = 0.64, blue = 0.86, alpha = 0.3))
     axis(4, line = 1)
     mtext(text = bquote(log[10](P)), side = 4, line = 4, cex = .7)
+    flag <- check_snp_order(x$chrom[mrk.id], x$genome.pos[mrk.id])
+    flag <- mappoly2:::check_snp_order(x$chrom[mrk.id], x$genome.pos[mrk.id])
+    if(all(is.na(flag))) flag <- FALSE
+    else if(flag$ch_ord) flag <- TRUE
+    if(flag & chrom_lines){
+      n.snp.per.chr <- table(x$chrom[mrk.id])
+      chr_names <- names(n.snp.per.chr)
+      boundaries <- c(1, cumsum(n.snp.per.chr))
+      middle_indices <- floor((head(boundaries, -1) + tail(boundaries, -1)) / 2)
+      abline(v = boundaries,  lty = 2, lwd = 0.5)
+    }
   }
   par(mar = c(5,1,0,2))
   pal <- c("black", colorRampPalette(c("#D73027", "#F46D43", "#FDAE61", "#FEE090",
@@ -128,8 +157,18 @@ plot_data <- function(x,
   M[is.na(M)] <- -1
   image(x = 1:nrow(M), z = M, axes = FALSE, xlab = "",
         col = pal[as.character(sort(unique(as.vector(M))))], useRaster = TRUE)
+  if(flag & chrom_lines){
+    n.snp.per.chr <- table(x$chrom[mrk.id])
+    chr_names <- names(n.snp.per.chr)
+    boundaries <- c(-1, cumsum(n.snp.per.chr))
+    middle_indices <- floor((head(boundaries, -1) + tail(boundaries, -1)) / 2)
+    abline(v = boundaries,  lty = 2, lwd = 1.5)
+    mtext(text = chr_names, at = middle_indices, side = 3, cex = .5)
+  }
   mtext(text = "Markers", side = 1, line = .4)
   mtext(text = "Individuals", side = 2, line = .2)
+  mtext(text = text, side = 1, line = 2, col = col, cex = 0.5)
+
   par(mar = c(0,0,0,0))
   plot(0:10,0:10, type = "n", axes = FALSE, xlab = "", ylab = "")
   legend(0,10,
@@ -160,26 +199,29 @@ plot_data <- function(x,
   v <- setNames(rep(NA, length(w2)), c("Mrk Miss", "Ind Miss",
                                        "Pval", "R Depth"))
 
-  # Loop through the elements of w2 to find the corresponding elements in w1
-  for (i in seq_along(w2)) {
-    if (!is.null(w1[[w2[i]]])) {
-      filter_str <- w1[[w2[i]]][1]
-      if (grepl("chi-squared", filter_str, ignore.case = TRUE)) {
-        # Extract p-value threshold and format to 2 decimal points
-        value <- as.numeric(sub(".*>=\\s*([0-9.eE+-]+).*", "\\1", filter_str))
-        value <- formatC(value, format = "e", digits = 2)
-        v[i] <- paste0(">= ", value)
-      } else if (grepl("read depth", filter_str, ignore.case = TRUE)) {
-        # Extract range for read depth and remove spaces
-        value <- sub(".*\\[\\s*([0-9]+)\\s*,\\s*([0-9]+)\\s*\\].*", "\\1-\\2", filter_str)
-        v[i] <- paste0("[", value, "]")
-      } else if (grepl("<", filter_str)) {
-        # Extract the numeric value after "<"
-        value <- sub(".*<\\s*([0-9.]+).*", "\\1", filter_str)
-        v[i] <- paste0("< ", value)
+  if(flag_screened){
+    # Loop through the elements of w2 to find the corresponding elements in w1
+    for (i in seq_along(w2)) {
+      if (!is.null(w1[[w2[i]]])) {
+        filter_str <- w1[[w2[i]]][1]
+        if (grepl("chi-squared", filter_str, ignore.case = TRUE)) {
+          # Extract p-value threshold and format to 2 decimal points
+          value <- as.numeric(sub(".*>=\\s*([0-9.eE+-]+).*", "\\1", filter_str))
+          value <- formatC(value, format = "e", digits = 2)
+          v[i] <- paste0(">= ", value)
+        } else if (grepl("read depth", filter_str, ignore.case = TRUE)) {
+          # Extract range for read depth and remove spaces
+          value <- sub(".*\\[\\s*([0-9]+)\\s*,\\s*([0-9]+)\\s*\\].*", "\\1-\\2", filter_str)
+          v[i] <- paste0("[", value, "]")
+        } else if (grepl("<", filter_str)) {
+          # Extract the numeric value after "<"
+          value <- sub(".*<\\s*([0-9.]+).*", "\\1", filter_str)
+          v[i] <- paste0("< ", value)
+        }
       }
     }
   }
+
   par(mar = c(0,0,2,0))
   plot(0:10,0:10, type = "n", axes = FALSE, xlab = "", ylab = "")
   mtext("Filters", adj = 0, cex = .8, font = 2, line = 1)
@@ -211,31 +253,45 @@ plot_data <- function(x,
 
 
 
-#' Plot Recombination Fraction Matrices for Genetic Maps
+#' Plot Recombination Fraction or LOD Score Matrices for Genetic Maps
 #'
-#' This function visualizes the recombination fraction matrices for genetic maps.
-#' It allows the user to plot these matrices for different types of genetic data
-#' (e.g., MDS, genome, custom) and for specified linkage groups.
+#' This function visualizes recombination fraction (RF) or LOD score matrices for selected
+#' linkage groups from a \code{mappoly2.data} object. These matrices help reveal the
+#' strength of genetic linkage between markers and can be based on marker ordering from
+#' different sources (e.g., MDS, genome, or custom orders).
 #'
-#' @param x A \code{mappoly2.data} object that contains recombination fraction information.
-#' @param lg Optional vector specifying the linkage groups for which the recombination
-#'           fraction matrices should be plotted. If NULL, matrices for all linkage
-#'           groups are plotted.
-#' @param type The type of genetic data to be visualized. Can be 'mds', 'genome',
-#'             or 'custom'. This parameter determines how the matrices are processed
-#'             and displayed.
-#' @param fact A numeric factor used for scaling or aggregating the matrix data.
-#'             Defaults to 1 (no scaling).
+#' @param x A \code{mappoly2.data} object containing genetic map data, including pairwise
+#'          recombination fractions.
+#' @param lg Optional vector of linkage group identifiers. If \code{NULL}, matrices for
+#'           all available linkage groups will be plotted.
+#' @param type A character string indicating the source of marker order. Options are
+#'             \code{"mds"}, \code{"genome"}, or \code{"custom"}.
+#' @param rf_or_lod A character string specifying whether to plot the recombination
+#'                  fractions (\code{"rf"}) or the LOD scores (\code{"lod"}).
+#' @param mapped Logical. If \code{TRUE}, uses the marker ordering based on phased HMM maps;
+#'               otherwise, uses the current ordering provided in the map data.
+#' @param fact A numeric factor used to aggregate or scale matrix values before plotting.
+#'             Defaults to \code{1} (no aggregation).
 #'
-#' @return The function does not return a value but generates a series of plots,
-#'         each representing the recombination fraction matrix for a specified linkage
-#'         group.
+#' @return This function returns \code{NULL} invisibly. Its primary purpose is to generate
+#'         visualizations (plots) of recombination fraction or LOD matrices for each
+#'         selected linkage group.
 #'
-#' @details The function processes the genetic mapping data based on the specified
-#'          'type' and 'lg' parameters. It then uses `plot_rf_matrix_one` to plot
-#'          individual matrices for each linkage group. The visualization helps in
-#'          understanding the recombination patterns and genetic distances between
-#'          markers.
+#' @details
+#' This function is particularly useful for visually inspecting the pairwise recombination
+#' fractions or LOD scores among markers in each linkage group. It uses marker order
+#' derived either from raw input or HMM-based phasing, and visualizes the matrices using
+#' \code{plot_rf_matrix_one()}. The user can select a scaling factor or specify whether
+#' phased maps should be used.
+#'
+#' @examples
+#' \dontrun{
+#' plot_rf_matrix(my_data, lg = 1:3, type = "mds", rf_or_lod = "rf", mapped = TRUE)
+#' }
+#'
+#' @seealso \code{\link{plot_rf_matrix_one}}, \code{\link{parse_lg_and_type}},
+#'          \code{\link{get_markers_from_ordered_sequence}},
+#'          \code{\link{get_markers_from_phased_sequence}}
 #'
 #' @importFrom graphics par
 #' @importFrom assertthat assert_that
@@ -243,17 +299,36 @@ plot_data <- function(x,
 plot_rf_matrix <- function(x,
                            lg = NULL,
                            type = c("mds", "genome", "custom"),
-                           fact = 1){
-  y <- parse_lg_and_type(x,lg,type)
-  mrk.id <- get_markers_from_ordered_sequence(x, y$lg, y$type)
+                           rf_or_lod = c("rf", "lod"),
+                           mapped = FALSE,
+                           fact = 1) {
+  type <- match.arg(type)
+  rf_or_lod <- match.arg(rf_or_lod)
+
+  y <- parse_lg_and_type(x, lg, type)
+
+  if (mapped) {
+    # Marker IDs using HMM phased sequence
+    mrk.id <- get_markers_from_phased_sequence(x, y$lg, y$type, phase = "hmm.phase")
+  } else {
+    # Marker IDs from specified order
+    mrk.id <- get_markers_from_ordered_sequence(x, y$lg, y$type)
+  }
+
   op <- par(mfrow = optimal_layout(length(y$lg)), pty = "s")
   on.exit(par(op))
-  for(i in 1:length(mrk.id)){
-    plot_rf_matrix_one(x$data$pairwise.rf,
-                       ord = mrk.id[[i]],
-                       main.text = paste(names(x$maps[i]), y$type, sep = "-"),
-                       fact = fact)
+
+  for (i in seq_along(mrk.id)) {
+    plot_rf_matrix_one(
+      rf.data = x$data$pairwise.rf,
+      ord = mrk.id[[i]],
+      type = rf_or_lod,
+      main.text = paste0("LG", y$lg[i], "-", y$type),
+      fact = fact
+    )
   }
+
+  invisible(NULL)
 }
 
 plot_rf_matrix_one <- function(x,
@@ -429,13 +504,9 @@ plot_map <- function(x, lg = 1, type = c("mds", "genome"),
   assert_that(length(y$lg) ==1 & is.numeric(lg))
 
   v <- detect_hmm_est_map(x)
-  u <- apply(v[parent,,],1,all)
-  h <- names(u)[1:2][!u[1:2]]
-  if(length(h) == 1)
-    assert_that(u[type], msg = paste(h, "order has not been computed for", parent))
-  else
-    assert_that(u[type], msg = paste(h[1], "and", h[2],"orders have not been computed for", parent))
-
+  all_ready <- all(sapply(i, function(lg) v[parent, y$type, paste0("lg", y$lg)]))
+  if(!all_ready)
+    assert_that(u[type], msg = paste(y$type, "order has not been computed for", parent))
 
   old.par <- par(no.readonly = TRUE)
   on.exit(par(old.par))
@@ -711,7 +782,7 @@ plot_genome_vs_map <- function(x,
 plot_map_list <- function(x, horiz = TRUE,
                           type = c("mds", "genome"),
                           parent = c("p1p2", "p1", "p2"),
-                          col = "lightblue"){
+                          col = mp2_pal(length(x$maps))){
   assert_that(is.mappoly2.sequence(x))
   type <- match.arg(type)
   parent <- match.arg(parent)

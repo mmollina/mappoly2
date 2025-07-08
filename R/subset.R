@@ -65,6 +65,7 @@ subset.mappoly2.data <- function(x,
         message("Number of selected markers is greater than or equal to the total number of markers. Returning original dataset.")
       } else {
         select.mrk <- sample(x$mrk.names, n)
+        select.mrk <- select.mrk[na.omit(match(x$mrk.names, select.mrk))]
         y <- subset_data(x, select.mrk = select.mrk,
                          filter.non.conforming = filter.non.conforming,
                          filter.redundant = filter.redundant)
@@ -86,6 +87,7 @@ subset.mappoly2.data <- function(x,
         message("Number of selected individuals is greater than or equal to the total number of individuals. Returning original dataset.")
       } else {
         select.ind <- sample(x$ind.names, n)
+        select.ind <- select.ind[na.omit(match(x$ind.names, select.ind))]
         y <- subset_data(x, select.ind = select.ind,
                          filter.non.conforming = filter.non.conforming,
                          filter.redundant = filter.redundant)

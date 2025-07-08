@@ -457,6 +457,35 @@ mappoly_to_csv_mappoly2 <- function(x, path = NULL, parent.names = NULL){
   }
 }
 
+#' MAPpoly v1 main palette
+#'
+#' @param void internal function to be documented
+#' @keywords internal
+#' @export
+mp2_pal <- function(n) {
+  # Define your base palette
+  color_set <- c(
+    "#CE2220CC", "#E67F33CC", "#D0B440CC",
+    "#7EB875CC", "#57A2ACCC", "#4E79C4CC",
+    "#824D99CC"
+  )
+  if (n == 2) {
+    return(color_set[c(1,5)])
+  } else if(n ==3){
+    color_set[c(1,3,5)]
+  } else if(n ==4){
+    color_set[c(1,2,3,5)]
+  } else if(n ==5){
+    color_set[c(1,2,3,5,6)]
+  } else if(n ==6){
+    color_set[c(1,2,3,4,5,6)]
+  } else if(n ==7){
+    color_set[c(1,2,3,4,5,6,7)]
+  }else {
+    color_palette <- colorRampPalette(color_set)
+    return(color_palette(n))
+  }
+}
 
 
 
@@ -768,7 +797,8 @@ create_all_dat <- function(wide_df, pedigree,
           P1 = .data[[p1]],
           P2 = .data[[p2]]
         )
-
+      names(parent_dosages)[names(parent_dosages) == "P1"] <- p1
+      names(parent_dosages)[names(parent_dosages) == "P2"] <- p2
       genotypes <- wide_df %>%
         select(all_of(indiv_names))
 

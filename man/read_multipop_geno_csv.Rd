@@ -12,15 +12,6 @@ read_multipop_geno_csv(
   filter.redundant = TRUE,
   verbose = TRUE
 )
-
-read_multipop_geno_csv(
-  data.file,
-  pedigree.file,
-  ploidy.vec,
-  filter.non.conforming = TRUE,
-  filter.redundant = TRUE,
-  verbose = TRUE
-)
 }
 \arguments{
 \item{data.file}{A string. Path to the CSV file with genotype dosage data, including marker ID,
@@ -43,27 +34,13 @@ the expected segregation range under no double reduction.}
 \value{
 An object of class \code{mappoly.data.list}, a named list of \code{mappoly.data} objects
 for each cross found in the pedigree.
-
-An object of class \code{mappoly.data.list}, a named list of \code{mappoly.data} objects
-for each cross found in the pedigree.
 }
 \description{
 This function takes genotype and pedigree files to generate
 a list of \code{mappoly.data} objects for multiple F1 populations. It performs
 optional filtering for non-conforming dosage classes and redundant markers.
-
-This function takes genotype and pedigree files to generate
-a list of \code{mappoly.data} objects for multiple F1 populations. It performs
-optional filtering for non-conforming dosage classes and redundant markers.
 }
 \examples{
-ploidy.vec <- c(4, 2, 4, 2, 4, 4)
-names(ploidy.vec) <- c("P1", "P2", "P3", "P4", "P5", "P6")
-result <- read_multipop_geno_csv(
-  data.file = "path/to/data_multi_pop.csv",
-  pedigree.file = "path/to/pedigree.csv",
-  ploidy.vec = ploidy.vec
-)
 ploidy.vec <- c(4, 2, 4, 2, 4, 4)
 names(ploidy.vec) <- c("P1", "P2", "P3", "P4", "P5", "P6")
 result <- read_multipop_geno_csv(

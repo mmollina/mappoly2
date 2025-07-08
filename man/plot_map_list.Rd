@@ -9,7 +9,7 @@ plot_map_list(
   horiz = TRUE,
   type = c("mds", "genome"),
   parent = c("p1p2", "p1", "p2"),
-  col = "lightblue"
+  col = mp2_pal(length(x$maps))
 )
 }
 \arguments{

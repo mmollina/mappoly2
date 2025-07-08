@@ -37,7 +37,7 @@
 #'     }
 #'   }
 #' }
-"potato_dataset"
+"potato"
 
 #' Autotetraploid Alfalfa F1 Dataset
 #'
@@ -60,3 +60,34 @@
 #' @format A list of class \code{mappoly2.data} with the following components:
 #' (Structure is identical to the potato dataset above, with specifics adapted.)
 "alfalfa_bc"
+
+#' Diploid Apple F1 Dataset – 4-Chromosome Subset
+#'
+#' This dataset contains SNP dosage calls for **318 F₁ seedlings** obtained from the
+#' diploid apple cross *‘Jonathan’ × ‘Golden Delicious’*.
+#' The 610 bi-allelic SNPs included here belong to **four chromosomes
+#' (Chr 2, 3, 8 and 9)** and were generated with restriction-site–associated DNA
+#' sequencing (RAD-seq) as described in Sun *et al.* (2015).
+#' The subset is provided for tutorials and vignette examples in **\pkg{mappoly2}**.
+#'
+#' ## Details
+#' * **Parents:** ‘Jonathan’ (maternal) and ‘Golden Delicious’ (paternal)
+#' * **Population size:** 318 individuals
+#' * **Markers:** 610 SNPs
+#'   * Chr 2 – 134; Chr 3 – 160; Chr 8 – 149; Chr 9 – 167
+#' * **Ploidy:** Diploid (2 × = 34)
+#'
+#' ## Source
+#' Sun R, Chang Y, Yang F, *et al.* (2015)
+#' *A dense SNP genetic map constructed using restriction site-associated DNA
+#' sequencing enables detection of QTLs controlling apple fruit quality.*
+#' **BMC Genomics 16**:747. <doi:10.1186/s12864-015-1946-x>
+#'
+#' @format A list of class \code{mappoly2.data} with the following
+#' components.
+#' *(Structure is identical to the \code{alfalfa_f1} dataset, with these
+#' apple-specific values.)*
+#'
+#' @keywords datasets
+"apple"
+

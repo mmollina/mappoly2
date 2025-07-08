@@ -238,7 +238,7 @@ filter_markers_by_chisq_pval <- function(x, chisq.pval.thresh = NULL, plot = TRU
 #' @export
 filter_markers_by_read_depth <- function(x, read.depth.thresh = c(5, 1000), plot = TRUE) {
   assert_that(is.mappoly2.data(x))
-  a <- grepl(pattern = ".csv", attr(x, "history")$read_geno_csv$Value[1])
+  a <- grepl(pattern = ".csv", attr(x, "history")$read_biparental_geno_csv$Value[1])
   if(length(a) != 0){
     warning("The input file lacks read depth information. Returning the original file without modifications.")
     return(x)

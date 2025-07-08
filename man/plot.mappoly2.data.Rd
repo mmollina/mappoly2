@@ -4,7 +4,13 @@
 \alias{plot.mappoly2.data}
 \title{Plot Data from mappoly2.data Object}
 \usage{
-\method{plot}{mappoly2.data}(x, type = c("rf", "screened", "density", "raw"), chrom = NULL, ...)
+\method{plot}{mappoly2.data}(
+  x,
+  type = c("rf", "screened", "density", "raw"),
+  chrom = NULL,
+  chrom_lines = TRUE,
+  ...
+)
 }
 \arguments{
 \item{x}{A \code{mappoly2.data} object containing genetic mapping data. The object can also be of class "screened" and "pairwise.rf".}

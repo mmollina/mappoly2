@@ -77,3 +77,46 @@ export_biparental_map_to_csv <- function(x,
   invisible(final_df)
 }
 
+#' Export a `mappoly2.data` Object to a CSV File
+#'
+#' This function exports a \code{mappoly2.data} object to a CSV file containing
+#' SNP metadata and dosage information for both parents and all offspring.
+#'
+#' @param x An object of class \code{mappoly2.data}.
+#' @param file A character string naming the output CSV file.
+#' @param name.p1 Optional name to replace the default label \code{P1} (parent 1).
+#' @param name.p2 Optional name to replace the default label \code{P2} (parent 2).
+#'
+#' @return Invisibly returns a \code{data.frame} containing the exported data.
+#'
+#' @export
+export_data_to_csv <- function(x, file = "file.csv",
+                               name.p1 = NULL,
+                               name.p2 = NULL) {
+  assertthat::assert_that(inherits(x, "mappoly2.data"))
+
+  # Use custom parent names if provided
+  p1_name <- if (!is.null(name.p1)) name.p1 else "P1"
+  p2_name <- if (!is.null(name.p2)) name.p2 else "P2"
+
+  # Build output data frame
+  out <- tibble::tibble(
+    snp_id     = x$mrk.names,
+    Chr        = x$chrom,
+    genome_pos = x$genome.pos,
+    ref        = x$ref,
+    alt        = x$alt
+  )
+  out[[p1_name]] <- x$dosage.p1
+  out[[p2_name]] <- x$dosage.p2
+
+  # Add progeny dosages
+  geno <- as.data.frame(x$geno.dose)
+  out <- cbind(out, geno)
+
+  # Write to CSV
+  write.csv(out, file = file, row.names = FALSE)
+
+  invisible(out)
+}
+

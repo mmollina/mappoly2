@@ -2,38 +2,62 @@
 % Please edit documentation in R/plot_methods.R
 \name{plot_rf_matrix}
 \alias{plot_rf_matrix}
-\title{Plot Recombination Fraction Matrices for Genetic Maps}
+\title{Plot Recombination Fraction or LOD Score Matrices for Genetic Maps}
 \usage{
-plot_rf_matrix(x, lg = NULL, type = c("mds", "genome", "custom"), fact = 1)
+plot_rf_matrix(
+  x,
+  lg = NULL,
+  type = c("mds", "genome", "custom"),
+  rf_or_lod = c("rf", "lod"),
+  mapped = FALSE,
+  fact = 1
+)
 }
 \arguments{
-\item{x}{A \code{mappoly2.data} object that contains recombination fraction information.}
+\item{x}{A \code{mappoly2.data} object containing genetic map data, including pairwise
+recombination fractions.}
 
-\item{lg}{Optional vector specifying the linkage groups for which the recombination
-fraction matrices should be plotted. If NULL, matrices for all linkage
-groups are plotted.}
+\item{lg}{Optional vector of linkage group identifiers. If \code{NULL}, matrices for
+all available linkage groups will be plotted.}
 
-\item{type}{The type of genetic data to be visualized. Can be 'mds', 'genome',
-or 'custom'. This parameter determines how the matrices are processed
-and displayed.}
+\item{type}{A character string indicating the source of marker order. Options are
+\code{"mds"}, \code{"genome"}, or \code{"custom"}.}
 
-\item{fact}{A numeric factor used for scaling or aggregating the matrix data.
-Defaults to 1 (no scaling).}
+\item{rf_or_lod}{A character string specifying whether to plot the recombination
+fractions (\code{"rf"}) or the LOD scores (\code{"lod"}).}
+
+\item{mapped}{Logical. If \code{TRUE}, uses the marker ordering based on phased HMM maps;
+otherwise, uses the current ordering provided in the map data.}
+
+\item{fact}{A numeric factor used to aggregate or scale matrix values before plotting.
+Defaults to \code{1} (no aggregation).}
 }
 \value{
-The function does not return a value but generates a series of plots,
-each representing the recombination fraction matrix for a specified linkage
-group.
+This function returns \code{NULL} invisibly. Its primary purpose is to generate
+visualizations (plots) of recombination fraction or LOD matrices for each
+selected linkage group.
 }
 \description{
-This function visualizes the recombination fraction matrices for genetic maps.
-It allows the user to plot these matrices for different types of genetic data
-(e.g., MDS, genome, custom) and for specified linkage groups.
+This function visualizes recombination fraction (RF) or LOD score matrices for selected
+linkage groups from a \code{mappoly2.data} object. These matrices help reveal the
+strength of genetic linkage between markers and can be based on marker ordering from
+different sources (e.g., MDS, genome, or custom orders).
 }
 \details{
-The function processes the genetic mapping data based on the specified
-'type' and 'lg' parameters. It then uses \code{plot_rf_matrix_one} to plot
-individual matrices for each linkage group. The visualization helps in
-understanding the recombination patterns and genetic distances between
-markers.
+This function is particularly useful for visually inspecting the pairwise recombination
+fractions or LOD scores among markers in each linkage group. It uses marker order
+derived either from raw input or HMM-based phasing, and visualizes the matrices using
+\code{plot_rf_matrix_one()}. The user can select a scaling factor or specify whether
+phased maps should be used.
+}
+\examples{
+\dontrun{
+plot_rf_matrix(my_data, lg = 1:3, type = "mds", rf_or_lod = "rf", mapped = TRUE)
+}
+
+}
+\seealso{
+\code{\link{plot_rf_matrix_one}}, \code{\link{parse_lg_and_type}},
+\code{\link{get_markers_from_ordered_sequence}},
+\code{\link{get_markers_from_phased_sequence}}
 }

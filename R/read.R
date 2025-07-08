@@ -63,7 +63,7 @@
 #' \donttest{
 #' # Read a tetraploid dataset from a CSV file
 #' tempfl <- list.files(system.file('extdata', package = 'mappoly2'), full.names = TRUE)
-#' alfalfa.bc <- read_geno_csv(
+#' alfalfa.bc <- read_biparental_geno_csv(
 #'   file.in = tempfl,
 #'   ploidy.p1 = 4,
 #'   name.p1 = "I195",
@@ -79,7 +79,7 @@
 #' @importFrom utils read.csv
 #' @importFrom assertthat is.readable
 #' @export
-read_geno_csv <- function(
+read_biparental_geno_csv <- function(
     file.in,
     ploidy.p1,
     ploidy.p2 = ploidy.p1,
@@ -87,13 +87,14 @@ read_geno_csv <- function(
     name.p2 = NULL,
     filter.non.conforming = TRUE,
     filter.redundant = TRUE,
-    verbose = TRUE
+    verbose = TRUE,
+    reorder = TRUE
 ) {
   # Ensure the input file is readable
   assert_that(is.readable(file.in))
 
   # Read the CSV file
-  data <- read.csv(file = file.in, header = TRUE, stringsAsFactors = FALSE)
+  data <- readr::read_csv(file = file.in, col_names = TRUE, show_col_types = FALSE)
 
   # Store the number of original markers and individuals
   num_markers <- nrow(data)
@@ -210,7 +211,7 @@ read_geno_csv <- function(
 #' fl <- "https://github.com/mmollina/MAPpoly_vignettes/raw/master/data/sweet_sample_ch3.vcf.gz"
 #' tempfl <- tempfile(pattern = 'chr3_', fileext = '.vcf.gz')
 #' download.file(fl, destfile = tempfl)
-#' dat.dose.vcf <- read_vcf(
+#' dat.dose.vcf <- read_biparental_geno_vcf(
 #'   file.in = tempfl,
 #'   ploidy.p1 = 6,
 #'   name.p1 = "PARENT1",
@@ -223,7 +224,7 @@ read_geno_csv <- function(
 #'
 #' @references Gabriel Gesteira, \email{gdesiqu@ncsu.edu}; Marcelo Mollinari, \email{mmollin@ncsu.edu}
 #' @export
-read_vcf <- function(
+read_biparental_geno_vcf <- function(
     file.in,
     ploidy.p1,
     ploidy.p2 = ploidy.p1,
@@ -358,16 +359,16 @@ read_vcf <- function(
   # Create a data frame for the selected markers
   marker_data <- data.frame(
     snp_id = markers_with_parents,
-    P1 = as.integer(geno_dose[markers_with_parents, name.p1]),
-    P2 = as.integer(geno_dose[markers_with_parents, name.p2]),
     chrom = chrom[markers_with_parents],
     genome_pos = genome_pos[markers_with_parents],
     ref = ref_alleles[markers_with_parents],
     alt = alt_alleles[markers_with_parents],
+    P1 = as.integer(geno_dose[markers_with_parents, name.p1]),
+    P2 = as.integer(geno_dose[markers_with_parents, name.p2]),
     geno_dose[markers_with_parents, name.offspring, drop = FALSE],
     stringsAsFactors = FALSE
   )
-
+  colnames(marker_data)[6:7] <- c(name.p1, name.p2)
   # Convert the data frame to a mappoly object
   mappoly_data <- mappoly2:::table_to_mappoly(
     marker_data,
@@ -454,87 +455,6 @@ read_vcf <- function(
 #'   for each cross found in the pedigree.
 #'
 #' @export
-#'
-#' @examples
-#' ploidy.vec <- c(4, 2, 4, 2, 4, 4)
-#' names(ploidy.vec) <- c("P1", "P2", "P3", "P4", "P5", "P6")
-#' result <- read_multipop_geno_csv(
-#'   data.file = "path/to/data_multi_pop.csv",
-#'   pedigree.file = "path/to/pedigree.csv",
-#'   ploidy.vec = ploidy.vec
-#' )
-read_multipop_geno_csv <- function(data.file,
-                                   pedigree.file,
-                                   ploidy.vec,
-                                   filter.non.conforming = TRUE,
-                                   filter.redundant = TRUE,
-                                   verbose = TRUE) {
-  dat <- readr::read_csv(data.file, show_col_types = FALSE)
-  pedigree <- readr::read_csv(pedigree.file, show_col_types = FALSE)
-
-  dat_split <- mappoly2:::create_all_dat(dat, pedigree)
-
-  dat_split <- lapply(dat_split, function(df) {
-    df %>%
-      dplyr::select(
-        1,        # snp_id
-        6, 7,     # parent columns (P1 and P2)
-        2:5,      # chrom, genome_pos, ref, alt
-        8:ncol(.) # progeny genotypes
-      )
-  })
-
-  crosses <- names(dat_split)
-  out_list <- vector("list", length(crosses))
-  names(out_list) <- crosses
-
-  for (i in crosses) {
-    cur_f1 <- dplyr::filter(pedigree, cross == i)
-    p1 <- unique(cur_f1$parent_1)
-    p2 <- unique(cur_f1$parent_2)
-    stopifnot(length(p1) == 1, length(p2) == 1)
-
-    out_list[[i]] <- mappoly2:::table_to_mappoly(
-      x = as.data.frame(dat_split[[i]]),
-      ploidy.p1 = ploidy.vec[p1],
-      ploidy.p2 = ploidy.vec[p2],
-      name.p1 = p1,
-      name.p2 = p2,
-      filter.non.conforming = filter.non.conforming,
-      filter.redundant = filter.redundant,
-      verbose = verbose
-    )
-
-    if (verbose) {
-      message("Processed cross: ", i)
-    }
-  }
-
-  structure(out_list, class = "mappoly.data.list")
-}
-
-#' Create a List of `mappoly.data` Objects for F1 Crosses
-#'
-#' This function takes genotype and pedigree files to generate
-#' a list of `mappoly.data` objects for multiple F1 populations. It performs
-#' optional filtering for non-conforming dosage classes and redundant markers.
-#'
-#' @param data.file A string. Path to the CSV file with genotype dosage data, including marker ID,
-#'   parental genotypes, marker metadata (e.g., chromosome, position, ref/alt),
-#'   and progeny dosage calls.
-#' @param pedigree.file A string. Path to the CSV file with three columns: `cross`, `parent_1`, and `parent_2`,
-#'   indicating the cross name and its respective parents.
-#' @param ploidy.vec A named numeric vector indicating the ploidy level for each parent.
-#'   Names must correspond to parental names in the `pedigree.file`.
-#' @param filter.non.conforming Logical. If `TRUE`, remove genotype calls that violate
-#'   the expected segregation range under no double reduction.
-#' @param filter.redundant Logical. If `TRUE`, remove redundant markers.
-#' @param verbose Logical. If `TRUE`, print progress and summary messages.
-#'
-#' @return An object of class `mappoly.data.list`, a named list of `mappoly.data` objects
-#'   for each cross found in the pedigree.
-#'
-#' @export
 #' @importFrom readr read_csv
 #' @examples
 #' ploidy.vec <- c(4, 2, 4, 2, 4, 4)
@@ -553,18 +473,7 @@ read_multipop_geno_csv <- function(data.file,
   dat <- read_csv(data.file, show_col_types = FALSE)
   pedigree <- read_csv(pedigree.file, show_col_types = FALSE)
 
-  dat_split <- create_all_dat(dat, pedigree)
-
-  dat_split <- lapply(dat_split, function(df) {
-    df %>%
-      dplyr::select(
-        1,        # snp_id
-        6, 7,     # parent columns (P1 and P2)
-        2:5,      # chrom, genome_pos, ref, alt
-        8:ncol(.) # progeny genotypes
-      )
-  })
-
+  dat_split <- mappoly2:::create_all_dat(dat, pedigree)
   crosses <- names(dat_split)
   out_list <- vector("list", length(crosses))
   names(out_list) <- crosses
@@ -724,15 +633,15 @@ print.mappoly2.data.list  <- function(x,...){
   ))
   dimnames(ploidies) <- list(c("",""), ploidies[1,])
   ploidies <- ploidies[-1,,drop = FALSE]
-    msg("Multiparental data:", col = "blue")
-    cat("Founders:                       ", colnames(ploidies) ,"\n")
-    cat("Ploidy of founders:             ", ploidies ,"\n")
-    cat("Total No. individuals:          ", sum(y), "\n")
-    cat("Total No. markers:              ", n.unique.mrk, "\n")
-    cat("Redundance Score:               ", round(redundancy_score,2),"\n")
-    cat("Number of individuals per cross:\n")
-    print_matrix(y, spaces = 0, equal.space = FALSE)
-    msg("", col = "blue")
+  msg("Multiparental data:", col = "blue")
+  cat("Founders:                       ", colnames(ploidies) ,"\n")
+  cat("Ploidy of founders:             ", ploidies ,"\n")
+  cat("Total No. individuals:          ", sum(y), "\n")
+  cat("Total No. markers:              ", n.unique.mrk, "\n")
+  cat("Redundance Score:               ", round(redundancy_score,2),"\n")
+  cat("Number of individuals per cross:\n")
+  print_matrix(y, spaces = 0, equal.space = FALSE)
+  msg("", col = "blue")
 }
 
 
@@ -760,10 +669,21 @@ table_to_mappoly <- function(
     name.p2 = NULL,
     filter.non.conforming = TRUE,
     filter.redundant = TRUE,
-    verbose = TRUE
+    verbose = TRUE,
+    reorder = TRUE
 ) {
+
+  validation_result <- suppressWarnings(assert_valid_snp_csv(x,
+                                                             ploidy.p1,
+                                                             ploidy.p2,
+                                                             name.p1,
+                                                             name.p2,
+                                                             max_missing_rate = Inf,
+                                                             reorder))
+  x <- validation_result$df
+
   # Remove markers with missing parental dosages
-  x <- x[!is.na(x[, 2]) & !is.na(x[, 3]), ]
+  x <- x[!is.na( x[[6]]) & !is.na(x[[7]]), ]
 
   # Get the number of individuals and markers
   n.ind <- ncol(x) - 7
@@ -771,18 +691,18 @@ table_to_mappoly <- function(
   n.mrk.nona.on.parents <- n.mrk
 
   # Get marker names
-  mrk.names <- as.character(x[, 1])
+  mrk.names <- as.character(x[[1]])
 
   # Get individual names
   ind.names <- colnames(x)[-(1:7)]
 
   # Get parent names
-  if (is.null(name.p1)) name.p1 <- colnames(x)[2]
-  if (is.null(name.p2)) name.p2 <- colnames(x)[3]
+  if (is.null(name.p1)) name.p1 <- colnames(x)[6]
+  if (is.null(name.p2)) name.p2 <- colnames(x)[7]
 
   # Get dosages for parents
-  dosage.p1 <- as.integer(x[, 2])
-  dosage.p2 <- as.integer(x[, 3])
+  dosage.p1 <- as.integer(x[[6]])
+  dosage.p2 <- as.integer(x[[7]])
 
   # Compute dosage differences for polymorphic markers
   d.p1 <- abs(abs(dosage.p1 - (ploidy.p1 / 2)) - (ploidy.p1 / 2))
@@ -796,14 +716,14 @@ table_to_mappoly <- function(
   n.mrk.less.equal.ploidy <- sum(id)
 
   # Extract chromosome and position information
-  chrom <- as.character(x[, 4])
+  chrom <- as.character(x[[2]])
   chrom[is.na(chrom) | chrom == ""] <- "NoChr"
 
-  genome.pos <- as.numeric(x[, 5])
+  genome.pos <- as.numeric(x[[3]])
 
   # Get reference and alternate alleles
-  ref <- as.character(x[, 6])
-  alt <- as.character(x[, 7])
+  ref <- as.character(x[[4]])
+  alt <- as.character(x[[5]])
 
   # Assign names to vectors
   names(ref) <- names(alt) <- names(genome.pos) <- names(chrom) <-
@@ -930,6 +850,12 @@ table_to_mappoly <- function(
     map_step = map_step,
     class_suffix = NULL
   )
+  if (length(validation_result$problems) > 0) {
+    cat("\n⚠️  Data Validation Warnings:\n")
+    for (msg in validation_result$problems) {
+      cat(" -", msg, "\n")
+    }
+  }
 
   return(mappoly_data)
 }

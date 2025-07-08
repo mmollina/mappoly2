@@ -1,10 +1,10 @@
-# Sample test for `read_geno_csv`
-test_that("read_geno_csv processes real CSV file correctly", {
+# Sample test for `read_biparental_geno_csv`
+test_that("read_biparental_geno_csv processes real CSV file correctly", {
   # Locate the CSV file from the package's extdata directory
   tempfl <- list.files(system.file("extdata", package = "mappoly2"), full.names = TRUE)
 
   # Run the function
-  result <- read_geno_csv(
+  result <- read_biparental_geno_csv(
     file.in = tempfl,
     ploidy.p1 = 4,
     name.p1 = "I195",
@@ -20,14 +20,14 @@ test_that("read_geno_csv processes real CSV file correctly", {
   expect_equal(result$name.p1, "I195")
   expect_equal(result$name.p2, "F1.85.209")
 })
-test_that("read_vcf processes real VCF file correctly", {
+test_that("read_biparental_geno_vcf processes real VCF file correctly", {
   # Prepare the VCF file
   fl <- "https://github.com/mmollina/MAPpoly_vignettes/raw/master/data/sweet_sample_ch3.vcf.gz"
   tempfl <- tempfile(pattern = 'chr3_', fileext = '.vcf.gz')
   download.file(fl, destfile = tempfl)
 
   # Run the function
-  result <- read_vcf(
+  result <- read_biparental_geno_vcf(
     file.in = tempfl,
     ploidy.p1 = 6,
     name.p1 = "PARENT1",
