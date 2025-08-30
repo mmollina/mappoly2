@@ -23,9 +23,9 @@ table_to_mappoly(
 
 \item{ploidy.p2}{Ploidy level of parent 2.}
 
-\item{name.p1}{Name of parent 1 (defaults to the name in the data frame).}
+\item{name.p1}{Name of parent 1. If not provided, defaults to the column in position 6.}
 
-\item{name.p2}{Name of parent 2 (defaults to the name in the data frame).}
+\item{name.p2}{Name of parent 2. If not provided, defaults to the column in position 7.}
 
 \item{filter.non.conforming}{Logical value indicating whether to filter out non-conforming markers
 (default is \code{TRUE}).}
@@ -34,6 +34,8 @@ table_to_mappoly(
 \code{TRUE}).}
 
 \item{verbose}{Logical value indicating whether to display progress information (default is \code{TRUE}).}
+
+\item{reorder}{Logical value indicating whether to reorder columns for validation (default is \code{TRUE}).}
 }
 \description{
 Converts a data frame containing genetic marker data into an object of class \code{mappoly2.data}.

@@ -345,7 +345,7 @@ filter_individuals <- function(x,
     G  <- AGHmatrix::Gmatrix(D, method = "VanRaden",ploidy = x$ploidy.p1/2 + x$ploidy.p2/2)
     y1 <- G[1,]
     y2 <- G[2,]
-    df <- data.frame(x = y1, y = y2, type = c(2, 2, rep(4, length(y1)-2)))
+    df <- data.frame(x = y1, y = y2, type = c(2, 2, rep(4, length(y1)-2)), row.names = rownames(D))
     w<-max(df[,-3])
     if(point.type != "point"){
       pt = "n"

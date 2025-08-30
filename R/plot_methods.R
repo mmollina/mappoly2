@@ -320,9 +320,9 @@ plot_rf_matrix <- function(x,
 
   for (i in seq_along(mrk.id)) {
     plot_rf_matrix_one(
-      rf.data = x$data$pairwise.rf,
-      ord = mrk.id[[i]],
+      x = x$data$pairwise.rf,
       type = rf_or_lod,
+      ord = mrk.id[[i]],
       main.text = paste0("LG", y$lg[i], "-", y$type),
       fact = fact
     )
@@ -504,7 +504,7 @@ plot_map <- function(x, lg = 1, type = c("mds", "genome"),
   assert_that(length(y$lg) ==1 & is.numeric(lg))
 
   v <- detect_hmm_est_map(x)
-  all_ready <- all(sapply(i, function(lg) v[parent, y$type, paste0("lg", y$lg)]))
+  all_ready <- all(sapply(lg, function(lg) v[parent, y$type, paste0("lg", y$lg)]))
   if(!all_ready)
     assert_that(u[type], msg = paste(y$type, "order has not been computed for", parent))
 

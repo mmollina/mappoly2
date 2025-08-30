@@ -653,13 +653,14 @@ print.mappoly2.data.list  <- function(x,...){
 #' @param x A data frame containing genetic marker data.
 #' @param ploidy.p1 Ploidy level of parent 1.
 #' @param ploidy.p2 Ploidy level of parent 2.
-#' @param name.p1 Name of parent 1 (defaults to the name in the data frame).
-#' @param name.p2 Name of parent 2 (defaults to the name in the data frame).
+#' @param name.p1 Name of parent 1. If not provided, defaults to the column in position 6.
+#' @param name.p2 Name of parent 2. If not provided, defaults to the column in position 7.
 #' @param filter.non.conforming Logical value indicating whether to filter out non-conforming markers
 #'   (default is \code{TRUE}).
 #' @param filter.redundant Logical value indicating whether to filter out redundant markers (default is
 #'   \code{TRUE}).
 #' @param verbose Logical value indicating whether to display progress information (default is \code{TRUE}).
+#' @param reorder Logical value indicating whether to reorder columns for validation (default is \code{TRUE}).
 #' @keywords internal
 table_to_mappoly <- function(
     x,
@@ -673,59 +674,84 @@ table_to_mappoly <- function(
     reorder = TRUE
 ) {
 
-  validation_result <- suppressWarnings(assert_valid_snp_csv(x,
-                                                             ploidy.p1,
-                                                             ploidy.p2,
-                                                             name.p1,
-                                                             name.p2,
-                                                             max_missing_rate = Inf,
-                                                             reorder))
+  # ---- Check that provided parent names exist in the data ----
+  if (!is.null(name.p1) && !(name.p1 %in% colnames(x))) {
+    warning("name.p1 '", name.p1, "' not found in data frame. Using column 6 instead.")
+    name.p1 <- NULL
+  }
+  if (!is.null(name.p2) && !(name.p2 %in% colnames(x))) {
+    warning("name.p2 '", name.p2, "' not found in data frame. Using column 7 instead.")
+    name.p2 <- NULL
+  }
+
+  # ---- Ensure parent columns are positioned at 6 and 7 ----
+  if (!is.null(name.p1) && name.p1 %in% colnames(x)) {
+    col_pos <- which(colnames(x) == name.p1)
+    if (col_pos != 6) {
+      x <- x[, c(1:5, col_pos, setdiff(1:ncol(x), c(1:5, col_pos)))]
+    }
+  }
+  if (!is.null(name.p2) && name.p2 %in% colnames(x)) {
+    col_pos <- which(colnames(x) == name.p2)
+    if (col_pos != 7) {
+      # remove col_pos first then insert into 7th place
+      rest <- setdiff(1:ncol(x), col_pos)
+      x <- x[, c(rest[1:6], col_pos, rest[-(1:6)])]
+    }
+  }
+
+  # ---- Validation ----
+  validation_result <- suppressWarnings(assert_valid_snp_csv(
+    x,
+    ploidy.p1,
+    ploidy.p2,
+    name.p1,
+    name.p2,
+    max_missing_rate = Inf,
+    reorder
+  ))
   x <- validation_result$df
 
   # Remove markers with missing parental dosages
-  x <- x[!is.na( x[[6]]) & !is.na(x[[7]]), ]
+  x <- x[!is.na(x[[6]]) & !is.na(x[[7]]), ]
 
-  # Get the number of individuals and markers
+  # Counts
   n.ind <- ncol(x) - 7
   n.mrk <- nrow(x)
   n.mrk.nona.on.parents <- n.mrk
 
-  # Get marker names
+  # Names
   mrk.names <- as.character(x[[1]])
-
-  # Get individual names
   ind.names <- colnames(x)[-(1:7)]
-
-  # Get parent names
   if (is.null(name.p1)) name.p1 <- colnames(x)[6]
   if (is.null(name.p2)) name.p2 <- colnames(x)[7]
 
-  # Get dosages for parents
+  # Parental dosages
   dosage.p1 <- as.integer(x[[6]])
   dosage.p2 <- as.integer(x[[7]])
 
-  # Compute dosage differences for polymorphic markers
+  # Informative markers
   d.p1 <- abs(abs(dosage.p1 - (ploidy.p1 / 2)) - (ploidy.p1 / 2))
   d.p2 <- abs(abs(dosage.p2 - (ploidy.p2 / 2)) - (ploidy.p2 / 2))
   id <- (d.p1 + d.p2) != 0
   n.segreg.mrk <- sum(id)
 
-  # Markers with parental dosages less than or equal to ploidy levels
   within_ploidy <- (dosage.p1 <= ploidy.p1) & (dosage.p2 <= ploidy.p2)
   id <- id & within_ploidy
   n.mrk.less.equal.ploidy <- sum(id)
 
-  # Extract chromosome and position information
-  chrom <- as.character(x[[2]])
+  # Chromosome and position
+  chrom_raw <- as.character(x[[2]])
+  chrom_available <- any(!is.na(chrom_raw) & chrom_raw != "")
+  chrom <- chrom_raw
   chrom[is.na(chrom) | chrom == ""] <- "NoChr"
 
-  genome.pos <- as.numeric(x[[3]])
+  genome.pos <- suppressWarnings(as.numeric(x[[3]]))
+  pos_available <- any(!is.na(genome.pos))
 
-  # Get reference and alternate alleles
+  # REF / ALT
   ref <- as.character(x[[4]])
   alt <- as.character(x[[5]])
-
-  # Assign names to vectors
   names(ref) <- names(alt) <- names(genome.pos) <- names(chrom) <-
     names(dosage.p2) <- names(dosage.p1) <- mrk.names
 
@@ -737,22 +763,18 @@ table_to_mappoly <- function(
     cat("    Number of markers:", n.mrk, "\n")
     cat("    Number of informative markers:", sum(id), "(",
         round(100 * sum(id) / n.mrk, 1), "%)\n")
-    if (any(!is.na(chrom))) cat("    Chromosome information is available.\n")
-    if (any(!is.na(genome.pos))) cat("    Position information is available.\n")
+    if (chrom_available) cat("    Chromosome information is available.\n")
+    if (pos_available) cat("    Position information is available.\n")
   }
 
-  # Get genotypic data
+  # Offspring data
   geno.dose <- as.matrix(x[, -(1:7)])
   dimnames(geno.dose) <- list(mrk.names, ind.names)
-
-  # Replace dosages exceeding offspring ploidy level with NA
   max_offspring_ploidy <- (ploidy.p1 + ploidy.p2) / 2
   geno.dose[geno.dose > max_offspring_ploidy] <- NA
-
-  # Filter to valid markers
   geno.dose <- geno.dose[id, , drop = FALSE]
 
-  # Create the mappoly2.data object
+  # Build object
   mappoly_data <- list(
     ploidy.p1 = ploidy.p1,
     ploidy.p2 = ploidy.p2,
@@ -773,21 +795,17 @@ table_to_mappoly <- function(
     redundant = NULL,
     QAQC.values = NULL
   )
-  class(mappoly_data) <- c("mappoly2.data")
+  class(mappoly_data) <- "mappoly2.data"
 
-  # Filter non-conforming markers if requested
+  # Filtering and QAQC
   if (filter.non.conforming) {
     if (verbose) cat("Filtering non-conforming markers...\n")
     mappoly_data <- mappoly2:::filter_non_conforming_classes(mappoly_data)
   }
-
-  # Filter redundant markers if requested
   if (filter.redundant) {
     if (verbose) cat("Filtering redundant markers...\n")
     mappoly_data <- suppressMessages(filter_redundant(mappoly_data, plot = FALSE))
   }
-
-  # Compute QAQC values
   mappoly_data$QAQC.values <- .setQAQC(
     id.mrk = mappoly_data$mrk.names,
     id.ind = mappoly_data$ind.names,
@@ -798,7 +816,7 @@ table_to_mappoly <- function(
 
   if (verbose) cat("Data processing complete.\n")
 
-  # Update metadata
+  # Metadata
   map_step <- data.frame(
     Metric = c(
       "Markers with no missing data on parents",
@@ -828,8 +846,7 @@ table_to_mappoly <- function(
               length(mappoly_data$mrk.names) + nrow(mappoly_data$redundant)
             ),
             1
-          ),
-          "%"
+          ), "%"
         )
       } else {
         "Unavailable"
@@ -838,23 +855,16 @@ table_to_mappoly <- function(
         round(100 * sum(is.na(mappoly_data$geno.dose)) / length(mappoly_data$geno.dose), 1),
         "%"
       ),
-      if (any(!is.na(mappoly_data$chrom))) "Available" else "Unavailable",
-      if (any(!is.na(mappoly_data$genome.pos))) "Available" else "Unavailable"
+      if (chrom_available) "Available" else "Unavailable",
+      if (pos_available) "Available" else "Unavailable"
     ),
     stringsAsFactors = FALSE
   )
+  mappoly_data <- update_metadata(mappoly_data, map_step = map_step, class_suffix = NULL)
 
-  # Update the metadata of the mappoly object
-  mappoly_data <- update_metadata(
-    mappoly_data,
-    map_step = map_step,
-    class_suffix = NULL
-  )
   if (length(validation_result$problems) > 0) {
     cat("\n⚠️  Data Validation Warnings:\n")
-    for (msg in validation_result$problems) {
-      cat(" -", msg, "\n")
-    }
+    for (msg in validation_result$problems) cat(" -", msg, "\n")
   }
 
   return(mappoly_data)

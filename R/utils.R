@@ -808,3 +808,169 @@ create_all_dat <- function(wide_df, pedigree,
 
   return(all_dat)
 }
+#' Convert a \code{mappoly2.data} list to a \code{mappoly.data} object
+#'
+#' @description
+#' Converts a biparental dataset stored in a lightweight \code{mappoly2.data}-style
+#' list into a fully formed \code{mappoly.data} object that downstream MAPpoly
+#' functions expect.
+#'
+#' @details
+#' The function performs basic consistency checks, then builds a \code{mappoly.data}
+#' object with fields ordered and typed as in \code{\link[mappoly]{tetra.solcap}}.
+#' The following rules are applied:
+#' \itemize{
+#'   \item Parental ploidies must match. The common value is stored in \code{ploidy}.
+#'   \item \code{geno.dose} is coerced to a data frame with rows ordered by
+#'   \code{mrk.names} and columns ordered by \code{ind.names}.
+#'   \item \code{dosage.p1} and \code{dosage.p2} are coerced to integer named vectors
+#'   in the same marker order.
+#'   \item Optional fields \code{chrom} and \code{genome.pos} are copied when present,
+#'   otherwise they are filled with \code{NA}.
+#'   \item If \code{use_seq_alleles = TRUE}, the allele columns \code{ref} and \code{alt}
+#'   from \code{mp2} are copied into \code{seq.ref} and \code{seq.alt}. If \code{FALSE},
+#'   these are set to \code{NULL}.
+#'   \item If available, marker segregation p values are taken from
+#'   \code{mp2$QAQC.values$markers$chisq.pval} and placed in \code{chisq.pval}.
+#'   \item \code{kept} is set to all markers and \code{elim.correspondence} is created empty.
+#' }
+#'
+#' @param mp2 A list that represents a \code{mappoly2.data} dataset. It must contain
+#' at least the fields \code{ploidy.p1}, \code{ploidy.p2}, \code{n.ind}, \code{n.mrk},
+#' \code{ind.names}, \code{mrk.names}, \code{dosage.p1}, \code{dosage.p2}, \code{geno.dose}.
+#' Optional fields include \code{chrom}, \code{genome.pos}, \code{ref}, \code{alt},
+#' and \code{QAQC.values}.
+#' @param use_seq_alleles Logical. If \code{TRUE}, copy \code{mp2$ref} and \code{mp2$alt}
+#' into \code{seq.ref} and \code{seq.alt}. Default is \code{FALSE}.
+#'
+#' @return An object of class \code{mappoly.data} with components compatible with
+#' \code{mappoly} functions such as \code{\link[mappoly]{est_rf_hmm_one_seq}}.
+#'
+#' @seealso \code{\link[mappoly]{tetra.solcap}}
+#'
+#' @examples
+#' \donttest{
+#'   library(mappoly)
+#'
+#'   ## Build a minimal mappoly2-style list from tetra.solcap
+#'   data(tetra.solcap)
+#'   mp2 <- list(
+#'     ploidy.p1  = tetra.solcap$ploidy,
+#'     ploidy.p2  = tetra.solcap$ploidy,
+#'     n.ind      = tetra.solcap$n.ind,
+#'     n.mrk      = tetra.solcap$n.mrk,
+#'     ind.names  = tetra.solcap$ind.names,
+#'     mrk.names  = tetra.solcap$mrk.names,
+#'     dosage.p1  = tetra.solcap$dosage.p1,
+#'     dosage.p2  = tetra.solcap$dosage.p2,
+#'     chrom      = tetra.solcap$chrom,
+#'     genome.pos = tetra.solcap$genome.pos,
+#'     ref        = NULL,
+#'     alt        = NULL,
+#'     geno.dose  = tetra.solcap$geno.dose
+#'   )
+#'
+#'   mp <- mappoly2_to_mappoly(mp2, use_seq_alleles = FALSE)
+#'   class(mp)
+#'   stopifnot(inherits(mp, "mappoly.data"))
+#' }
+#'
+#' @export
+mappoly2_to_mappoly <- function(mp2, use_seq_alleles = FALSE) {
+  # basic checks
+  req <- c("ploidy.p1","ploidy.p2","n.ind","n.mrk",
+           "ind.names","mrk.names","dosage.p1","dosage.p2","geno.dose")
+  miss <- setdiff(req, names(mp2))
+  if (length(miss)) stop("Missing required fields in mp2: ", paste(miss, collapse = ", "))
+
+  if (!identical(as.integer(mp2$n.ind), ncol(mp2$geno.dose)))
+    stop("n.ind does not match ncol(geno.dose)")
+  if (!identical(as.integer(mp2$n.mrk), nrow(mp2$geno.dose)))
+    stop("n.mrk does not match nrow(geno.dose)")
+
+  # ploidy
+  if (mp2$ploidy.p1 != mp2$ploidy.p2)
+    stop("Parental ploidies differ: ", mp2$ploidy.p1, " vs ", mp2$ploidy.p2)
+  ploidy <- as.integer(mp2$ploidy.p1)
+
+  # geno.dose as data.frame [markers x individuals]
+  gd <- mp2$geno.dose
+  if (is.matrix(gd)) {
+    rownames(gd) <- mp2$mrk.names
+    colnames(gd) <- mp2$ind.names
+    gd <- as.data.frame(gd, stringsAsFactors = FALSE, check.names = FALSE)
+  } else {
+    gd <- gd[mp2$mrk.names, mp2$ind.names, drop = FALSE]
+  }
+
+  # dosages as integer vectors aligned to marker order
+  d1 <- as.integer(mp2$dosage.p1[mp2$mrk.names]); names(d1) <- mp2$mrk.names
+  d2 <- as.integer(mp2$dosage.p2[mp2$mrk.names]); names(d2) <- mp2$mrk.names
+
+  # optional fields
+  chrom <- if (!is.null(mp2$chrom)) as.character(mp2$chrom[mp2$mrk.names]) else
+    rep(NA_character_, mp2$n.mrk)
+  names(chrom) <- mp2$mrk.names
+
+  genome.pos <- if (!is.null(mp2$genome.pos)) suppressWarnings(as.numeric(mp2$genome.pos[mp2$mrk.names])) else
+    rep(NA_real_, mp2$n.mrk)
+  names(genome.pos) <- mp2$mrk.names
+
+  seq.ref <- NULL
+  seq.alt <- NULL
+  if (use_seq_alleles) {
+    if (!is.null(mp2$ref)) {
+      seq.ref <- as.character(mp2$ref[mp2$mrk.names]); names(seq.ref) <- mp2$mrk.names
+    }
+    if (!is.null(mp2$alt)) {
+      seq.alt <- as.character(mp2$alt[mp2$mrk.names]); names(seq.alt) <- mp2$mrk.names
+    }
+  }
+
+  # chisq p values if available
+  chisq.pval <- NULL
+  if (!is.null(mp2$QAQC.values) &&
+      !is.null(mp2$QAQC.values$markers) &&
+      !is.null(mp2$QAQC.values$markers$chisq.pval)) {
+    p <- mp2$QAQC.values$markers$chisq.pval
+    if (is.null(names(p)) && nrow(mp2$QAQC.values$markers) == mp2$n.mrk) {
+      names(p) <- mp2$mrk.names
+    }
+    chisq.pval <- as.numeric(p[mp2$mrk.names])
+    names(chisq.pval) <- mp2$mrk.names
+  }
+
+  # build object
+  out <- list(
+    ploidy        = ploidy,
+    n.ind         = as.numeric(mp2$n.ind),
+    n.mrk         = as.integer(mp2$n.mrk),
+    ind.names     = as.character(mp2$ind.names),
+    mrk.names     = as.character(mp2$mrk.names),
+    dosage.p1     = d1,
+    dosage.p2     = d2,
+    chrom         = chrom,
+    genome.pos    = genome.pos,
+    seq.ref       = seq.ref,
+    seq.alt       = seq.alt,
+    all.mrk.depth = NULL,
+    prob.thres    = NULL,
+    geno.dose     = gd,
+    nphen         = 0,
+    phen          = NULL,
+    kept          = as.character(mp2$mrk.names),
+    elim.correspondence = data.frame(
+      kept = factor(),
+      elim = factor(),
+      chrom = character(),
+      genome.pos = numeric(),
+      seq.ref = logical(),
+      seq.alt = logical(),
+      all.mrk.depth = logical(),
+      stringsAsFactors = FALSE
+    ),
+    chisq.pval    = chisq.pval
+  )
+  class(out) <- "mappoly.data"
+  out
+}
